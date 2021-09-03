@@ -1,0 +1,2 @@
+*.egg-info/
+/notable2/__pycache__/
