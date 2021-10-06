@@ -1,0 +1,164 @@
+{
+  "ADM_mass": {
+    "file_key": "ADMMass_VolumeMass[0]",
+    "file_name": "admmass-admmass_masses..asc",
+    "name": "ADM mass (volume)",
+    "unit": "M$_\\odot$"
+  },
+  "ADM_mass_lapse": {
+    "file_key": "ADMMass_SurfaceMass_Lapse[0]",
+    "file_name": "admmass-admmass_masses..asc",
+    "name": "ADM mass (surface/lapse)",
+    "unit": "M$_\\odot$"
+  },
+  "ADM_mass_surf": {
+    "file_key": "ADMMass_SurfaceMass[0]",
+    "file_name": "admmass-admmass_masses..asc",
+    "name": "ADM mass",
+    "unit": "M$_\\odot$"
+  },
+  "W_max": {
+    "file_key": "w_lorentz(maximum)",
+    "file_name": "hydrobase-w_lorentz.scalars.asc",
+    "name": "maximum Lorentz factor"
+  },
+  "W_min": {
+    "file_key": "w_lorentz(minimum)",
+    "file_name": "hydrobase-w_lorentz.scalars.asc",
+    "name": "minimum Lorentz factor"
+  },
+  "alpha_min": {
+    "file_key": "alp(minimum)",
+    "file_name": "admbase-lapse.scalars.asc",
+    "name": "minimum lapse"
+  },
+  "b_mass_dummy": {
+    "file_key": "dens(norm1)",
+    "file_name": "thc_core-dens.scalars.asc",
+    "name": "thc-core-dens"
+  },
+  "consH_inf_bssn": {
+    "file_key": "H(norm_inf)",
+    "file_name": "ml_bssn-ml_ham.scalars.asc",
+    "name": "Hamiltonian constrain violation ($\\infty$-norm)"
+  },
+  "consH_ni_lean": {
+    "file_key": "hc(norm_inf)",
+    "file_name": "leanbssnmol-ham.scalars.asc",
+    "name": "Hamiltonian constrain violation ($\\infty$-norm)"
+  },
+  "consH_norminf": {
+    "file_key": "H(norm_inf)",
+    "file_name": "ml_ccz4-ml_ham.scalars.asc",
+    "name": "Hamiltonian constrain violation ($\\infty$-norm)"
+  },
+  "dens_norm1": {
+    "file_key": "dens(norm1)",
+    "file_name": "thc_core-dens.scalars.asc",
+      "scale_factor": "Rho",
+    "name": "baryonic mass"
+  },
+  "mph": {
+    "code_unit": "$M_\\odot$",
+      "scale_factor": "Time",
+    "file_key": "physical_time_per_hour",
+    "file_name": "carpet-timing..asc",
+    "name": "physical time per hour",
+    "unit": "ms"
+  },
+  "phi_lean_max": {
+    "file_key": "conf_fac(maximum)",
+    "file_name": "leanbssnmol-conf_fac.scalars.asc",
+    "name": "maximum conformal factor"
+  },
+  "phi_lean_min": {
+    "file_key": "conf_fac(minimum)",
+    "file_name": "leanbssnmol-conf_fac.scalars.asc",
+    "name": "minimum conformal factor"
+  },
+  "phi_max": {
+    "file_key": "phi(maximum)",
+    "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
+    "name": "maximum conformal factor"
+  },
+  "phi_max_bssn": {
+    "file_key": "phi(maximum)",
+    "file_name": "ml_bssn-ml_log_confac.scalars.asc",
+    "name": "maximum conformal factor"
+  },
+  "phi_min": {
+    "file_key": "phi(minimum)",
+    "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
+    "name": "minimum conformal factor"
+  },
+  "phi_min_bssn": {
+    "file_key": "phi(minimum)",
+    "file_name": "ml_bssn-ml_log_confac.scalars.asc",
+    "name": "minimum conformal factor"
+  },
+  "rho_max": {
+    "code_unit": "$M_\\odot$",
+    "scale_factor": "Rho",
+    "file_key": "rho(maximum)",
+    "file_name": "hydrobase-rho.scalars.asc",
+    "name": "maximum density",
+    "unit": "g cm$^{-3}$"
+  },
+  "rho_min": {
+    "code_unit": "$M_\\odot$",
+    "scale_factor": "Rho",
+    "file_key": "rho(minimum)",
+    "file_name": "hydrobase-rho.scalars.asc",
+    "name": "minimum density",
+    "unit": "g cm$^{-3}$"
+  },
+  "temp_max": {
+    "file_key": "temperature(maximum)",
+    "file_name": "hydrobase-temperature.scalars.asc",
+    "name": "maximum_temperature",
+    "unit": "MeV"
+  },
+  "temp_min": {
+    "file_key": "temperature(minimum)",
+    "file_name": "hydrobase-temperature.scalars.asc",
+    "name": "minimum temperature",
+    "unit": "MeV"
+  },
+  "time_comm": {
+    "file_key": "time_communicating",
+    "file_name": "carpet-timing..asc",
+    "scale_factor": 0.00027778,
+    "name": "wall time spent comunicating",
+    "unit": "s"
+  },
+  "time_comp": {
+    "file_key": "time_computing",
+    "file_name": "carpet-timing..asc",
+    "scale_factor": 0.00027778,
+    "name": "wall time spent computing",
+    "unit": "s"
+  },
+  "time_io": {
+    "file_key": "time_io",
+    "file_name": "carpet-timing..asc",
+    "scale_factor": 0.00027778,
+    "name": "wall time spent in I/O",
+    "unit": "s"
+  },
+  "time_tot": {
+    "file_key": "time_total",
+    "file_name": "carpet-timing..asc",
+    "scale_factor": 0.00027778,
+    "name": "total wall time"
+  },
+  "ye_max": {
+    "file_key": "Y_e(maximum)",
+    "file_name": "hydrobase-y_e.scalars.asc",
+    "name": "maximum electron fraction"
+  },
+  "ye_min": {
+    "file_key": "Y_e(minimum)",
+    "file_name": "hydrobase-y_e.scalars.asc",
+    "name": "minimum electron fraction"
+  }
+}

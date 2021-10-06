@@ -1,0 +1,827 @@
+{
+  "ADM-dens": {
+    "code_unit": "$M_\\odot^{-2}$",
+    "file_key": "ADMMASS::ADMMass_VolumeMass_GF",
+    "file_name": "admmass-admmass_gfs_volume",
+    "kwargs": {
+      "cmap": "magma"
+    },
+    "name": "ADM-mass integrand",
+    "scale_factor": "Rho",
+    "unit": "g cm$^{-3}$"
+  },
+  "L-nu-a": {
+    "file_key": "THC_LEAKAGEBASE::luminosity_nua",
+    "file_name": "thc_leakagebase-thc_leakage_luminosity",
+    "kwargs": {
+      "cmap": "viridis"
+    },
+    "name": "$L_{\\bar{\\nu}_{\\rm e}}$"
+  },
+  "L-nu-e": {
+    "file_key": "THC_LEAKAGEBASE::luminosity_nue",
+    "file_name": "thc_leakagebase-thc_leakage_luminosity",
+    "kwargs": {
+      "cmap": "viridis"
+    },
+    "name": "$L_{\\nu_{\\rm e}}$"
+  },
+  "L-nu-x": {
+    "file_key": "THC_LEAKAGEBASE::luminosity_nux",
+    "file_name": "thc_leakagebase-thc_leakage_luminosity",
+    "kwargs": {
+      "cmap": "viridis"
+    },
+    "name": "$L_{\\nu_x}$"
+  },
+  "Q-nu-a": {
+    "file_key": "THC_LEAKAGEBASE::Q_eff_nua",
+    "file_name": "thc_leakagebase-thc_leakage_eff_rates",
+    "kwargs": {
+      "cmap": "inferno",
+      "func": "log"
+    },
+    "name": "$Q_{\\bar{\\nu}_e}",
+    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
+  },
+  "Q-nu-a-free": {
+    "file_key": "THC_LEAKAGEBASE::Q_free_nua",
+    "file_name": "thc_leakagebase-thc_leakage_free_rates",
+    "kwargs": {
+      "cmap": "inferno",
+      "func": "log"
+    },
+    "name": "$Q_{\\bar{\\nu}_e, \\rm{free}}",
+    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
+  },
+  "Q-nu-e": {
+    "file_key": "THC_LEAKAGEBASE::Q_eff_nue",
+    "file_name": "thc_leakagebase-thc_leakage_eff_rates",
+    "kwargs": {
+      "cmap": "inferno",
+      "func": "log"
+    },
+    "name": "$Q_{\\nu_e}",
+    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
+  },
+  "Q-nu-e-free": {
+    "file_key": "THC_LEAKAGEBASE::Q_free_nue",
+    "file_name": "thc_leakagebase-thc_leakage_free_rates",
+    "kwargs": {
+      "cmap": "inferno",
+      "func": "log"
+    },
+    "name": "$Q_{\\nu_e, \\rm{free}}",
+    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
+  },
+  "Q-nu-x": {
+    "file_key": "THC_LEAKAGEBASE::Q_eff_nux",
+    "file_name": "thc_leakagebase-thc_leakage_eff_rates",
+    "kwargs": {
+      "cmap": "inferno",
+      "func": "log"
+    },
+    "name": "$Q_{\\nu_x}",
+    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
+  },
+  "Q-nu-x-free": {
+    "file_key": "THC_LEAKAGEBASE::Q_free_nux",
+    "file_name": "thc_leakagebase-thc_leakage_free_rates",
+    "kwargs": {
+      "cmap": "inferno",
+      "func": "log"
+    },
+    "name": "$Q_{\\nu_x, \\rm{free}}",
+    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
+  },
+  "R-nu-a": {
+    "file_key": "THC_LEAKAGEBASE::R_eff_nua",
+    "file_name": "thc_leakagebase-thc_leakage_eff_rates",
+    "kwargs": {
+      "cmap": "viridis",
+      "func": "log"
+    },
+    "name": "$R_{\\bar{\\nu}_e}",
+    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "unit": "cm$^{-3}$ ms$^{-1}$"
+  },
+  "R-nu-a-free": {
+    "file_key": "THC_LEAKAGEBASE::R_free_nua",
+    "file_name": "thc_leakagebase-thc_leakage_free_rates",
+    "kwargs": {
+      "cmap": "viridis",
+      "func": "log"
+    },
+    "name": "$R_{\\bar{\\nu}_e, \\rm{free}}",
+    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "unit": "cm$^{-3}$ ms$^{-1}$"
+  },
+  "R-nu-e": {
+    "file_key": "THC_LEAKAGEBASE::R_eff_nue",
+    "file_name": "thc_leakagebase-thc_leakage_eff_rates",
+    "kwargs": {
+      "cmap": "viridis",
+      "func": "log"
+    },
+    "name": "$R_{\\nu_e}",
+    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "unit": "cm$^{-3}$ ms$^{-1}$"
+  },
+  "R-nu-e-free": {
+    "file_key": "THC_LEAKAGEBASE::R_free_nue",
+    "file_name": "thc_leakagebase-thc_leakage_free_rates",
+    "kwargs": {
+      "cmap": "viridis",
+      "func": "log"
+    },
+    "name": "$R_{\\nu_e, \\rm{free}}",
+    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "unit": "cm$^{-3}$ ms$^{-1}$"
+  },
+  "R-nu-x": {
+    "file_key": "THC_LEAKAGEBASE::R_eff_nux",
+    "file_name": "thc_leakagebase-thc_leakage_eff_rates",
+    "kwargs": {
+      "cmap": "viridis",
+      "func": "log"
+    },
+    "name": "$R_{\\nu_x}",
+    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "unit": "cm$^{-3}$ ms$^{-1}$"
+  },
+  "R-nu-x-free": {
+    "file_key": "THC_LEAKAGEBASE::R_free_nux",
+    "file_name": "thc_leakagebase-thc_leakage_free_rates",
+    "kwargs": {
+      "cmap": "viridis",
+      "func": "log"
+    },
+    "name": "$R_{\\nu_x, \\rm{free}}",
+    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "unit": "cm$^{-3}$ ms$^{-1}$"
+  },
+  "T_tt": {
+    "file_key": "TMUNUBASE::eTtt",
+    "file_name": "tmunubase-stress_energy_scalar",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{tt}$"
+  },
+  "T_tx": {
+    "file_key": "TMUNUBASE::eTtx",
+    "file_name": "tmunubase-stress_energy_vector",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{tx}$"
+  },
+  "T_ty": {
+    "file_key": "TMUNUBASE::eTty",
+    "file_name": "tmunubase-stress_energy_vector",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{ty}$"
+  },
+  "T_tz": {
+    "file_key": "TMUNUBASE::eTtz",
+    "file_name": "tmunubase-stress_energy_vector",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{tz}$"
+  },
+  "T_xx": {
+    "file_key": "TMUNUBASE::eTxx",
+    "file_name": "tmunubase-stress_energy_tensor",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{xx}$"
+  },
+  "T_xy": {
+    "file_key": "TMUNUBASE::eTxy",
+    "file_name": "tmunubase-stress_energy_tensor",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{xy}$"
+  },
+  "T_xz": {
+    "file_key": "TMUNUBASE::eTxz",
+    "file_name": "tmunubase-stress_energy_tensor",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{xz}$"
+  },
+  "T_yy": {
+    "file_key": "TMUNUBASE::eTyy",
+    "file_name": "tmunubase-stress_energy_tensor",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{yy}$"
+  },
+  "T_yz": {
+    "file_key": "TMUNUBASE::eTyz",
+    "file_name": "tmunubase-stress_energy_tensor",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{yz}$"
+  },
+  "T_zz": {
+    "file_key": "TMUNUBASE::eTzz",
+    "file_name": "tmunubase-stress_energy_tensor",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$T_{zz}$"
+  },
+  "W": {
+    "file_key": "HYDROBASE::w_lorentz",
+    "file_name": "hydrobase-w_lorentz",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "Lorentz factor"
+  },
+  "alpha": {
+    "file_key": "ADMBASE::alp",
+    "file_name": "admbase-lapse",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$alpha$"
+  },
+  "beta^x": {
+    "file_key": "ADMBASE::betax",
+    "file_name": "admbase-shift",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$\\beta_{x}$",
+    "unit": "$c$"
+  },
+  "beta^y": {
+    "file_key": "ADMBASE::betay",
+    "file_name": "admbase-shift",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$\\beta_{y}$",
+    "unit": "$c$"
+  },
+  "beta^z": {
+    "file_key": "ADMBASE::betaz",
+    "file_name": "admbase-shift",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$\\beta_{z}$",
+    "unit": "$c$"
+  },
+  "c2p-bitmask": {
+    "file_key": "THC_CORE::bitmask",
+    "file_name": "thc_core-bitmask",
+    "kwargs": {
+      "cmap": "jet"
+    },
+    "name": "c2p bitmask"
+  },
+  "consH": {
+    "file_key": "ML_BSSN::H",
+    "file_name": "ml_bssn-ml_ham",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "hamiltonian constraint violation"
+  },
+  "consH-CCZ4": {
+    "file_key": "ML_CCZ4::H",
+    "file_name": "ml_ccz4-ml_ham",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "hamiltonian constraint violation"
+  },
+  "consM_x": {
+    "file_key": "ML_BSSN::M1",
+    "file_name": "ml_bssn-ml_mom",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "x-momentum constraint violation"
+  },
+  "consM_x-CCZ4": {
+    "file_key": "ML_CCZ4::M1",
+    "file_name": "ml_ccz4-ml_mom",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "x-momentum constraint violation"
+  },
+  "consM_y": {
+    "file_key": "ML_BSSN::M2",
+    "file_name": "ml_bssn-ml_mom",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "y-momentum constraint violation"
+  },
+  "consM_y-CCZ4": {
+    "file_key": "ML_CCZ4::M2",
+    "file_name": "ml_ccz4-ml_mom",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "y-momentum constraint violation"
+  },
+  "consM_z": {
+    "file_key": "ML_BSSN::M3",
+    "file_name": "ml_bssn-ml_mom",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "z-momentum constraint violation"
+  },
+  "consM_z-CCZ4": {
+    "file_key": "ML_CCZ4::M3",
+    "file_name": "ml_ccz4-ml_mom",
+    "kwargs": {
+      "cmap": "cubehelix",
+      "func": "logabs"
+    },
+    "name": "z-momentum constraint violation"
+  },
+  "dens": {
+    "code_unit": "$M_\\odot^{-2}$",
+    "file_key": "THC_CORE::dens",
+    "file_name": "thc_core-dens",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "conserved restmass density",
+    "scale_factor": "Rho",
+    "unit": "g cm$^{-3}$"
+  },
+  "entr": {
+    "file_key": "HYDROBASE::entropy",
+    "file_name": "hydrobase-entropy",
+    "kwargs": {
+      "cmap": "inferno"
+    },
+    "name": "entropy",
+    "unit": "$k_{\\rm B}$"
+  },
+  "eps": {
+    "file_key": "HYDROBASE::eps",
+    "file_name": "hydrobase-eps",
+    "kwargs": {
+      "cmap": "inferno"
+    },
+    "name": "specific internal energy"
+  },
+  "g_xx": {
+    "file_key": "ADMBASE::gxx",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{xx}$"
+  },
+  "g_xy": {
+    "file_key": "ADMBASE::gxy",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{xy}$"
+  },
+  "g_xz": {
+    "file_key": "ADMBASE::gxz",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{xz}$"
+  },
+  "g_yy": {
+    "file_key": "ADMBASE::gyy",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{yy}$"
+  },
+  "g_yz": {
+    "file_key": "ADMBASE::gyz",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{yz}$"
+  },
+  "g_zz": {
+    "file_key": "ADMBASE::gzz",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{zz}$"
+  },
+  "k_xx": {
+    "file_key": "ADMBASE::kxx",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{xx}$"
+  },
+  "k_xy": {
+    "file_key": "ADMBASE::kxy",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{xy}$"
+  },
+  "k_xz": {
+    "file_key": "ADMBASE::kxz",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{xz}$"
+  },
+  "k_yy": {
+    "file_key": "ADMBASE::kyy",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{yy}$"
+  },
+  "k_yz": {
+    "file_key": "ADMBASE::kyz",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{yz}$"
+  },
+  "k_zz": {
+    "file_key": "ADMBASE::kzz",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{zz}$"
+  },
+  "kappa-0a": {
+    "file_key": "THC_LEAKAGEBASE::kappa_0_nua",
+    "file_name": "thc_leakagebase-thc_leakage_opacity",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "$kappa_{\\bar{\\nu}_{\\rm e}, 0}$"
+  },
+  "kappa-0e": {
+    "file_key": "THC_LEAKAGEBASE::kappa_0_nue",
+    "file_name": "thc_leakagebase-thc_leakage_opacity",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "$kappa_{\\nu_{\\rm e}, 0}$"
+  },
+  "kappa-0x": {
+    "file_key": "THC_LEAKAGEBASE::kappa_0_nux",
+    "file_name": "thc_leakagebase-thc_leakage_opacity",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "$kappa_{\\nu_x, 0}$"
+  },
+  "kappa-1a": {
+    "file_key": "THC_LEAKAGEBASE::kappa_1_nua",
+    "file_name": "thc_leakagebase-thc_leakage_opacity",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "$kappa_{\\bar{\\nu}_{\\rm e}, 1}$"
+  },
+  "kappa-1e": {
+    "file_key": "THC_LEAKAGEBASE::kappa_1_nue",
+    "file_name": "thc_leakagebase-thc_leakage_opacity",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "$kappa_{\\nu_{\\rm e}, 1}$"
+  },
+  "kappa-1x": {
+    "file_key": "THC_LEAKAGEBASE::kappa_1_nux",
+    "file_name": "thc_leakagebase-thc_leakage_opacity",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "$kappa_{\\nu_x, 1}$"
+  },
+  "nu-abs-en": {
+    "file_key": "THC_LEAKAGEBASE::abs_energy",
+    "file_name": "thc_leakagebase-thc_leakage_abs",
+    "kwargs": {
+      "cmap": "inferno"
+    },
+    "name": "$q_{\\nu}$"
+  },
+  "nu-abs-num": {
+    "file_key": "THC_LEAKAGEBASE::abs_number",
+    "file_name": "thc_leakagebase-thc_leakage_abs",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$n_{\\rm{abs}, \\nu}$"
+  },
+  "phi": {
+    "file_key": "ML_BSSN::phi",
+    "file_name": "ml_bssn-ml_log_confac",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "log($phi$)"
+  },
+  "phi_CCZ4": {
+    "file_key": "ML_CCZ4::phi",
+    "file_name": "ml_ccz4-ml_log_confac",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "log($phi$)"
+  },
+  "press": {
+    "code_unit": "$M_\\odot^{-2}$",
+    "file_key": "HYDROBASE::press",
+    "file_name": "hydrobase-press",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "pressure",
+    "scale_factor": "Press",
+    "unit": "g cm$^{-1}$ s$^{-2}$"
+  },
+  "reduce-weights": {
+    "file_key": "CARPETREDUCE::weight",
+    "file_name": "carpetreduce-weight",
+    "kwargs": {
+      "cmap": "cubehelix"
+    },
+    "name": "reduction weights"
+  },
+  "rho": {
+    "code_unit": "$M_\\odot^{-2}$",
+    "file_key": "HYDROBASE::rho",
+    "file_name": "hydrobase-rho",
+    "kwargs": {
+      "cmap": "magma",
+      "func": "log"
+    },
+    "name": "density",
+    "scale_factor": "Rho",
+    "unit": "g cm$^{-3}$"
+  },
+  "rhs-densxn": {
+    "file_key": "THC_CORE::rhs_densxn",
+    "file_name": "thc_core-rhs_densxn",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "rhs_densxn"
+  },
+  "rhs-densxp": {
+    "file_key": "THC_CORE::rhs_densxp",
+    "file_name": "thc_core-rhs_densxp",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "rhs_densxp"
+  },
+  "rhs-scon_x": {
+    "file_key": "THC_CORE::rhs_scon[0]",
+    "file_name": "thc_core-rhs_scon",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "rhs_sconx"
+  },
+  "rhs-scon_y": {
+    "file_key": "THC_CORE::rhs_scon[1]",
+    "file_name": "thc_core-rhs_scon",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "rhs_scony"
+  },
+  "rhs-scon_z": {
+    "file_key": "THC_CORE::rhs_scon[2]",
+    "file_name": "thc_core-rhs_scon",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "rhs_sconz"
+  },
+  "rhs-tau": {
+    "file_key": "THC_CORE::rhs_tau",
+    "file_name": "thc_core-rhs_tau",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "rhs_tau"
+  },
+  "scon_x": {
+    "code_unit": "$c M_\\odot^{-2}$",
+    "file_key": "THC_CORE::scon[0]",
+    "file_name": "thc_core-scon",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$S_x^{\\rm con.}$",
+    "scale_factor": "Rho",
+    "unit": "$c$ g cm$^{-3}$"
+  },
+  "scon_y": {
+    "code_unit": "$c M_\\odot^{-2}$",
+    "file_key": "THC_CORE::scon[1]",
+    "file_name": "thc_core-scon",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$S_y^{\\rm con.}$",
+    "scale_factor": "Rho",
+    "unit": "$c$ g cm$^{-3}$"
+  },
+  "scon_z": {
+    "code_unit": "$c M_\\odot^{-2}$",
+    "file_key": "THC_CORE::scon[2]",
+    "file_name": "thc_core-scon",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$S_z^{\\rm con.}$",
+    "scale_factor": "Rho",
+    "unit": "$c$ g cm$^{-3}$"
+  },
+  "tau": {
+    "file_key": "THC_CORE::tau",
+    "file_name": "thc_core-tau",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "tau"
+  },
+  "tau-0a": {
+    "file_key": "THC_LEAKAGEBASE::optd_0_nua",
+    "file_name": "thc_leakagebase-thc_leakage_optd",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "$\\tau_{\\bar{\\nu}_{\\rm e}, 0}$"
+  },
+  "tau-0e": {
+    "file_key": "THC_LEAKAGEBASE::optd_0_nue",
+    "file_name": "thc_leakagebase-thc_leakage_optd",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "$\\tau_{\\nu_{\\rm e}, 0}$"
+  },
+  "tau-0x": {
+    "file_key": "THC_LEAKAGEBASE::optd_0_nux",
+    "file_name": "thc_leakagebase-thc_leakage_optd",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "$\\tau_{\\nu_x, 0}$"
+  },
+  "tau-1a": {
+    "file_key": "THC_LEAKAGEBASE::optd_1_nua",
+    "file_name": "thc_leakagebase-thc_leakage_optd",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "$\\tau_{\\bar{\\nu}_{\\rm e}, 1}$"
+  },
+  "tau-1e": {
+    "file_key": "THC_LEAKAGEBASE::optd_1_nue",
+    "file_name": "thc_leakagebase-thc_leakage_optd",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "$\\tau_{\\nu_{\\rm e}, 1}$"
+  },
+  "tau-1x": {
+    "file_key": "THC_LEAKAGEBASE::optd_1_nux",
+    "file_name": "thc_leakagebase-thc_leakage_optd",
+    "kwargs": {
+      "cmap": "plasma",
+      "func": "log"
+    },
+    "name": "$\\tau_{\\nu_x, 1}$"
+  },
+  "temp": {
+    "file_key": "HYDROBASE::temperature",
+    "file_name": "hydrobase-temperature",
+    "kwargs": {
+      "cmap": "inferno"
+    },
+    "name": "temperature",
+    "unit": "MeV"
+  },
+  "u_t": {
+    "file_key": "BNSANALYSIS::u_t",
+    "file_name": "bnsanalysis-u_t",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "-1"
+    },
+    "name": "$u_t$",
+    "unit": "$c$"
+  },
+  "vel^x": {
+    "file_key": "HYDROBASE::vel[0]",
+    "file_name": "hydrobase-vel",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": 0
+    },
+    "name": "$x$-velocity",
+    "unit": "$c$"
+  },
+  "vel^y": {
+    "file_key": "HYDROBASE::vel[1]",
+    "file_name": "hydrobase-vel",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": 0
+    },
+    "name": "$y$-velocity",
+    "unit": "$c$"
+  },
+  "vel^z": {
+    "file_key": "HYDROBASE::vel[2]",
+    "file_name": "hydrobase-vel",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": 0
+    },
+    "name": "$z$-velocity",
+    "unit": "$c$"
+  },
+  "ye": {
+    "file_key": "HYDROBASE::Y_e",
+    "file_name": "hydrobase-y_e",
+    "kwargs": {
+      "cmap": "viridis"
+    },
+    "name": "electron fraction"
+  }
+}
