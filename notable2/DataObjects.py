@@ -1,12 +1,17 @@
-from typing import Any, TYPE_CHECKING
-from abc import abstractmethod, ABC
+from typing import TYPE_CHECKING, Any, Optional
 from collections.abc import Mapping
+from h5py import File as HDF5  # type: ignore
+from functools import reduce
+import numpy as np
+from alpyne.uniform_interpolation import (linterp1D,  linterp2D,  # type: ignore
+                                          linterp3D,  chinterp1D,  # type: ignore
+                                          chinterp2D,  chinterp3D)  # type: ignore
 
 from .DataHandlers import DataHandler
 from .Utils import Units
 
 if TYPE_CHECKING:
-    from .Utils import NDArray, UGridVariable, Variable
+    from .Utils import NDArray, UTimeSeriesVariable, UGridDataVariable, Variable
 
 
 class GridData(Mapping):
@@ -15,17 +20,24 @@ class GridData(Mapping):
     """
 
     var: "Variable"
+    coords: dict[int, dict[str, "NDArray"]]
     region: str
     it: int
     time: float
     restart: int
     exclude_ghosts: int
 
-    def __init__(self, var: "Variable", region: str, it: int, exclude_ghosts: int = 0):
+    def __init__(self,
+                 var: "Variable",
+                 region: str,
+                 it: int,
+                 coords: dict[int, dict[str, "NDArray"]],
+                 exclude_ghosts: int = 0):
         self.var = var
         self.region = region
         self.it = it
         self.exclude_ghosts = exclude_ghosts
+        self.coords = coords
 
         self.dim = len(region)
         self.time = self.var.sim.get_time(it=it)
@@ -41,55 +53,208 @@ class GridData(Mapping):
                 data = data[:, :, self.exclude_ghosts:-self.exclude_ghosts]
         return data
 
-    def scaled(self, rl):
-        return self[rl]*self.var.scale_factor
+    def __call__(self, kind: str = 'linear',
+                 **int_coords: "NDArray[np.float_]"
+                 ) -> "NDArray[np.float_]":
+
+        if len(int_coords) == 0:
+            raise ValueError(f"No interpolation points give")
+        if len(missing := [ax for ax in int_coords if ax not in self.region]) != 0:
+            raise ValueError(f"Axes {missing} not in GridData {self}")
+
+        for ax, cc in int_coords.items():
+            if isinstance(cc, (int, float)):
+                int_coords[ax] = np.array([cc])
+            else:
+                int_coords[ax] = np.array(cc)
+
+        dd = 666.*np.ones_like(int_coords[ax])
+
+        if kind == 'linear':
+            interpolate = {1: linterp1D, 2: linterp2D, 3: linterp3D}[self.dim]
+            loff, roff = 0, -1
+        elif kind == 'cubic':
+            interpolate = {1: chinterp1D, 2: chinterp2D, 3: chinterp3D}[self.dim]
+            loff, roff = 1, -2
+
+        else:
+            raise ValueError(f"{kind} kind interpolation not supported")
+
+        for rl in self:
+            coords_level = self.coords[rl]
+            dat = self[rl]
+            dx = np.array([cc[1]-cc[0] for cc in coords_level.values()])
+            ih = 1/dx
+            orig = np.array([cc[0] for cc in coords_level.values()])
+            mask = np.ones_like(dd).astype(bool)
+            for ax in int_coords:
+                cl = coords_level[ax]
+                cc = int_coords[ax]
+                mask = mask & ((cl[loff] <= cc) & (cl[roff] > cc))
+
+            interp, = interpolate(*[int_coords[ax][mask] for ax in coords_level],
+                                  orig, ih, np.array([dat]))
+
+            dd[mask] = interp
+            assert ~np.any(interp == 666.), f"interpolation error on rl {rl}\n"
+            "{{ax: cc[mask][np.isnan(interp) for ax, cc in int_coords.items()]}}"
+        assert ~np.any(dd == 666.), f"Some interpolation coordinates not in {self}"
+        return dd
 
     def __iter__(self):
         for rl in self.var.sim.rls:
-            yield self[rl]
+            yield rl
 
     def __len__(self):
         return len(self.var.sim.rls)
 
+    def __str__(self):
+        return f"{self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
+
     def __repr__(self):
         return f"GridData: {self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
+
+    def scaled(self, rl):
+        if isinstance(self.var.scale_factor, str):
+            print(self.var.scale_factor)
+        return self[rl]*self.var.scale_factor
 
 
 class UGridData(GridData):
     """Documentation for UGridData"""
+    kwargs: dict[str, Any]
 
-    def __init__(self, var: "UGridVariable", region: str, it: int, exclude_ghosts: int = 0, **kwargs):
-        super().__init__(var, region, it, exclude_ghosts=exclude_ghosts)
+    def __init__(self,
+                 var: "UGridDataVariable",
+                 region: str,
+                 it: int,
+                 coords: dict[int, dict[str, "NDArray"]],
+                 exclude_ghosts: int = 0,
+                 **kwargs):
+        super().__init__(var=var, region=region, it=it, coords=coords,
+                         exclude_ghosts=exclude_ghosts)
         self.kwargs = kwargs
 
     def __getitem__(self, rl):
-        dep_data = [dep.get_data(self.region, self.it, exclude_ghosts=self.exclude_ghosts, **self.kwargs)[rl]
+
+        # checked for saved version
+        hdf5 = HDF5(self.var.sim.ud_hdf5_path, 'a')
+        key = self.var.key
+        for kk, item in self.kwargs.items():
+            key += f":{kk}={item}"
+        dset_path = f'{key}/{self.region}/{self.it:08d}/{rl}'
+        if dset_path in hdf5:
+            data = hdf5[dset_path][...]
+            hdf5.close()
+            return data
+
+        # get dependencies
+        dep_data = [dep.get_data(region=self.region,
+                                 it=self.it,
+                                 coords=self.coords,
+                                 exclude_ghosts=self.exclude_ghosts,
+                                 **self.kwargs)
                     for dep in self.var.dependencies]
-        return self.var.func(*dep_data, **self.kwargs)
+
+        # get correct refinementlevel of grid data
+        for ii, dep in enumerate(self.var.dependencies):
+            if dep.vtype == 'grid':
+                dep_data[ii] = dep_data[ii][rl]
+
+        data = self.var.func(*dep_data, *self.coords[rl], **self.kwargs)
+
+        hdf5.create_dataset(dset_path, data=data)
+        hdf5.flush()
+        hdf5.close()
+
+        return data
 
 
 class TimeSeries():
     """Documentation for TimeSeries """
 
     var: "Variable"
-    its: "NDArray[int]"
-    data: "NDArray[float]"
-    times: "NDArray[float]"
-    restarts: "NDArray[int]"
+    its: "NDArray[np.int_]"
+    data: "NDArray[np.float_]"
+    times: "NDArray[np.float_]"
+    restarts: "NDArray[np.int_]"
 
-    def __init__(self, var: "Variable"):
+    def __init__(self, var: "Variable", its: Optional["NDArray[np.int_]"] = None):
         self.var = var
-
-        its, self.times, self.data, restarts = self.var.sim.data_handler.get_time_series(self.var.key)
-        self.its = its.astype(int)
-        self.restarts = restarts.astype(int)
+        self.its, self.times, self.data, self.restarts = self.var.sim.data_handler.get_time_series(self.var.key)
+        if its is not None:
+            self.its, inds, _ = np.intersect1d(self.its, its, return_indices=True)
+            self.times = self.times[inds]
+            self.data = self.data[inds]
+            self.restarts = self.restarts[inds]
 
     @property
-    def scaled(self):
+    def scaled_data(self) -> "NDArray[np.float_]":
         return self.data * self.var.scale_factor
 
     def __len__(self):
         return len(self.its)
 
     def __repr__(self):
-        return f"TimeSeries: {self.var.key}; time={self.times[0]*Units['Time']:.2f} - {self.times[-1]*Units['Time']:.2f}ms, length={len(self)}"
+        return (f"TimeSeries: {self.var.key};"
+                f"time={self.times[0]*Units['Time']:.2f} - {self.times[-1]*Units['Time']:.2f}ms,"
+                f"length={len(self)}")
+
+
+class UTimeSeries(TimeSeries):
+    """Documentation for UTimeSeries"""
+    kwargs: dict[str, Any]
+
+    def __init__(self,
+                 var: "UTimeSeriesVariable",
+                 its: "NDArray[np.int_]",
+                 **kwargs):
+        self.var = var
+        self.kwargs = kwargs
+
+        # checked for saved version
+        hdf5 = HDF5(self.var.sim.ud_hdf5_path, 'a')
+        key = self.var.key
+        for kk, item in self.kwargs.items():
+            key += f":{kk}={item}"
+        if key in hdf5:
+            old_its = hdf5[key].attrs['its']
+            its = np.setdiff1d(its, old_its)
+            if len(its) == 0:
+                self.data = hdf5[key][...]
+                self.its = old_its
+                self.times = self.var.sim.get_time(self.its)
+                self.restarts = self.var.sim.get_restart(self.its)
+                hdf5.close()
+                return
+
+        if self.var.reduction is not None:
+            data = self.var.reduction(dependencies=self.var.dependencies,
+                                      func=self.var.func,
+                                      its=its,
+                                      sim=self.var.sim,
+                                      **kwargs)
+
+        else:
+            dep_data = [dep.get_data(it=its, **self.kwargs)
+                        for dep in self.var.dependencies]
+
+            data = self.var.func(*dep_data, self.times, **self.kwargs)
+
+        if key in hdf5:
+            self.its = np.sort(np.concatenate((its, old_its)))
+            self.data = np.zeros_like(self.its, dtype=float)
+            self.data[np.searchsorted(self.its, its)] = data
+            self.data[np.searchsorted(self.its, old_its)] = hdf5[key][...]
+            del hdf5[key]
+        else:
+            self.data = data
+            self.its = its
+
+        self.times = self.var.sim.get_time(self.its)
+        self.restarts = self.var.sim.get_restart(self.its)
+
+        dset = hdf5.create_dataset(key, data=self.data)
+        dset.attrs['its'] = self.its
+        hdf5.flush()
+        hdf5.close()

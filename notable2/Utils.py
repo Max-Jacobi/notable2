@@ -1,4 +1,4 @@
-from typing import Union, Optional, TYPE_CHECKING
+from typing import Union, Optional, TYPE_CHECKING, Callable
 from collections.abc import Iterable, Mapping
 import numpy as np
 
@@ -12,8 +12,8 @@ RLArgument = Optional[Union[int, Iterable]]
 
 if TYPE_CHECKING:
     from .Simulation import Simulation
-    from .Variable import Variable, GridVariable, UGridVariable, TimeSeriesVariable  # , UTimeSeriesVariable
-    from .DataObjects import GridData, UGridData, TimeSeries  # ,UTimeSeries
+    from .Variable import Variable, GridDataVariable, UGridDataVariable, TimeSeriesVariable, UTimeSeriesVariable, UserVariable
+    from .DataObjects import GridData, UGridData, TimeSeries, UTimeSeries
 
 
 class PlotName():
@@ -39,8 +39,12 @@ class PlotName():
                 continue
             ret = ret.replace(key, repl)
         if code_units:
-            return ret + f" [{self.code_unit}]"
-        return ret + f" [{self.unit}]"
+            if self.code_unit != "":
+                ret += f" [{self.code_unit}]"
+        else:
+            if self.unit != "":
+                ret += f" [{self.unit}]"
+        return ret
 
     def __str__(self):
         return self.name
@@ -69,7 +73,19 @@ class IterationError(Exception):
     ...
 
 
-func_dict = dict(
+class VariableError(Exception):
+    ...
+
+
+class BackupException(Exception):
+    backups: list["Variable"]
+
+    def __init__(self, backups: list["Variable"]):
+        super().__init__()
+        self.backups = backups
+
+
+func_dict: dict[str, tuple[str, Callable]] = dict(
     log=('log({})', np.log10),
     logabs=('log($|${}$|$)', lambda d: np.log10(np.abs(d))),
 )

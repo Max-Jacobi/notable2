@@ -37,9 +37,9 @@
     "file_name": "thc_core-dens.scalars.asc",
     "name": "thc-core-dens"
   },
-  "consH_inf_bssn": {
+  "consH_inf_ccz4": {
     "file_key": "H(norm_inf)",
-    "file_name": "ml_bssn-ml_ham.scalars.asc",
+    "file_name": "ml_ccz4-ml_ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
   "consH_ni_lean": {
@@ -49,7 +49,7 @@
   },
   "consH_norminf": {
     "file_key": "H(norm_inf)",
-    "file_name": "ml_ccz4-ml_ham.scalars.asc",
+    "file_name": "ml_bssn-ml_ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
   "dens_norm1": {
@@ -78,22 +78,22 @@
   },
   "phi_max": {
     "file_key": "phi(maximum)",
-    "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
+    "file_name": "ml_bssn-ml_log_confac.scalars.asc",
     "name": "maximum conformal factor"
   },
-  "phi_max_bssn": {
+  "phi_max_ccz4": {
     "file_key": "phi(maximum)",
-    "file_name": "ml_bssn-ml_log_confac.scalars.asc",
+    "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
     "name": "maximum conformal factor"
   },
   "phi_min": {
     "file_key": "phi(minimum)",
-    "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
+    "file_name": "ml_bssn-ml_log_confac.scalars.asc",
     "name": "minimum conformal factor"
   },
-  "phi_min_bssn": {
+  "phi_min_ccz4": {
     "file_key": "phi(minimum)",
-    "file_name": "ml_bssn-ml_log_confac.scalars.asc",
+    "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
     "name": "minimum conformal factor"
   },
   "rho_max": {

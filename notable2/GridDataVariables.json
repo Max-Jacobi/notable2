@@ -247,6 +247,9 @@
     "name": "$T_{zz}$"
   },
   "W": {
+    "backups": [
+      "W-ud"
+    ],
     "file_key": "HYDROBASE::w_lorentz",
     "file_name": "hydrobase-w_lorentz",
     "kwargs": {
@@ -263,6 +266,9 @@
     "name": "$alpha$"
   },
   "beta^x": {
+    "backups": [
+      "beta_x"
+    ],
     "file_key": "ADMBASE::betax",
     "file_name": "admbase-shift",
     "kwargs": {
@@ -273,6 +279,9 @@
     "unit": "$c$"
   },
   "beta^y": {
+    "backups": [
+      "beta_y"
+    ],
     "file_key": "ADMBASE::betay",
     "file_name": "admbase-shift",
     "kwargs": {
@@ -283,6 +292,39 @@
     "unit": "$c$"
   },
   "beta^z": {
+    "backups": [
+      "beta_z"
+    ],
+    "file_key": "ADMBASE::betaz",
+    "file_name": "admbase-shift",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$\\beta_{z}$",
+    "unit": "$c$"
+  },
+  "beta_x": {
+    "file_key": "ADMBASE::betax",
+    "file_name": "admbase-shift",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$\\beta_{x}$",
+    "unit": "$c$"
+  },
+  "beta_y": {
+    "file_key": "ADMBASE::betay",
+    "file_name": "admbase-shift",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": "0"
+    },
+    "name": "$\\beta_{y}$",
+    "unit": "$c$"
+  },
+  "beta_z": {
     "file_key": "ADMBASE::betaz",
     "file_name": "admbase-shift",
     "kwargs": {
@@ -373,6 +415,9 @@
     "name": "z-momentum constraint violation"
   },
   "dens": {
+    "backups": [
+      "dens-ud"
+    ],
     "code_unit": "$M_\\odot^{-2}$",
     "file_key": "THC_CORE::dens",
     "file_name": "thc_core-dens",
@@ -402,6 +447,9 @@
     "name": "specific internal energy"
   },
   "g_xx": {
+    "backups": [
+      "gxx"
+    ],
     "file_key": "ADMBASE::gxx",
     "file_name": "admbase-metric",
     "kwargs": {
@@ -410,6 +458,9 @@
     "name": "$gamma_{xx}$"
   },
   "g_xy": {
+    "backups": [
+      "gxy"
+    ],
     "file_key": "ADMBASE::gxy",
     "file_name": "admbase-metric",
     "kwargs": {
@@ -418,6 +469,9 @@
     "name": "$gamma_{xy}$"
   },
   "g_xz": {
+    "backups": [
+      "gxz"
+    ],
     "file_key": "ADMBASE::gxz",
     "file_name": "admbase-metric",
     "kwargs": {
@@ -426,6 +480,9 @@
     "name": "$gamma_{xz}$"
   },
   "g_yy": {
+    "backups": [
+      "gyy"
+    ],
     "file_key": "ADMBASE::gyy",
     "file_name": "admbase-metric",
     "kwargs": {
@@ -434,6 +491,9 @@
     "name": "$gamma_{yy}$"
   },
   "g_yz": {
+    "backups": [
+      "gyz"
+    ],
     "file_key": "ADMBASE::gyz",
     "file_name": "admbase-metric",
     "kwargs": {
@@ -442,6 +502,57 @@
     "name": "$gamma_{yz}$"
   },
   "g_zz": {
+    "backups": [
+      "gzz"
+    ],
+    "file_key": "ADMBASE::gzz",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{zz}$"
+  },
+  "gxx": {
+    "file_key": "ADMBASE::gxx",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{xx}$"
+  },
+  "gxy": {
+    "file_key": "ADMBASE::gxy",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{xy}$"
+  },
+  "gxz": {
+    "file_key": "ADMBASE::gxz",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{xz}$"
+  },
+  "gyy": {
+    "file_key": "ADMBASE::gyy",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{yy}$"
+  },
+  "gyz": {
+    "file_key": "ADMBASE::gyz",
+    "file_name": "admbase-metric",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$gamma_{yz}$"
+  },
+  "gzz": {
     "file_key": "ADMBASE::gzz",
     "file_name": "admbase-metric",
     "kwargs": {
@@ -450,6 +561,9 @@
     "name": "$gamma_{zz}$"
   },
   "k_xx": {
+    "backups": [
+      "kxx"
+    ],
     "file_key": "ADMBASE::kxx",
     "file_name": "admbase-curv",
     "kwargs": {
@@ -458,6 +572,9 @@
     "name": "$k_{xx}$"
   },
   "k_xy": {
+    "backups": [
+      "kxy"
+    ],
     "file_key": "ADMBASE::kxy",
     "file_name": "admbase-curv",
     "kwargs": {
@@ -466,6 +583,9 @@
     "name": "$k_{xy}$"
   },
   "k_xz": {
+    "backups": [
+      "kxz"
+    ],
     "file_key": "ADMBASE::kxz",
     "file_name": "admbase-curv",
     "kwargs": {
@@ -474,6 +594,9 @@
     "name": "$k_{xz}$"
   },
   "k_yy": {
+    "backups": [
+      "kyy"
+    ],
     "file_key": "ADMBASE::kyy",
     "file_name": "admbase-curv",
     "kwargs": {
@@ -482,6 +605,9 @@
     "name": "$k_{yy}$"
   },
   "k_yz": {
+    "backups": [
+      "kyz"
+    ],
     "file_key": "ADMBASE::kyz",
     "file_name": "admbase-curv",
     "kwargs": {
@@ -490,6 +616,9 @@
     "name": "$k_{yz}$"
   },
   "k_zz": {
+    "backups": [
+      "kzz"
+    ],
     "file_key": "ADMBASE::kzz",
     "file_name": "admbase-curv",
     "kwargs": {
@@ -551,6 +680,54 @@
     },
     "name": "$kappa_{\\nu_x, 1}$"
   },
+  "kxx": {
+    "file_key": "ADMBASE::kxx",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{xx}$"
+  },
+  "kxy": {
+    "file_key": "ADMBASE::kxy",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{xy}$"
+  },
+  "kxz": {
+    "file_key": "ADMBASE::kxz",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{xz}$"
+  },
+  "kyy": {
+    "file_key": "ADMBASE::kyy",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{yy}$"
+  },
+  "kyz": {
+    "file_key": "ADMBASE::kyz",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{yz}$"
+  },
+  "kzz": {
+    "file_key": "ADMBASE::kzz",
+    "file_name": "admbase-curv",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "$k_{zz}$"
+  },
   "nu-abs-en": {
     "file_key": "THC_LEAKAGEBASE::abs_energy",
     "file_name": "thc_leakagebase-thc_leakage_abs",
@@ -568,6 +745,10 @@
     "name": "$n_{\\rm{abs}, \\nu}$"
   },
   "phi": {
+    "backups": [
+      "phi_bssn",
+      "phi-ud"
+    ],
     "file_key": "ML_BSSN::phi",
     "file_name": "ml_bssn-ml_log_confac",
     "kwargs": {
@@ -578,6 +759,14 @@
   "phi_CCZ4": {
     "file_key": "ML_CCZ4::phi",
     "file_name": "ml_ccz4-ml_log_confac",
+    "kwargs": {
+      "cmap": "plasma"
+    },
+    "name": "log($phi$)"
+  },
+  "phi_bssn": {
+    "file_key": "ML_BSSN::phi",
+    "file_name": "ml_bssn-ml_log_confac",
     "kwargs": {
       "cmap": "plasma"
     },
@@ -596,6 +785,17 @@
     "unit": "g cm$^{-1}$ s$^{-2}$"
   },
   "reduce-weights": {
+    "backups": [
+      "reduce_weight"
+    ],
+    "file_key": "CARPETREDUCE::weight",
+    "file_name": "carpetreduce-weight",
+    "kwargs": {
+      "cmap": "cubehelix"
+    },
+    "name": "reduction weights"
+  },
+  "reduce_weight": {
     "file_key": "CARPETREDUCE::weight",
     "file_name": "carpetreduce-weight",
     "kwargs": {
@@ -787,6 +987,9 @@
     "unit": "$c$"
   },
   "vel^x": {
+    "backups": [
+      "vel_x"
+    ],
     "file_key": "HYDROBASE::vel[0]",
     "file_name": "hydrobase-vel",
     "kwargs": {
@@ -797,6 +1000,9 @@
     "unit": "$c$"
   },
   "vel^y": {
+    "backups": [
+      "vel_y"
+    ],
     "file_key": "HYDROBASE::vel[1]",
     "file_name": "hydrobase-vel",
     "kwargs": {
@@ -807,6 +1013,39 @@
     "unit": "$c$"
   },
   "vel^z": {
+    "backups": [
+      "vel_z"
+    ],
+    "file_key": "HYDROBASE::vel[2]",
+    "file_name": "hydrobase-vel",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": 0
+    },
+    "name": "$z$-velocity",
+    "unit": "$c$"
+  },
+  "vel_x": {
+    "file_key": "HYDROBASE::vel[0]",
+    "file_name": "hydrobase-vel",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": 0
+    },
+    "name": "$x$-velocity",
+    "unit": "$c$"
+  },
+  "vel_y": {
+    "file_key": "HYDROBASE::vel[1]",
+    "file_name": "hydrobase-vel",
+    "kwargs": {
+      "cmap": "seismic",
+      "symetric_around": 0
+    },
+    "name": "$y$-velocity",
+    "unit": "$c$"
+  },
+  "vel_z": {
     "file_key": "HYDROBASE::vel[2]",
     "file_name": "hydrobase-vel",
     "kwargs": {

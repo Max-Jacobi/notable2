@@ -40,17 +40,18 @@ class DataHandler(ABC):
         ...
 
     @abstractmethod
-    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> "NDArray[Any, float]":
+    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> "NDArray[np.float_]":
         """Gets the GridData from simulation data"""
         ...
 
     @abstractmethod
-    def get_time_series(self, key: str) -> "NDArray[(4, Any), float]":
-        """Gets the GridData from simulation data"""
+    def get_time_series(self, key: str) -> "NDArray[(4, Any), np.float_]":
+        """Gets time series data from simulation data
+        format: its, times, data, restarts"""
         ...
 
 
-class PackETGetter(DataHandler):
+class PackETHandler(DataHandler):
     """Data getter for packETed data"""
 
     def __init__(self, sim: "Simulation"):
@@ -63,9 +64,9 @@ class PackETGetter(DataHandler):
         itdict = {}
 
         # set iterations, and setup times and restarts arrays
-        itr = (np.array([kk for kk in self.data.keys()
+        itr = (np.array([int(kk) for kk in self.data.keys()
                          if kk not in ['structure', 'time_series']], dtype=int),
-               np.zeros(n_its := len(self.data), dtype=float),
+               np.zeros(n_its := len(self.data)-2, dtype=float),
                np.zeros(n_its, dtype=int))
 
         for ii, it in enumerate(itr[0]):
@@ -84,10 +85,14 @@ class PackETGetter(DataHandler):
                             itdict[key][region] = []
                         itdict[key][region].append(it)
 
-        # Put available iterations in a numpy array
+        # convert available iterations to a numpy array
         for dic in itdict.values():
             for rr, its in dic.items():
-                dic[rr] = np.array(its)
+                dic[rr] = np.unique(its)
+
+        # Time series for itdict
+        for key, data in self.data['time_series'].items():
+            itdict[key] = {'ts': data[0]}
 
         return itr, sdict, itdict
 
