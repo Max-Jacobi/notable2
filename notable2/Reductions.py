@@ -1,18 +1,19 @@
 import numpy as np
+from numpy.typing import NDArray
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
 
 from .RCParams import rcParams
 
 if TYPE_CHECKING:
-    from .Utils import GridDataVariable, UGridDataVariable, TimeSeriesVariable, UTimeSeriesVariable, NDArray, Simulation
+    from .Utils import GridDataVariable, UGridDataVariable, TimeSeriesVariable, UTimeSeriesVariable, Simulation
 
 
 def integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable", "TimeSeriesVariable", "UTimeSeriesVariable"]],
              func: Callable,
-             its: "NDArray[np.int_]",
+             its: NDArray[np.int_],
              sim: "Simulation",
-             rls: Optional["NDArray[np.int_]"] = None,
-             **kwargs) -> "NDArray[np.float_]":
+             rls: Optional[NDArray[np.int_]] = None,
+             **kwargs) -> NDArray[np.float_]:
 
     region = 'xz' if sim.is_cartoon else 'xyz'
     if rls is None:
@@ -50,10 +51,10 @@ def integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable
 
 def sphere_surface_integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable"]],
                             func: Callable,
-                            its: "NDArray[np.int_]",
+                            its: NDArray[np.int_],
                             sim: "Simulation",
                             radius: float,
-                            **kwargs) -> "NDArray[np.float_]":
+                            **kwargs) -> NDArray[np.float_]:
 
     region = 'xz' if sim.is_cartoon else 'xyz'
 

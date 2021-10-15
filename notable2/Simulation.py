@@ -2,7 +2,7 @@ from os.path import basename
 from typing import Optional, Type, Callable, overload, Any
 from collections.abc import Iterable
 import numpy as np
-
+from numpy.typing import NDArray
 
 from .DataHandlers import DataHandler
 from .EOS import EOS, TabulateEOS
@@ -10,7 +10,7 @@ from .RCParams import rcParams
 from .Variable import Variable, GridDataVariable, TimeSeriesVariable, UGridDataVariable, UTimeSeriesVariable, UserVariable
 from .UserVariables import get_user_variables
 from .Plot import plotGD, plotTS
-from .Utils import IterationError, VariableError, BackupException, RLArgument, NDArray
+from .Utils import IterationError, VariableError, BackupException, RLArgument
 
 
 class Simulation():
@@ -153,9 +153,9 @@ class Simulation():
                 continue
         else:
             if key in self.user_grid_data_variables:
-                return UGridDataVariable(key, self, **self.user_grid_data_variables[key])
+                return UGridDataVariable(key=key, sim=self, **self.user_grid_data_variables[key])
             if key in self.user_time_series_variables:
-                return UTimeSeriesVariable(key, self, **self.user_time_series_variables[key])
+                return UTimeSeriesVariable(key=key, sim=self, **self.user_time_series_variables[key])
             raise VariableError(f"Could not find key {key} in {self}.") from last_exc
 
     def get_coords(self,

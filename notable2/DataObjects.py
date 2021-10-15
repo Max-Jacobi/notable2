@@ -1,17 +1,16 @@
 from typing import TYPE_CHECKING, Any, Optional
 from collections.abc import Mapping
 from h5py import File as HDF5  # type: ignore
-from functools import reduce
 import numpy as np
+from numpy.typing import NDArray
 from alpyne.uniform_interpolation import (linterp1D,  linterp2D,  # type: ignore
                                           linterp3D,  chinterp1D,  # type: ignore
                                           chinterp2D,  chinterp3D)  # type: ignore
 
-from .DataHandlers import DataHandler
 from .Utils import Units
 
 if TYPE_CHECKING:
-    from .Utils import NDArray, UTimeSeriesVariable, UGridDataVariable, Variable
+    from .Utils import UTimeSeriesVariable, UGridDataVariable, Variable
 
 
 class GridData(Mapping):
@@ -20,7 +19,7 @@ class GridData(Mapping):
     """
 
     var: "Variable"
-    coords: dict[int, dict[str, "NDArray"]]
+    coords: dict[int, dict[str, NDArray[np.float_]]]
     region: str
     it: int
     time: float
@@ -31,7 +30,7 @@ class GridData(Mapping):
                  var: "Variable",
                  region: str,
                  it: int,
-                 coords: dict[int, dict[str, "NDArray"]],
+                 coords: dict[int, dict[str, NDArray[np.float_]]],
                  exclude_ghosts: int = 0):
         self.var = var
         self.region = region
@@ -54,11 +53,11 @@ class GridData(Mapping):
         return data
 
     def __call__(self, kind: str = 'linear',
-                 **int_coords: "NDArray[np.float_]"
-                 ) -> "NDArray[np.float_]":
+                 **int_coords: NDArray[np.float_]
+                 ) -> NDArray[np.float_]:
 
         if len(int_coords) == 0:
-            raise ValueError(f"No interpolation points give")
+            raise ValueError("No interpolation points give")
         if len(missing := [ax for ax in int_coords if ax not in self.region]) != 0:
             raise ValueError(f"Axes {missing} not in GridData {self}")
 
@@ -68,7 +67,7 @@ class GridData(Mapping):
             else:
                 int_coords[ax] = np.array(cc)
 
-        dd = 666.*np.ones_like(int_coords[ax])
+        result = 666.*np.ones_like(int_coords[ax])
 
         if kind == 'linear':
             interpolate = {1: linterp1D, 2: linterp2D, 3: linterp3D}[self.dim]
@@ -86,7 +85,7 @@ class GridData(Mapping):
             dx = np.array([cc[1]-cc[0] for cc in coords_level.values()])
             ih = 1/dx
             orig = np.array([cc[0] for cc in coords_level.values()])
-            mask = np.ones_like(dd).astype(bool)
+            mask = np.ones_like(result).astype(bool)
             for ax in int_coords:
                 cl = coords_level[ax]
                 cc = int_coords[ax]
@@ -95,11 +94,11 @@ class GridData(Mapping):
             interp, = interpolate(*[int_coords[ax][mask] for ax in coords_level],
                                   orig, ih, np.array([dat]))
 
-            dd[mask] = interp
-            assert ~np.any(interp == 666.), f"interpolation error on rl {rl}\n"
-            "{{ax: cc[mask][np.isnan(interp) for ax, cc in int_coords.items()]}}"
-        assert ~np.any(dd == 666.), f"Some interpolation coordinates not in {self}"
-        return dd
+            result[mask] = interp
+            assert not np.any(interp == 666.), (f"interpolation error on rl {rl}\n"
+                                                f"{{ax: cc[mask][np.isnan(interp) for ax, cc in int_coords.items()]}}")
+        assert not np.any(result == 666.), f"Some interpolation coordinates not in {self}"
+        return result
 
     def __iter__(self):
         for rl in self.var.sim.rls:
@@ -128,7 +127,7 @@ class UGridData(GridData):
                  var: "UGridDataVariable",
                  region: str,
                  it: int,
-                 coords: dict[int, dict[str, "NDArray"]],
+                 coords: dict[int, dict[str, NDArray[np.float_]]],
                  exclude_ghosts: int = 0,
                  **kwargs):
         super().__init__(var=var, region=region, it=it, coords=coords,
@@ -174,12 +173,15 @@ class TimeSeries():
     """Documentation for TimeSeries """
 
     var: "Variable"
-    its: "NDArray[np.int_]"
-    data: "NDArray[np.float_]"
-    times: "NDArray[np.float_]"
-    restarts: "NDArray[np.int_]"
+    its: NDArray[np.int_]
+    data: NDArray[np.float_]
+    times: NDArray[np.float_]
+    restarts: NDArray[np.int_]
 
-    def __init__(self, var: "Variable", its: Optional["NDArray[np.int_]"] = None):
+    def __init__(self,
+                 var: "Variable",
+                 its: Optional[NDArray[np.int_]] = None,
+                 **kwargs):
         self.var = var
         self.its, self.times, self.data, self.restarts = self.var.sim.data_handler.get_time_series(self.var.key)
         if its is not None:
@@ -188,7 +190,7 @@ class TimeSeries():
             self.data = self.data[inds]
             self.restarts = self.restarts[inds]
 
-    @property
+    @ property
     def scaled_data(self) -> "NDArray[np.float_]":
         return self.data * self.var.scale_factor
 
@@ -207,7 +209,7 @@ class UTimeSeries(TimeSeries):
 
     def __init__(self,
                  var: "UTimeSeriesVariable",
-                 its: "NDArray[np.int_]",
+                 its: NDArray[np.int_],
                  **kwargs):
         self.var = var
         self.kwargs = kwargs

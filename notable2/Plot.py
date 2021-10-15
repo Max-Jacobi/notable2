@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable  # type: ignore
 from .Utils import Units, func_dict, Plot2D, VariableError, IterationError
 from .Variable import UserVariable, UTimeSeriesVariable
 if TYPE_CHECKING:
-    from .Utils import Simulation, RLArgument, NDArray, Variable
+    from .Utils import Simulation, RLArgument
 
 
 def handle_kwargs(var_kwargs: dict[str, Any],

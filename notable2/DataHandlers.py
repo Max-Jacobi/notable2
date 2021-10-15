@@ -7,14 +7,15 @@ For a different simulation data layout implement a new DataHandler.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from pickle import loads
 from gzip import decompress
 from h5py import File  # type: ignore
 import numpy as np
+from numpy.typing import NDArray
 
 if TYPE_CHECKING:
-    from .Utils import Simulation, NDArray
+    from .Utils import Simulation
 
 
 class DataHandler(ABC):
@@ -40,12 +41,12 @@ class DataHandler(ABC):
         ...
 
     @abstractmethod
-    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> "NDArray[np.float_]":
+    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
         """Gets the GridData from simulation data"""
         ...
 
     @abstractmethod
-    def get_time_series(self, key: str) -> "NDArray[(4, Any), np.float_]":
+    def get_time_series(self, key: str) -> NDArray[np.float_]:
         """Gets time series data from simulation data
         format: its, times, data, restarts"""
         ...
@@ -96,7 +97,7 @@ class PackETHandler(DataHandler):
 
         return itr, sdict, itdict
 
-    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> "NDArray[Any, float]":
+    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
         dat = self.data[f'{it:08d}/{rl:02d}/{region}/{key}'][()]
         dat[dat == 666] = np.nan
         return dat

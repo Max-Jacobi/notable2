@@ -12,14 +12,15 @@ Variable objects Inheritance tree:
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Optional, Any, overload
+from typing import TYPE_CHECKING, Callable, Optional, Union, Any, overload
 from functools import reduce
 import json
 import numpy as np
+from numpy.typing import NDArray
 
 from .RCParams import rcParams
 from .DataObjects import GridData, TimeSeries, UGridData, UTimeSeries
-from .Utils import PlotName, Units, VariableError, BackupException, IterationError, NDArray
+from .Utils import PlotName, Units, VariableError, BackupException, IterationError
 
 if TYPE_CHECKING:
     from .Utils import Simulation
@@ -35,7 +36,7 @@ class Variable(ABC):
     scale_factor: float
     backups: list["Variable"]
     get_data: Callable
-    available_its: NDArray[np.int_]
+    available_its: Callable
 
     def __init__(self, key: str, sim: "Simulation", ):
         self.sim = sim
@@ -53,7 +54,7 @@ class TimeSeriesBaseVariable(ABC):
     vtype: str = 'time'
 
     @overload
-    def get_data(self, it: int, **kwargs) -> np.float_:
+    def get_data(self, it: int, **kwargs) -> float:
         ...
 
     @overload
@@ -61,11 +62,15 @@ class TimeSeriesBaseVariable(ABC):
         ...
 
     @abstractmethod
-    def get_data(self, it, **kwargs):
+    def get_data(self, it: Optional[Union[int, NDArray[np.int_]]], **kwargs):
+        """Returns TimeSeries DataObject.
+        If it is an int the value at that iteration is returned instead.
+        If it is an array only those iterations are returned"""
         ...
 
     @abstractmethod
     def available_its(self) -> NDArray[np.float_]:
+        """Returns Array of available iterations"""
         ...
 
 
@@ -79,10 +84,13 @@ class GridDataBaseVariable(ABC):
                  it: int,
                  exclude_ghosts: int,
                  **kwargs) -> GridData:
+        """Returns GridData DataObject for given it and region.
+        exclude_ghosts number of cells are cut of."""
         ...
 
     @abstractmethod
     def available_its(self, region: str) -> NDArray[np.float_]:
+        """Returns Array of available iterations"""
         ...
 
 
@@ -125,7 +133,7 @@ class NativeVariable(Variable):
 class UserVariable(Variable):
     """ABC for user defined Variables"""
 
-    dependencies: NDArray[Variable]
+    dependencies: list[Variable]
 
     def __init__(self,
                  key: str,
@@ -133,20 +141,21 @@ class UserVariable(Variable):
                  dependencies: list[str],
                  func: Callable,
                  plot_name_kwargs: dict[str, Any],
-                 backups: list[str] = [],
+                 backups: Optional[list[str]] = None,
                  scale_factor: float = 1,
-                 kwargs: dict[str, Any] = {},
+                 kwargs: Optional[dict[str, Any]] = None,
                  ):
 
         super().__init__(key, sim)
         self.backups = []
-        for bu in backups:
-            try:
-                self.backups.append(self.sim.get_variable(bu))
-            except VariableError:
-                continue
+        if backups is not None:
+            for bu in backups:
+                try:
+                    self.backups.append(self.sim.get_variable(bu))
+                except VariableError:
+                    continue
 
-        self.kwargs = kwargs
+        self.kwargs = kwargs if kwargs is not None else dict()
         self.func = func
         self.scale_factor = scale_factor
         if isinstance(self.scale_factor, str):
@@ -154,7 +163,7 @@ class UserVariable(Variable):
         self.plot_name = PlotName(**plot_name_kwargs)
 
         try:
-            self.dependencies = np.array([sim.get_variable(key) for key in dependencies])
+            self.dependencies = [sim.get_variable(key) for key in dependencies]
         except VariableError as exc:
             if any(self.backups):
                 raise BackupException(self.backups) from exc
@@ -176,7 +185,10 @@ class GridDataVariable(NativeVariable, GridDataBaseVariable):
         if it not in self.available_its(region=region):
             for bu_var in self.backups:
                 try:
-                    return bu_var.get_data(region=region, it=it, exclude_ghosts=exclude_ghosts, **kwargs)
+                    return bu_var.get_data(region=region,
+                                           it=it,
+                                           exclude_ghosts=exclude_ghosts,
+                                           **kwargs)
                 except (VariableError, IterationError):
                     continue
             else:
@@ -207,8 +219,8 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
         if len(uni := np.setdiff1d(it, av_its)) != 0:
             raise IterationError(f"Iteration(s) {uni} not found for self")
         if isinstance(it, int):
-            return TimeSeries(self, its=np.array([it])).data[0]
-        return TimeSeries(self, its=it)
+            return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
+        return TimeSeries(self, its=it, **kwargs)
 
     def available_its(self) -> NDArray[np.float_]:
         all_its, *_ = self.sim.data_handler.get_time_series(self.key)
@@ -217,24 +229,6 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
 
 class UGridDataVariable(UserVariable, GridDataBaseVariable):
     """Variable for user defined grid functions"""
-
-    def __init__(self,
-                 key: str,
-                 sim: "Simulation",
-                 dependencies: list[str],
-                 func: Callable,
-                 plot_name_kwargs: dict[str, Any],
-                 scale_factor: float = 1,
-                 kwargs: dict[str, Any] = {},
-                 ):
-
-        super().__init__(key=key,
-                         sim=sim,
-                         dependencies=dependencies,
-                         func=func,
-                         plot_name_kwargs=plot_name_kwargs,
-                         scale_factor=scale_factor,
-                         kwargs=kwargs)
 
     def get_data(self,
                  region: str,
@@ -261,24 +255,8 @@ class UTimeSeriesVariable(UserVariable, TimeSeriesBaseVariable):
     """Variable for user defined time series functions"""
     reduction: Optional[Callable]
 
-    def __init__(self,
-                 key: str,
-                 sim: "Simulation",
-                 dependencies: list[str],
-                 func: Callable,
-                 plot_name_kwargs: dict[str, Any],
-                 scale_factor: float = 1,
-                 reduction: Optional[Callable] = None,
-                 kwargs: dict[str, Any] = {},
-                 ):
-
-        super().__init__(key=key,
-                         sim=sim,
-                         dependencies=dependencies,
-                         func=func,
-                         plot_name_kwargs=plot_name_kwargs,
-                         scale_factor=scale_factor,
-                         kwargs=kwargs)
+    def __init__(self, reduction: Optional[Callable] = None, **kwargs):
+        super().__init__(**kwargs)
         self.reduction = reduction
         if any(isinstance(dep, (GridDataVariable, UGridDataVariable)) for dep in self.dependencies):
             if self.reduction is None:
@@ -292,8 +270,8 @@ class UTimeSeriesVariable(UserVariable, TimeSeriesBaseVariable):
         if len(uni := np.setdiff1d(it, av_its)) != 0:
             raise IterationError(f"Iteration(s) {uni} not found for self")
         if isinstance(it, int):
-            return UTimeSeries(self, its=np.array([it])).data[0]
-        return UTimeSeries(self, its=it)
+            return UTimeSeries(self, its=np.array([it]), **kwargs).data[0]
+        return UTimeSeries(self, its=it, **kwargs)
 
     def available_its(self) -> NDArray[np.float_]:
         region = 'xz' if self.sim.is_cartoon else 'xyz'
