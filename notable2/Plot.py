@@ -7,7 +7,7 @@ from matplotlib.colors import Normalize  # type: ignore
 from matplotlib.colorbar import ColorbarBase  # type: ignore
 from mpl_toolkits.axes_grid1 import make_axes_locatable  # type: ignore
 
-from .Utils import Units, func_dict, Plot2D, VariableError, IterationError
+from .Utils import Units, func_dict, Plot2D, IterationError, BackupException, VariableError
 from .Variable import UserVariable, UTimeSeriesVariable
 if TYPE_CHECKING:
     from .Utils import Simulation, RLArgument
@@ -58,11 +58,12 @@ def plotGD(sim: "Simulation",
     # -------------arguments checking and expanding------------------------
     if region is None:
         region = 'xz'
-    var = sim.get_variable(key)
     if not code_units and time is not None:
         time /= Units['Time']
 
+    var = sim.get_variable(key)
     its = var.available_its(region)
+
     if it is None and time is None:
         it = its[0]
     elif isinstance(it, int):
@@ -74,7 +75,7 @@ def plotGD(sim: "Simulation",
             time = max_time
         if time < (min_time := times.min()):
             time = min_time
-        it = its[times.searchsorted(time)][0]
+        it = its[times.searchsorted(time)]
     else:
         raise ValueError
 
@@ -83,7 +84,7 @@ def plotGD(sim: "Simulation",
     if ax is None:
         ax = plt.gca()
 
-    var_kwargs, popped = handle_kwargs(var.kwargs, dict(func=(func, False),
+    var_kwargs, popped = handle_kwargs(var.kwargs, dict(func=(func, None),
                                                         slice_ax=(slice_ax, None),
                                                         interp_ax=(interp_ax, None),
                                                         vmax=(vmax, None),
@@ -132,18 +133,17 @@ def plotGD(sim: "Simulation",
         data = {rl: grid_data[rl] for rl in actual_rls}
 
     if isinstance(func, str):
-        func_str, actual_func = func_dict[func]
-    elif callable(func):
-        actual_func = func
+        func_str, func = func_dict[func]
+    else:
         func_str = "{}"
 
-    if callable(actual_func):
-        if isinstance(actual_func, np.ufunc):
-            data = {rl: actual_func(dd) for rl, dd in data.items()}
-        elif len(signature(actual_func).parameters) == 1:
-            data = {rl: actual_func(dd, **UVkwargs) for rl, dd in data.items()}
+    if callable(func):
+        if isinstance(func, np.ufunc):
+            data = {rl: func(dd) for rl, dd in data.items()}
+        elif len(signature(func).parameters) == 1:
+            data = {rl: func(dd, **UVkwargs) for rl, dd in data.items()}
         else:
-            coords, data = {rl: actual_func(dd, **coords[rl]) for rl, dd in data.items()}
+            coords, data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
 
     # -------------1D Plots------------------------------------------------
     if len(region) == 1:
@@ -319,7 +319,7 @@ def plotTS(sim: "Simulation",
         kwargs.pop(kk)
 
     # -------------data handling-------------------------------------------
-    ts_data = var.get_data(its=its, **UVkwargs)
+    ts_data = var.get_data(it=its, **UVkwargs)
 
     times = ts_data.times
     data = ts_data.data

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .DataHandlers import DataHandler
-from .EOS import EOS, TabulateEOS
+from .EOS import EOS, TabulatedEOS
 from .RCParams import rcParams
 from .Variable import Variable, GridDataVariable, TimeSeriesVariable, UGridDataVariable, UTimeSeriesVariable, UserVariable
 from .UserVariables import get_user_variables
@@ -44,7 +44,7 @@ class Simulation():
         if eos_path == 'ideal':
             ...
         else:
-            self.eos = TabulateEOS(eos_path if eos_path is not None else rcParams.default_eos_path)
+            self.eos = TabulatedEOS(eos_path if eos_path is not None else rcParams.default_eos_path)
         self._offset = offset if offset is not None else dict(x=0, y=0, z=0)
 
         (self._its, self._times, self._restarts), self._structure, self.its_lookup \
@@ -54,10 +54,10 @@ class Simulation():
 
         self.user_grid_data_variables = {}
         for ufile in rcParams.UGridDataVariable_files:
-            self.user_grid_data_variables.update(get_user_variables(ufile))
+            self.user_grid_data_variables.update(get_user_variables(ufile, self.eos))
         self.user_time_series_variables = {}
         for ufile in rcParams.UTimeSeries_files:
-            self.user_time_series_variables.update(get_user_variables(ufile))
+            self.user_time_series_variables.update(get_user_variables(ufile, self.eos))
 
         self.ud_hdf5_path = f"{self.sim_path}/{self.sim_name}_UD.hdf5"
 
@@ -139,16 +139,10 @@ class Simulation():
         for var in [TimeSeriesVariable, GridDataVariable]:
             try:
                 return var(key, self)
-            except BackupException as bexc:
-                for bu_var in bexc.backups:
-                    try:
-                        if self.verbose:
-                            print(f"Trying backup {bu_var.key} instead of {key}")
-                        return bu_var
-                    except VariableError as exc:
-                        last_exc = exc
-                        continue
-            except VariableError as exc:
+            # except BackupException as bexc:
+                # for bu_var in bexc.backups:
+                # return bu_var
+            except (BackupException, VariableError) as exc:
                 last_exc = exc
                 continue
         else:

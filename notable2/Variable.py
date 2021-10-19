@@ -46,7 +46,7 @@ class Variable(ABC):
         return f"{self.__class__.__name__} {self.key}"
 
     def __str__(self):
-        return f"{self.plot_name}"
+        return f"{self.plot_name} ({self.key})"
 
 
 class TimeSeriesBaseVariable(ABC):
@@ -69,7 +69,7 @@ class TimeSeriesBaseVariable(ABC):
         ...
 
     @abstractmethod
-    def available_its(self) -> NDArray[np.float_]:
+    def available_its(self) -> NDArray[np.int_]:
         """Returns Array of available iterations"""
         ...
 
@@ -89,7 +89,7 @@ class GridDataBaseVariable(ABC):
         ...
 
     @abstractmethod
-    def available_its(self, region: str) -> NDArray[np.float_]:
+    def available_its(self, region: str) -> NDArray[np.int_]:
         """Returns Array of available iterations"""
         ...
 
@@ -98,15 +98,24 @@ class NativeVariable(Variable):
     """ABC for Native variables"""
     file_key: str
     file_name: str
+    alias: list[str]
 
     def __init__(self, key: str, sim: "Simulation", json_path: str):
         super().__init__(key, sim)
 
         with open(json_path, 'r') as ff:
+            json_dic = json.load(ff)
             try:
-                key_dict = json.load(ff)[key]
+                key_dict = json_dic[key]
             except KeyError as exc:
-                raise VariableError(f"Key {key} not found in {json_path}") from exc
+                for kk, dic in json_dic.items():
+                    if 'alias' in dic and key in dic['alias']:
+                        if self.sim.verbose:
+                            print(f"Using aliased key {kk} for {key}")
+                        key_dict = dic
+                        break
+                else:
+                    raise VariableError(f"Key {key} not found in {json_path}") from exc
 
         self.file_key = key_dict.pop('file_key')
         self.file_name = key_dict.pop('file_name')
@@ -114,6 +123,7 @@ class NativeVariable(Variable):
         if isinstance(self.scale_factor, str):
             self.scale_factor = Units[self.scale_factor]
         self.kwargs = key_dict.pop('kwargs') if 'kwargs' in key_dict else {}
+        self.alias = key_dict.pop('alias') if 'alias' in key_dict else []
         self.backups = []
         if 'backups' in key_dict:
             for bu in key_dict.pop('backups'):
@@ -121,13 +131,12 @@ class NativeVariable(Variable):
                     self.backups.append(self.sim.get_variable(bu))
                 except VariableError:
                     continue
-
         self.plot_name = PlotName(**key_dict)
 
-        if key not in sim.its_lookup:
-            if any(self.backups):
-                raise BackupException(self.backups)
-            raise VariableError(f"Key {key} not in {sim}")
+        # if key not in sim.its_lookup:
+        #     if any(self.backups):
+        #         raise BackupException(self.backups)
+        #     raise VariableError(f"Key {key} not in {sim}")
 
 
 class UserVariable(Variable):
@@ -169,6 +178,33 @@ class UserVariable(Variable):
                 raise BackupException(self.backups) from exc
             raise exc
 
+    def _available_its(self, region: str) -> NDArray[np.int_]:
+        its = []
+        for dep in self.dependencies:
+            try:
+                if dep.vtype == 'grid':
+                    its.append(dep.available_its(region))
+                else:
+                    its.append(dep.available_its())
+            except BackupException as excp:
+                for bvar in excp.backups:
+                    try:
+                        if bvar.vtype == 'grid':
+                            its.append(bvar.available_its(region))
+                        else:
+                            its.append(bvar.available_its())
+                        if self.sim.verbose:
+                            print(f"using {bvar.key} instead of {dep.key}")
+                        break
+                    except (VariableError, IterationError):
+                        continue
+                else:
+                    raise VariableError(f"Could not find {dep.key} for UD variable {self.key}") from excp
+        its = reduce(np.intersect1d, its)
+        if len(its) == 0:
+            raise IterationError(f"No common iterations found for {self}")
+        return np.array(its)
+
 
 class GridDataVariable(NativeVariable, GridDataBaseVariable):
     """Variable for native grid functions"""
@@ -182,28 +218,58 @@ class GridDataVariable(NativeVariable, GridDataBaseVariable):
                  exclude_ghosts: int = 0,
                  **kwargs) -> GridData:
 
-        if it not in self.available_its(region=region):
-            for bu_var in self.backups:
-                try:
-                    return bu_var.get_data(region=region,
-                                           it=it,
-                                           exclude_ghosts=exclude_ghosts,
-                                           **kwargs)
-                except (VariableError, IterationError):
-                    continue
-            else:
-                raise IterationError(f"Iteration {it} not found for {self}")
-
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
+        it_dict = self.sim.its_lookup
 
-        return GridData(var=self,
-                        region=region,
-                        it=it,
-                        coords=coords,
-                        exclude_ghosts=exclude_ghosts)
+        if (self.key in it_dict) and (region in it_dict[self.key]):
+            return GridData(var=self,
+                            region=region,
+                            it=it,
+                            coords=coords,
+                            exclude_ghosts=exclude_ghosts)
+        for ali in self.alias:
+            if (ali in self.sim.its_lookup) and (region in self.sim.its_lookup[ali]):
+                if self.sim.verbose:
+                    print(f"Found alias key {ali} for {self.key}")
+                self.key = ali
+                return GridData(var=self,
+                                region=region,
+                                it=it,
+                                coords=coords,
+                                exclude_ghosts=exclude_ghosts)
 
-    def available_its(self, region: str) -> NDArray[np.float_]:
-        return self.sim.its_lookup[self.key][region]
+        for bvar in self.backups:
+            try:
+                bu = bvar.get_data(region=region,
+                                   it=it,
+                                   exclude_ghosts=exclude_ghosts,
+                                   **kwargs)
+                if self.sim.verbose:
+                    print(f"trying {bvar.key} instead of {self.key}")
+                return bu
+            except (VariableError, IterationError):
+                continue
+        raise IterationError(f"Iteration {it} not found for {self}")
+
+    def available_its(self, region: str) -> NDArray[np.int_]:
+        if (self.key in self.sim.its_lookup) and (region in self.sim.its_lookup[self.key]):
+            return self.sim.its_lookup[self.key][region]
+        for ali in self.alias:
+            if (ali in self.sim.its_lookup) and (region in self.sim.its_lookup[ali]):
+                if self.sim.verbose:
+                    print(f"Found alias key {ali} for {self.key}")
+                self.key = ali
+                return self.sim.its_lookup[ali][region]
+
+        for bvar in self.backups:
+            try:
+                ret = bvar.available_its(region)
+                if self.sim.verbose:
+                    print(f"using available its for {bvar.key} instead of {self.key}")
+                return ret
+            except (VariableError, IterationError):
+                continue
+        raise VariableError(f"{self} not in output for region {region}")
 
 
 class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
@@ -222,9 +288,22 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
             return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return TimeSeries(self, its=it, **kwargs)
 
-    def available_its(self) -> NDArray[np.float_]:
-        all_its, *_ = self.sim.data_handler.get_time_series(self.key)
-        return all_its
+    def available_its(self) -> NDArray[np.int_]:
+        try:
+            return self.sim.data_handler.get_time_series(self.key)[0]
+        except VariableError as excp:
+            key = self.key
+            for ali in self.alias:
+                try:
+                    self.key = ali
+                    its = self.available_its()
+                    if self.sim.verbose:
+                        print(f"Found alias key {ali} for {key}")
+                    return its
+                except VariableError:
+                    self.key = key
+                    continue
+            raise excp
 
 
 class UGridDataVariable(UserVariable, GridDataBaseVariable):
@@ -244,11 +323,8 @@ class UGridDataVariable(UserVariable, GridDataBaseVariable):
                          exclude_ghosts=exclude_ghosts,
                          **kwargs)
 
-    def available_its(self, region: str) -> NDArray[np.float_]:
-        its = reduce(np.intersect1d, (dep.available_its(region) for dep in self.dependencies))
-        if len(its) == 0:
-            raise IterationError(f"No common iterations found for {self}")
-        return its
+    def available_its(self, region: str) -> NDArray[np.int_]:
+        return super()._available_its(region)
 
 
 class UTimeSeriesVariable(UserVariable, TimeSeriesBaseVariable):
@@ -273,9 +349,6 @@ class UTimeSeriesVariable(UserVariable, TimeSeriesBaseVariable):
             return UTimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return UTimeSeries(self, its=it, **kwargs)
 
-    def available_its(self) -> NDArray[np.float_]:
+    def available_its(self) -> NDArray[np.int_]:
         region = 'xz' if self.sim.is_cartoon else 'xyz'
-        its = reduce(np.intersect1d, (dep.available_its(region) for dep in self.dependencies))
-        if len(its) == 0:
-            raise IterationError(f"No common iterations found for {self}")
-        return its
+        return super()._available_its(region)

@@ -1,64 +1,76 @@
 {
-  "ADM_mass": {
+  "ADM-mass": {
+    "alias": ["ADM_mass"],
     "file_key": "ADMMass_VolumeMass[0]",
     "file_name": "admmass-admmass_masses..asc",
     "name": "ADM mass (volume)",
     "unit": "M$_\\odot$"
   },
-  "ADM_mass_lapse": {
+  "ADM-mass-lapse": {
+    "alias": ["ADM_mass_lapse"],
     "file_key": "ADMMass_SurfaceMass_Lapse[0]",
     "file_name": "admmass-admmass_masses..asc",
     "name": "ADM mass (surface/lapse)",
     "unit": "M$_\\odot$"
   },
-  "ADM_mass_surf": {
+  "ADM-mass-surf": {
+    "alias": ["ADM_mass_surf"],
     "file_key": "ADMMass_SurfaceMass[0]",
     "file_name": "admmass-admmass_masses..asc",
     "name": "ADM mass",
     "unit": "M$_\\odot$"
   },
-  "W_max": {
+  "W-max": {
+    "alias": ["W_max"],
     "file_key": "w_lorentz(maximum)",
     "file_name": "hydrobase-w_lorentz.scalars.asc",
     "name": "maximum Lorentz factor"
   },
-  "W_min": {
+  "W-min": {
+    "alias": ["W_min"],
     "file_key": "w_lorentz(minimum)",
     "file_name": "hydrobase-w_lorentz.scalars.asc",
     "name": "minimum Lorentz factor"
   },
-  "alpha_min": {
+  "alpha-min": {
+    "alias": ["alpha_min"],
     "file_key": "alp(minimum)",
     "file_name": "admbase-lapse.scalars.asc",
     "name": "minimum lapse"
   },
-  "b_mass_dummy": {
+  "b-mass-dummy": {
+    "alias": ["b_mass_dummy"],
     "file_key": "dens(norm1)",
     "file_name": "thc_core-dens.scalars.asc",
     "name": "thc-core-dens"
   },
-  "consH_inf_ccz4": {
+  "consH-inf-ccz4": {
+    "alias": ["consH_inf_ccz4"],
     "file_key": "H(norm_inf)",
     "file_name": "ml_ccz4-ml_ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
-  "consH_ni_lean": {
+  "consH-ni-lean": {
+    "alias": ["consH_ni_lean"],
     "file_key": "hc(norm_inf)",
     "file_name": "leanbssnmol-ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
-  "consH_norminf": {
+  "consH-norminf": {
+    "alias": ["consH_norminf"],
     "file_key": "H(norm_inf)",
     "file_name": "ml_bssn-ml_ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
-  "dens_norm1": {
+  "dens-norm1": {
+    "alias": ["dens-norm1"],
     "file_key": "dens(norm1)",
     "file_name": "thc_core-dens.scalars.asc",
       "scale_factor": "Rho",
     "name": "baryonic mass"
   },
   "mph": {
+    "alias": ["mph"],
     "code_unit": "$M_\\odot$",
       "scale_factor": "Time",
     "file_key": "physical_time_per_hour",
@@ -66,37 +78,44 @@
     "name": "physical time per hour",
     "unit": "ms"
   },
-  "phi_lean_max": {
+  "phi-lean-max": {
+    "alias": ["phi-lean-max"],
     "file_key": "conf_fac(maximum)",
     "file_name": "leanbssnmol-conf_fac.scalars.asc",
     "name": "maximum conformal factor"
   },
-  "phi_lean_min": {
+  "phi-lean-min": {
+    "alias": ["phi-lean-min"],
     "file_key": "conf_fac(minimum)",
     "file_name": "leanbssnmol-conf_fac.scalars.asc",
     "name": "minimum conformal factor"
   },
-  "phi_max": {
+  "phi-max": {
+    "alias": ["phi-max"],
     "file_key": "phi(maximum)",
     "file_name": "ml_bssn-ml_log_confac.scalars.asc",
     "name": "maximum conformal factor"
   },
-  "phi_max_ccz4": {
+  "phi-max-ccz4": {
+    "alias": ["phi_max_ccz4"],
     "file_key": "phi(maximum)",
     "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
     "name": "maximum conformal factor"
   },
-  "phi_min": {
+  "phi-min": {
+    "alias": ["phi_min"],
     "file_key": "phi(minimum)",
     "file_name": "ml_bssn-ml_log_confac.scalars.asc",
     "name": "minimum conformal factor"
   },
-  "phi_min_ccz4": {
+  "phi-min-ccz4": {
+    "alias": ["phi_min_ccz4"],
     "file_key": "phi(minimum)",
     "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
     "name": "minimum conformal factor"
   },
-  "rho_max": {
+  "rho-max": {
+    "alias": ["rho_max"],
     "code_unit": "$M_\\odot$",
     "scale_factor": "Rho",
     "file_key": "rho(maximum)",
@@ -104,7 +123,8 @@
     "name": "maximum density",
     "unit": "g cm$^{-3}$"
   },
-  "rho_min": {
+  "rho-min": {
+    "alias": ["rho_min"],
     "code_unit": "$M_\\odot$",
     "scale_factor": "Rho",
     "file_key": "rho(minimum)",
@@ -112,51 +132,59 @@
     "name": "minimum density",
     "unit": "g cm$^{-3}$"
   },
-  "temp_max": {
+  "temp-max": {
+    "alias": ["temp_max"],
     "file_key": "temperature(maximum)",
     "file_name": "hydrobase-temperature.scalars.asc",
     "name": "maximum_temperature",
     "unit": "MeV"
   },
-  "temp_min": {
+  "temp-min": {
+    "alias": ["temp_min"],
     "file_key": "temperature(minimum)",
     "file_name": "hydrobase-temperature.scalars.asc",
     "name": "minimum temperature",
     "unit": "MeV"
   },
-  "time_comm": {
+  "time-comm": {
+    "alias": ["time_comm"],
     "file_key": "time_communicating",
     "file_name": "carpet-timing..asc",
     "scale_factor": 0.00027778,
     "name": "wall time spent comunicating",
     "unit": "s"
   },
-  "time_comp": {
+  "time-comp": {
+    "alias": ["time_comp"],
     "file_key": "time_computing",
     "file_name": "carpet-timing..asc",
     "scale_factor": 0.00027778,
     "name": "wall time spent computing",
     "unit": "s"
   },
-  "time_io": {
+  "time-io": {
+    "alias": ["time_io"],
     "file_key": "time_io",
     "file_name": "carpet-timing..asc",
     "scale_factor": 0.00027778,
     "name": "wall time spent in I/O",
     "unit": "s"
   },
-  "time_tot": {
+  "time-tot": {
+    "alias": ["time_tot"],
     "file_key": "time_total",
     "file_name": "carpet-timing..asc",
     "scale_factor": 0.00027778,
     "name": "total wall time"
   },
-  "ye_max": {
+  "ye-max": {
+    "alias": ["ye_max"],
     "file_key": "Y_e(maximum)",
     "file_name": "hydrobase-y_e.scalars.asc",
     "name": "maximum electron fraction"
   },
-  "ye_min": {
+  "ye-min": {
+    "alias": ["ye_min"],
     "file_key": "Y_e(minimum)",
     "file_name": "hydrobase-y_e.scalars.asc",
     "name": "minimum electron fraction"

@@ -7,7 +7,7 @@ from alpyne.uniform_interpolation import (linterp1D,  linterp2D,  # type: ignore
                                           linterp3D,  chinterp1D,  # type: ignore
                                           chinterp2D,  chinterp3D)  # type: ignore
 
-from .Utils import Units
+from .Utils import Units, VariableError
 
 if TYPE_CHECKING:
     from .Utils import UTimeSeriesVariable, UGridDataVariable, Variable
@@ -114,8 +114,6 @@ class GridData(Mapping):
         return f"GridData: {self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
 
     def scaled(self, rl):
-        if isinstance(self.var.scale_factor, str):
-            print(self.var.scale_factor)
         return self[rl]*self.var.scale_factor
 
 
@@ -150,7 +148,6 @@ class UGridData(GridData):
         # get dependencies
         dep_data = [dep.get_data(region=self.region,
                                  it=self.it,
-                                 coords=self.coords,
                                  exclude_ghosts=self.exclude_ghosts,
                                  **self.kwargs)
                     for dep in self.var.dependencies]
@@ -215,7 +212,10 @@ class UTimeSeries(TimeSeries):
         self.kwargs = kwargs
 
         # checked for saved version
-        hdf5 = HDF5(self.var.sim.ud_hdf5_path, 'a')
+        try:
+            hdf5 = HDF5(self.var.sim.ud_hdf5_path, 'a')
+        except OSError as excp:
+            raise VariableError("UD HDF5 file corrupted?") from excp
         key = self.var.key
         for kk, item in self.kwargs.items():
             key += f":{kk}={item}"

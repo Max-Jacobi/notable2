@@ -25,8 +25,12 @@ def integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable
         if sim.verbose:
             print(f"Integrating iteration {it}")
         weights = sim.get_variable('reduce-weights').get_data(region=region, it=it)
-        dep_data = [dep.get_data(region=region, it=it, **kwargs)
-                    for dep in dependencies]
+        dep_data = []
+        for dep in dependencies:
+            if dep.vtype == 'grid':
+                dep_data.append(dep.get_data(region=region, it=it, **kwargs))
+            else:
+                dep_data.append(dep.get_data(it=it, **kwargs))
 
         for rl in rls:
             coord = dep_data[0].coords[rl]
