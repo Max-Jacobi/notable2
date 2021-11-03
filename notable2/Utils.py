@@ -1,19 +1,18 @@
-from typing import Union, Optional, TYPE_CHECKING, Callable
+from typing import Union, Optional, TYPE_CHECKING, Callable, Any
 from collections.abc import Iterable, Mapping
 import numpy as np
-
-
-if np.version.short_version < "1.21":
-    from nptyping import NDArray  # type: ignore
-else:
-    from numpy.typing import NDArray  # type: ignore
+from matplotlib.colors import Normalize
+from matplotlib.contour import QuadContourSet
+from matplotlib.image import AxesImage
+from matplotlib.axes import Axes
+from nptyping import NDArray
 
 RLArgument = Optional[Union[int, Iterable]]
 
 if TYPE_CHECKING:
     from .Simulation import Simulation
-    from .Variable import Variable, GridDataVariable, UGridDataVariable, TimeSeriesVariable, UTimeSeriesVariable, UserVariable
-    from .DataObjects import GridData, UGridData, TimeSeries, UTimeSeries
+    from .Variable import Variable, GridFuncVariable, UGridFuncVariable, TimeSeriesVariable, UTimeSeriesVariable, PostProcVariable
+    from .DataObjects import GridFunc, UGridFunc, TimeSeries, UTimeSeries
 
 
 class PlotName():
@@ -85,19 +84,36 @@ class BackupException(Exception):
         self.backups = backups
 
 
+def _save_log(dd):
+    res = np.zeros_like(dd)*np.nan
+    mask = dd > 0
+    res[mask] = np.log10(dd[mask])
+    return res
+
+
 func_dict: dict[str, tuple[str, Callable]] = dict(
-    log=('log({})', np.log10),
+    log=('log({})', _save_log),
     logabs=('log($|${}$|$)', lambda d: np.log10(np.abs(d))),
 )
 
 
 class Plot2D(Mapping):
 
-    def __init__(self, dictionary, norm, **kwargs):
+    rls: NDArray[np.int_]
+    norm: Normalize
+    first: Union[AxesImage, QuadContourSet]
+    cmap: str
+    axes: Axes
+    kwarg: dict[str, Any]
+
+    def __init__(self,
+                 dictionary: dict[int, Union[AxesImage, QuadContourSet]],
+                 norm: Normalize,
+                 **kwargs):
         self._dict = dictionary
-        self.reflevels = np.sort(list(self._dict.keys()))
+        self.rls = np.sort(list(self._dict.keys()))
         self.norm = norm
-        rl = self.reflevels.min()
+        rl = self.rls.min()
         self.first = self._dict[rl]
         self.cmap = self.first.get_cmap()
         self.axes = self.first.axes
@@ -107,8 +123,8 @@ class Plot2D(Mapping):
         return self._dict[rl]
 
     def __iter__(self):
-        for rl in self.reflevels:
-            yield self._dict[rl]
+        for rl in self.rls:
+            yield rl
 
     def __len__(self):
-        return len(self.reflevels)
+        return len(self.rls)

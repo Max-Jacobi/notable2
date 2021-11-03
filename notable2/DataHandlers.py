@@ -2,7 +2,7 @@
 DataHandlers module
 
 DataHandlers are responsible for parsing simulation output
-and returning stuff like GridData and TimeSeries.
+and returning stuff like GridFunc and TimeSeries.
 For a different simulation data layout implement a new DataHandler.
 """
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class DataHandler(ABC):
     """Abstract class for DataHandlers.
     DataHandlers are responsible for parsing simulation output
-    and returning stuff like GridData and TimeSeries. """
+    and returning stuff like GridFunc and TimeSeries. """
 
     sim: "Simulation"
 
@@ -42,8 +42,8 @@ class DataHandler(ABC):
         ...
 
     @abstractmethod
-    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
-        """Gets the GridData from simulation data"""
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
+        """Gets the GridFunc from simulation data"""
         ...
 
     @abstractmethod
@@ -98,8 +98,9 @@ class PackETHandler(DataHandler):
 
         return itr, sdict, itdict
 
-    def get_grid_data(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
-        dat = self.data[f'{it:08d}/{rl:02d}/{region}/{key}'][()]
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
+        dset_path = str(f'{it:08d}/{rl:02d}/{region}/{key}')
+        dat = self.data[dset_path][()]
         dat[dat == 666] = np.nan
         return dat
 

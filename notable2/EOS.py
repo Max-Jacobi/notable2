@@ -16,7 +16,7 @@ class EOS(ABC):
                    func: Callable = lambda *args: args[0]
                    ) -> Callable:
         """
-        Returns a callable for creation of user defined data.
+        Returns a callable for creation of post processed data.
         func is called with the signature (*data, rho, temp, ye),
         where data are the arrays generated from keys
         """
@@ -28,7 +28,7 @@ class EOS(ABC):
                         func: Callable = lambda *args: args[0]
                         ) -> Callable:
         """
-        Returns a callable for creation of user defined data.
+        Returns a callable for creation of post processed data.
         func is called with the signature (*data, rho, ye),
         where data are the arrays generated from keys
         """

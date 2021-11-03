@@ -10,11 +10,11 @@ from alpyne.uniform_interpolation import (linterp1D,  linterp2D,  # type: ignore
 from .Utils import Units, VariableError
 
 if TYPE_CHECKING:
-    from .Utils import UTimeSeriesVariable, UGridDataVariable, Variable
+    from .Utils import UTimeSeriesVariable, UGridFuncVariable, Variable
 
 
-class GridData(Mapping):
-    """Documentation for GridData
+class GridFunc(Mapping):
+    """Documentation for GridFunc
 
     """
 
@@ -43,7 +43,7 @@ class GridData(Mapping):
         self.restart = self.var.sim.get_restart(it=it)
 
     def __getitem__(self, rl):
-        data = self.var.sim.data_handler.get_grid_data(self.var.key, rl, self.it, self.region)
+        data = self.var.sim.data_handler.get_grid_func(self.var.key, rl, self.it, self.region)
         if self.exclude_ghosts != 0:
             data = data[self.exclude_ghosts:-self.exclude_ghosts]
             if self.dim > 1:
@@ -59,10 +59,10 @@ class GridData(Mapping):
         if len(int_coords) == 0:
             raise ValueError("No interpolation points give")
         if len(missing := [ax for ax in int_coords if ax not in self.region]) != 0:
-            raise ValueError(f"Axes {missing} not in GridData {self}")
+            raise ValueError(f"Axes {missing} not in GridFunc {self}")
 
         for ax, cc in int_coords.items():
-            if isinstance(cc, (int, float)):
+            if isinstance(cc, (int, float, np.number)):
                 int_coords[ax] = np.array([cc])
             else:
                 int_coords[ax] = np.array(cc)
@@ -111,18 +111,18 @@ class GridData(Mapping):
         return f"{self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
 
     def __repr__(self):
-        return f"GridData: {self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
+        return f"GridFunc: {self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
 
     def scaled(self, rl):
         return self[rl]*self.var.scale_factor
 
 
-class UGridData(GridData):
-    """Documentation for UGridData"""
+class UGridFunc(GridFunc):
+    """Documentation for UGridFunc"""
     kwargs: dict[str, Any]
 
     def __init__(self,
-                 var: "UGridDataVariable",
+                 var: "UGridFuncVariable",
                  region: str,
                  it: int,
                  coords: dict[int, dict[str, NDArray[np.float_]]],
@@ -135,7 +135,7 @@ class UGridData(GridData):
     def __getitem__(self, rl):
 
         # checked for saved version
-        hdf5 = HDF5(self.var.sim.ud_hdf5_path, 'a')
+        hdf5 = HDF5(self.var.sim.pp_hdf5_path, 'a')
         key = self.var.key
         for kk, item in self.kwargs.items():
             key += f":{kk}={item}"
@@ -187,7 +187,7 @@ class TimeSeries():
             self.data = self.data[inds]
             self.restarts = self.restarts[inds]
 
-    @ property
+    @property
     def scaled_data(self) -> "NDArray[np.float_]":
         return self.data * self.var.scale_factor
 
@@ -213,50 +213,75 @@ class UTimeSeries(TimeSeries):
 
         # checked for saved version
         try:
-            hdf5 = HDF5(self.var.sim.ud_hdf5_path, 'a')
+            hdf5 = HDF5(self.var.sim.pp_hdf5_path, 'a')
         except OSError as excp:
-            raise VariableError("UD HDF5 file corrupted?") from excp
-        key = self.var.key
-        for kk, item in self.kwargs.items():
-            key += f":{kk}={item}"
-        if key in hdf5:
-            old_its = hdf5[key].attrs['its']
-            its = np.setdiff1d(its, old_its)
-            if len(its) == 0:
-                self.data = hdf5[key][...]
-                self.its = old_its
-                self.times = self.var.sim.get_time(self.its)
-                self.restarts = self.var.sim.get_restart(self.its)
-                hdf5.close()
-                return
+            raise VariableError("PP HDF5 file corrupted?") from excp
+        try:
+            key = self.var.key
+            for kk, item in self.kwargs.items():
+                key += f":{kk}={item}"
+            if key in hdf5:
+                old_its = hdf5[key].attrs['its']
+                its = np.setdiff1d(its, old_its)
+                if len(its) == 0:
+                    self.data = hdf5[key][...]
+                    self.its = old_its
+                    self.times = hdf5[key].attrs['times']
+                    self.restarts = hdf5[key].attrs['restarts']
+                    hdf5.close()
+                    return
 
-        if self.var.reduction is not None:
-            data = self.var.reduction(dependencies=self.var.dependencies,
-                                      func=self.var.func,
-                                      its=its,
-                                      sim=self.var.sim,
-                                      **kwargs)
+            if self.var.reduction is not None:
+                data = self.var.reduction(dependencies=self.var.dependencies,
+                                          func=self.var.func,
+                                          its=its,
+                                          sim=self.var.sim,
+                                          **kwargs)
+                if all(dvar.vtype == 'time' for dvar in self.var.dependencies):
+                    times = (dat := self.var.dependencies[0].get_data(it=its, **kwargs)).times
+                    restarts = dat.restarts
+                else:
+                    times = self.var.sim.get_time(its)
+                    restarts = self.var.sim.get_restart(its)
 
-        else:
-            dep_data = [dep.get_data(it=its, **self.kwargs)
-                        for dep in self.var.dependencies]
+            else:
+                dep_data = [dep.get_data(it=its, **self.kwargs)
+                            for dep in self.var.dependencies]
 
-            data = self.var.func(*dep_data, self.times, **self.kwargs)
+                times = dep_data[0].times
+                restarts = dep_data[0].restarts
+                data = self.var.func(*[dd.data for dd in dep_data], times, **self.kwargs)
 
-        if key in hdf5:
-            self.its = np.sort(np.concatenate((its, old_its)))
-            self.data = np.zeros_like(self.its, dtype=float)
-            self.data[np.searchsorted(self.its, its)] = data
-            self.data[np.searchsorted(self.its, old_its)] = hdf5[key][...]
-            del hdf5[key]
-        else:
-            self.data = data
-            self.its = its
+            if key in hdf5:
+                self.its = np.sort(np.concatenate((its, old_its)))
+                self.data = np.zeros_like(self.its, dtype=float)
+                self.times = np.zeros_like(self.its, dtype=float)
+                self.restarts = np.zeros_like(self.its, dtype=int)
 
-        self.times = self.var.sim.get_time(self.its)
-        self.restarts = self.var.sim.get_restart(self.its)
+                n_new = np.searchsorted(self.its, its)
+                self.data[n_new] = data
+                self.times[n_new] = times
+                self.restarts[n_new] = restarts
 
-        dset = hdf5.create_dataset(key, data=self.data)
-        dset.attrs['its'] = self.its
-        hdf5.flush()
-        hdf5.close()
+                n_old = np.searchsorted(self.its, old_its)
+                self.data[n_old] = hdf5[key][...]
+                self.times[n_old] = hdf5[key].attrs['times']
+                self.restarts[n_old] = hdf5[key].attrs['restarts']
+
+                del hdf5[key]
+
+            else:
+                self.data = data
+                self.its = its
+                self.times = times
+                self.restarts = restarts
+
+            dset = hdf5.create_dataset(key, data=self.data)
+            dset.attrs['its'] = self.its
+            dset.attrs['times'] = self.times
+            dset.attrs['restarts'] = self.restarts
+            hdf5.flush()
+            hdf5.close()
+        except Exception as excp:
+            hdf5.close()
+            raise excp

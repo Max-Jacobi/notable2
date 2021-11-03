@@ -17,7 +17,8 @@
     "file_key": "THC_LEAKAGEBASE::luminosity_nua",
     "file_name": "thc_leakagebase-thc_leakage_luminosity",
     "kwargs": {
-      "cmap": "viridis"
+      "cmap": "viridis",
+      "func": "log"
     },
     "name": "$L_{\\bar{\\nu}_{\\rm e}}$"
   },
@@ -28,7 +29,8 @@
     "file_key": "THC_LEAKAGEBASE::luminosity_nue",
     "file_name": "thc_leakagebase-thc_leakage_luminosity",
     "kwargs": {
-      "cmap": "viridis"
+      "cmap": "viridis",
+      "func": "log"
     },
     "name": "$L_{\\nu_{\\rm e}}$"
   },
@@ -39,7 +41,8 @@
     "file_key": "THC_LEAKAGEBASE::luminosity_nux",
     "file_name": "thc_leakagebase-thc_leakage_luminosity",
     "kwargs": {
-      "cmap": "viridis"
+      "cmap": "viridis",
+      "func": "log"
     },
     "name": "$L_{\\nu_x}$"
   },
@@ -257,7 +260,7 @@
   },
   "W": {
     "backups": [
-      "W-ud"
+      "W-pp"
     ],
     "file_key": "HYDROBASE::w_lorentz",
     "file_name": "hydrobase-w_lorentz",
@@ -395,7 +398,7 @@
   },
   "dens": {
     "backups": [
-      "dens-ud"
+      "dens-pp"
     ],
     "code_unit": "$M_\\odot^{-2}$",
     "file_key": "THC_CORE::dens",
@@ -629,21 +632,25 @@
   },
   "phi": {
     "alias": [
-      "phi_bssn"
+      "phi-CCZ4"
     ],
     "backups": [
-      "phi-ud"
+      "phi-pp"
     ],
     "file_key": "ML_BSSN::phi",
-    "file_name": "ml_bssn-ml_log_confac",
+    "file_name": "ml_ccz4-ml_log_confac",
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "log($phi$)"
+    "name": "$phi$"
   },
-  "phi_CCZ4": {
-    "file_key": "ML_CCZ4::phi",
-    "file_name": "ml_ccz4-ml_log_confac",
+  "phi-BSSN": {
+    "alias": [
+      "phi_BSSN",
+      "phi_bssn"
+    ],
+    "file_key": "ML_BSSN::phi",
+    "file_name": "ml_bssn-ml_log_confac",
     "kwargs": {
       "cmap": "plasma"
     },

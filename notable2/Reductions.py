@@ -1,14 +1,18 @@
 import numpy as np
-from numpy.typing import NDArray
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
+from numpy.typing import NDArray
+from scipy.integrate import simps
 
 from .RCParams import rcParams
 
 if TYPE_CHECKING:
-    from .Utils import GridDataVariable, UGridDataVariable, TimeSeriesVariable, UTimeSeriesVariable, Simulation
+    from .Utils import GridFuncVariable, UGridFuncVariable, TimeSeriesVariable, UTimeSeriesVariable, Simulation
 
 
-def integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable", "TimeSeriesVariable", "UTimeSeriesVariable"]],
+def integral(dependencies: Sequence[Union["GridFuncVariable",
+                                          "UGridFuncVariable",
+                                          "TimeSeriesVariable",
+                                          "UTimeSeriesVariable"]],
              func: Callable,
              its: NDArray[np.int_],
              sim: "Simulation",
@@ -35,25 +39,27 @@ def integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable
         for rl in rls:
             coord = dep_data[0].coords[rl]
             dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
-            coord = {ax: cc for ax, cc in
-                     zip(coord, np.meshgrid(*coord.values(), indexing='ij'))}
+            coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
 
             if sim.is_cartoon:
                 vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
             else:
                 vol = dx['x']*dx['y']*dx['z']
 
-            integ = [data if isinstance(data, float) else data[rl]
+            integ = [data if isinstance(data, (float, np.floating)) else data[rl]
                      for data in dep_data]
 
-            integ = func(*integ, **coord, **kwargs)
-            integ *= vol * weights[rl]
+            integ = func(*integ, **coord, **kwargs) * weights[rl]
+
+            integ[~np.isfinite(integ)] = 0
+
+            integ *= vol
             result[ii] += np.sum(integ[np.isfinite(integ)])
 
     return result
 
 
-def sphere_surface_integral(dependencies: Sequence[Union["GridDataVariable", "UGridDataVariable"]],
+def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "UGridFuncVariable"]],
                             func: Callable,
                             its: NDArray[np.int_],
                             sim: "Simulation",

@@ -4,8 +4,8 @@ Variable objects Inheritance tree:
 - Variable
 - UVariable
 
-- GridDataVariable(Variable)
-- UGridDataVariable(Variable)
+- GridFuncVariable(Variable)
+- UGridFuncVariable(Variable)
 - TimeSeriesVariable(Variable)
 - UTimeSeries(Variable)
 - ?Reduction seperate or as part of UTimeSeries?
@@ -19,7 +19,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .RCParams import rcParams
-from .DataObjects import GridData, TimeSeries, UGridData, UTimeSeries
+from .DataObjects import GridFunc, TimeSeries, UGridFunc, UTimeSeries
 from .Utils import PlotName, Units, VariableError, BackupException, IterationError
 
 if TYPE_CHECKING:
@@ -74,7 +74,7 @@ class TimeSeriesBaseVariable(ABC):
         ...
 
 
-class GridDataBaseVariable(ABC):
+class GridFuncBaseVariable(ABC):
     """ABC for TimeSeriesVariables"""
     vtype: str = 'grid'
 
@@ -83,8 +83,8 @@ class GridDataBaseVariable(ABC):
                  region: str,
                  it: int,
                  exclude_ghosts: int,
-                 **kwargs) -> GridData:
-        """Returns GridData DataObject for given it and region.
+                 **kwargs) -> GridFunc:
+        """Returns GridFunc DataObject for given it and region.
         exclude_ghosts number of cells are cut of."""
         ...
 
@@ -139,8 +139,8 @@ class NativeVariable(Variable):
         #     raise VariableError(f"Key {key} not in {sim}")
 
 
-class UserVariable(Variable):
-    """ABC for user defined Variables"""
+class PostProcVariable(Variable):
+    """ABC for post processed Variables"""
 
     dependencies: list[Variable]
 
@@ -164,7 +164,7 @@ class UserVariable(Variable):
                 except VariableError:
                     continue
 
-        self.kwargs = kwargs if kwargs is not None else dict()
+        self.kwargs = kwargs if kwargs is not None else {}
         self.func = func
         self.scale_factor = scale_factor
         if isinstance(self.scale_factor, str):
@@ -199,30 +199,30 @@ class UserVariable(Variable):
                     except (VariableError, IterationError):
                         continue
                 else:
-                    raise VariableError(f"Could not find {dep.key} for UD variable {self.key}") from excp
+                    raise VariableError(f"Could not find {dep.key} for PP variable {self.key}") from excp
         its = reduce(np.intersect1d, its)
         if len(its) == 0:
             raise IterationError(f"No common iterations found for {self}")
         return np.array(its)
 
 
-class GridDataVariable(NativeVariable, GridDataBaseVariable):
+class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
     """Variable for native grid functions"""
 
     def __init__(self, key: str, sim: "Simulation", ):
-        super().__init__(key, sim, rcParams.GridDataVariable_json)
+        super().__init__(key, sim, rcParams.GridFuncVariable_json)
 
     def get_data(self,
                  region: str,
                  it: int,
                  exclude_ghosts: int = 0,
-                 **kwargs) -> GridData:
+                 **kwargs) -> GridFunc:
 
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
         it_dict = self.sim.its_lookup
 
         if (self.key in it_dict) and (region in it_dict[self.key]):
-            return GridData(var=self,
+            return GridFunc(var=self,
                             region=region,
                             it=it,
                             coords=coords,
@@ -232,7 +232,7 @@ class GridDataVariable(NativeVariable, GridDataBaseVariable):
                 if self.sim.verbose:
                     print(f"Found alias key {ali} for {self.key}")
                 self.key = ali
-                return GridData(var=self,
+                return GridFunc(var=self,
                                 region=region,
                                 it=it,
                                 coords=coords,
@@ -284,39 +284,38 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
             it = av_its
         if len(uni := np.setdiff1d(it, av_its)) != 0:
             raise IterationError(f"Iteration(s) {uni} not found for self")
-        if isinstance(it, int):
+        if isinstance(it, (int, np.integer)):
             return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return TimeSeries(self, its=it, **kwargs)
 
     def available_its(self) -> NDArray[np.int_]:
         try:
             return self.sim.data_handler.get_time_series(self.key)[0]
-        except VariableError as excp:
-            key = self.key
+        except VariableError as ex:
+            excp = ex
             for ali in self.alias:
                 try:
-                    self.key = ali
-                    its = self.available_its()
+                    its = self.sim.data_handler.get_time_series(ali)[0]
                     if self.sim.verbose:
-                        print(f"Found alias key {ali} for {key}")
+                        print(f"Found alias key {ali} for {self.key}")
+                    self.key = ali
                     return its
                 except VariableError:
-                    self.key = key
                     continue
-            raise excp
+        raise excp
 
 
-class UGridDataVariable(UserVariable, GridDataBaseVariable):
-    """Variable for user defined grid functions"""
+class UGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
+    """Variable for post processed grid functions"""
 
     def get_data(self,
                  region: str,
                  it: int,
                  exclude_ghosts: int = 0,
-                 **kwargs) -> UGridData:
+                 **kwargs) -> UGridFunc:
 
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
-        return UGridData(var=self,
+        return UGridFunc(var=self,
                          region=region,
                          it=it,
                          coords=coords,
@@ -327,17 +326,17 @@ class UGridDataVariable(UserVariable, GridDataBaseVariable):
         return super()._available_its(region)
 
 
-class UTimeSeriesVariable(UserVariable, TimeSeriesBaseVariable):
-    """Variable for user defined time series functions"""
+class UTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
+    """Variable for post processed time series functions"""
     reduction: Optional[Callable]
 
     def __init__(self, reduction: Optional[Callable] = None, **kwargs):
         super().__init__(**kwargs)
         self.reduction = reduction
-        if any(isinstance(dep, (GridDataVariable, UGridDataVariable)) for dep in self.dependencies):
+        if any(isinstance(dep, (GridFuncVariable, UGridFuncVariable)) for dep in self.dependencies):
             if self.reduction is None:
-                raise ValueError("User-defined time series needs reduction operator "
-                                 f"for GridDataVariables in {self.dependencies}")
+                raise ValueError("Post processed time series needs reduction operator "
+                                 f"for GridFuncVariables in {self.dependencies}")
 
     def get_data(self, it=None, **kwargs):
         av_its = self.available_its()
@@ -345,7 +344,7 @@ class UTimeSeriesVariable(UserVariable, TimeSeriesBaseVariable):
             it = av_its
         if len(uni := np.setdiff1d(it, av_its)) != 0:
             raise IterationError(f"Iteration(s) {uni} not found for self")
-        if isinstance(it, int):
+        if isinstance(it, (int, np.integer)):
             return UTimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return UTimeSeries(self, its=it, **kwargs)
 

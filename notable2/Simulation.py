@@ -1,15 +1,17 @@
 from os.path import basename
-from typing import Optional, Type, Callable, overload, Any
+from typing import Optional, Type, Callable, overload, Any, Union
 from collections.abc import Iterable
 import numpy as np
 from numpy.typing import NDArray
+from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
 from .EOS import EOS, TabulatedEOS
 from .RCParams import rcParams
-from .Variable import Variable, GridDataVariable, TimeSeriesVariable, UGridDataVariable, UTimeSeriesVariable, UserVariable
-from .UserVariables import get_user_variables
-from .Plot import plotGD, plotTS
+from .Variable import Variable, GridFuncVariable, TimeSeriesVariable, UGridFuncVariable, UTimeSeriesVariable
+from .DataObjects import GridFunc, TimeSeries
+from .PostProcVariables import get_pp_variables
+from .Plot import plotGD, plotTS, animateGD
 from .Utils import IterationError, VariableError, BackupException, RLArgument
 
 
@@ -17,6 +19,7 @@ class Simulation():
     """Documentation for Simulation """
     sim_path: str
     sim_name: str
+    nice_name: str
     rls: NDArray[np.int_]
     data_handler: DataHandler
     eos: EOS
@@ -24,9 +27,9 @@ class Simulation():
     plotTS: Callable
     is_cartoon: bool
     verbose: bool = False
-    ud_hdf5_path: str
-    user_grid_data_variables: dict[str, dict[str, Any]]
-    user_time_series_variables: dict[str, dict[str, Any]]
+    pp_hdf5_path: str
+    pp_grid_func_variables: dict[str, dict[str, Any]]
+    pp_time_series_variables: dict[str, dict[str, Any]]
 
     def __init__(self,
                  sim_path: str,
@@ -37,6 +40,7 @@ class Simulation():
                  ):
         self.sim_path = sim_path
         self.sim_name = basename(sim_path)
+        self.nice_name = self.sim_name
         self.is_cartoon = is_cartoon
 
         self.data_handler = data_handler(self) if data_handler is not None \
@@ -52,14 +56,14 @@ class Simulation():
         self.rls = np.array(list(self._structure[0].keys()))
         self.finest_rl = self.rls.max()
 
-        self.user_grid_data_variables = {}
-        for ufile in rcParams.UGridDataVariable_files:
-            self.user_grid_data_variables.update(get_user_variables(ufile, self.eos))
-        self.user_time_series_variables = {}
+        self.pp_grid_func_variables = {}
+        for ufile in rcParams.UGridFuncVariable_files:
+            self.pp_grid_func_variables.update(get_pp_variables(ufile, self.eos))
+        self.pp_time_series_variables = {}
         for ufile in rcParams.UTimeSeries_files:
-            self.user_time_series_variables.update(get_user_variables(ufile, self.eos))
+            self.pp_time_series_variables.update(get_pp_variables(ufile, self.eos))
 
-        self.ud_hdf5_path = f"{self.sim_path}/{self.sim_name}_UD.hdf5"
+        self.pp_hdf5_path = f"{self.sim_path}/{self.sim_name}_PP.hdf5"
 
     def __repr__(self):
         return f"Einstein Toolkit simulation {self.sim_name}"
@@ -73,12 +77,22 @@ class Simulation():
             return self.rls
         if not isinstance(rls, Iterable):
             rls = np.array([rls, ])
-        elif ... in rls:
-            rls = tuple(rls)
+        if ... in rls:
+            rls = list(rls)
             el_ind = rls.index(...)
-            bounds = sorted([rls[el_ind-1], rls[el_ind+1]])
-            el_ex = tuple(range(bounds[0], bounds[1]+1))
-            rls = np.sort(rls[:el_ind-1] + el_ex + rls[el_ind+2:])
+            rls.remove(...)
+            rls = np.array(rls)
+            rls[rls < 0] += self.finest_rl + 1
+            if el_ind == 0:
+                bounds = sorted([0, rls[0]])
+            elif el_ind == len(rls):
+                bounds = sorted([rls[-1], self.rls.max()])
+            else:
+                bounds = sorted([rls[el_ind-1], rls[el_ind]])
+
+            el_ex = list(range(bounds[0], bounds[1]+1))
+            rls = list(rls)
+            rls = np.sort(rls[:el_ind-1] + el_ex + rls[el_ind+1:])
         rls = np.array(rls)
         rls[rls < 0] += self.finest_rl + 1
         return np.sort(rls)
@@ -136,7 +150,7 @@ class Simulation():
 
     def get_variable(self, key: str) -> Variable:
         """Return Variable for key"""
-        for var in [TimeSeriesVariable, GridDataVariable]:
+        for var in [TimeSeriesVariable, GridFuncVariable]:
             try:
                 return var(key, self)
             # except BackupException as bexc:
@@ -146,11 +160,14 @@ class Simulation():
                 last_exc = exc
                 continue
         else:
-            if key in self.user_grid_data_variables:
-                return UGridDataVariable(key=key, sim=self, **self.user_grid_data_variables[key])
-            if key in self.user_time_series_variables:
-                return UTimeSeriesVariable(key=key, sim=self, **self.user_time_series_variables[key])
+            if key in self.pp_grid_func_variables:
+                return UGridFuncVariable(key=key, sim=self, **self.pp_grid_func_variables[key])
+            if key in self.pp_time_series_variables:
+                return UTimeSeriesVariable(key=key, sim=self, **self.pp_time_series_variables[key])
             raise VariableError(f"Could not find key {key} in {self}.") from last_exc
+
+    def get_data(self, key: str, **kwargs) -> Union[GridFunc, TimeSeries]:
+        return self.get_variable(key).get_data(**kwargs)
 
     def get_coords(self,
                    region: str,
@@ -159,12 +176,17 @@ class Simulation():
                    ) -> dict[int, dict[str, NDArray[np.float_]]]:
 
         if len(region) > 1:
-            return {rl: {ax: of + ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)
-                         for ax, (ori, dx, nn), of in zip(region,
-                                                          zip(*self._structure[it][rl][region]),
-                                                          [self._offset[ax] for ax in region]
-                                                          )}
-                    for rl in self.rls}
+            ret = {rl: {} for rl in self.rls}
+            for rl in self.rls:
+                if region not in self._structure[it][rl]:
+                    for ax in region:
+                        ret[rl][ax] = np.array([])
+                else:
+                    for ax, ori, dx, nn, of in zip(region,
+                                                   *self._structure[it][rl][region],
+                                                   [self._offset[ax] for ax in region]):
+                        ret[rl][ax] = of + ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)
+            return ret
 
         ret = {}
         for rl in self.rls:
@@ -172,6 +194,13 @@ class Simulation():
             ret[rl] = {region: ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)}
         return ret
 
+    def delete_saved_pp_variable(self, key: str):
+        with HDF5(self.pp_hdf5_path, 'a') as hf:
+            if key in hf:
+                del hf[key]
+                hf.flush()
+
 
 Simulation.plotGD = plotGD
 Simulation.plotTS = plotTS
+Simulation.animateGD = animateGD
