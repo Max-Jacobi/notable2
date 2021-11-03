@@ -44,4 +44,25 @@ pp_variables = {
             cmap="plasma",
         )
     ),
+    "u_t-pp": dict(
+        dependencies=('W', 'alpha',
+                      'vel^x', 'vel^y', 'vel^z',
+                      'g_xx', 'g_yy', 'g_zz',
+                      'g_xy', 'g_xz', 'g_yz',
+                      'beta^x', 'beta^y', 'beta^z',),
+        func=lambda W, alp, vx, vy, vz,
+        gxx, gyy, gzz, gxy, gxz, gyz,
+        bx, by, bz, *_, **kw:
+        W * (-alp + vx*bx*gxx + vy*by*gyy + vz*bz*gzz +
+             (vx*by + bx*vy)*gxy +
+             (vx*bz + bx*vz)*gxz +
+             (vy*bz + by*vz)*gyz),
+        plot_name_kwargs=dict(
+            name=r"$u_t$ [$c$]"
+        ),
+        kwargs=dict(
+            symetric_around=-1,
+            cmap='seismic'
+        )
+    ),
 }

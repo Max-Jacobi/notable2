@@ -882,6 +882,7 @@
     "unit": "MeV"
   },
   "u_t": {
+    "backups": "u_t-pp",
     "file_key": "BNSANALYSIS::u_t",
     "file_name": "bnsanalysis-u_t",
     "kwargs": {

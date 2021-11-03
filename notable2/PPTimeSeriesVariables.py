@@ -21,6 +21,17 @@ def _mass_flow(vx, vy, vz,
                  )/r
 
 
+def _mass_flow_ej(vx, vy, vz,
+                  bx, by, bz,
+                  gxx, gxy, gxz,
+                  gyy, gyz, gzz,
+                  alp, dens, u_t,
+                  x, y, z, **_):
+    return _mass_flow(vx, vy, vz, bx, by, bz,
+                      gxx, gxy, gxz, gyy, gyz, gzz,
+                      alp, dens, x, y, z) * (u_t < -1)
+
+
 def _mass_flow_cartoon(vx, vz, bx, bz,
                        gxx, gxz, gzz,
                        alp, dens,
@@ -191,5 +202,20 @@ pp_variables = {
             unit="$M_\odot$"
         ),
         reduction=integral,
+    ),
+    'ejecta-mass': dict(
+        dependencies=("vel^x", "vel^y", "vel^z",
+                      "beta^x", "beta^y", "beta^z",
+                      'g_xx', 'g_xy', 'g_xz',
+                      'g_yy', 'g_yz', 'g_zz',
+                      "alpha", "dens", "u_t"),
+        func=_mass_flow_ej,
+        plot_name_kwargs=dict(
+            name="mass flux",
+            unit="$M_\odot$ ms$^{-1}$",
+            code_unit="",
+        ),
+        reduction=sphere_surface_integral,
+        scale_factor=1/Units['Time'],
     ),
 }
