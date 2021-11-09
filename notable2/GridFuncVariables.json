@@ -14,39 +14,49 @@
     "alias": [
       "Lnua"
     ],
+    "code_unit": "$M_\\odot^{-3}$",
     "file_key": "THC_LEAKAGEBASE::luminosity_nua",
     "file_name": "thc_leakagebase-thc_leakage_luminosity",
     "kwargs": {
       "cmap": "viridis",
       "func": "log"
     },
-    "name": "$L_{\\bar{\\nu}_{\\rm e}}$"
+    "name": "$L_{\\bar{\\nu}_{\\rm e}}$",
+    "scale_factor": 1.1269044823088264e+41,
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "L-nu-e": {
     "alias": [
       "Lnue"
     ],
+    "code_unit": "$M_\\odot^{-3}$",
     "file_key": "THC_LEAKAGEBASE::luminosity_nue",
     "file_name": "thc_leakagebase-thc_leakage_luminosity",
     "kwargs": {
       "cmap": "viridis",
       "func": "log"
     },
-    "name": "$L_{\\nu_{\\rm e}}$"
+    "name": "$L_{\\nu_{\\rm e}}$",
+    "scale_factor": 1.1269044823088264e+41,
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "L-nu-x": {
     "alias": [
       "Lnux"
     ],
+    "code_unit": "$M_\\odot^{-3}$",
     "file_key": "THC_LEAKAGEBASE::luminosity_nux",
     "file_name": "thc_leakagebase-thc_leakage_luminosity",
     "kwargs": {
       "cmap": "viridis",
       "func": "log"
     },
-    "name": "$L_{\\nu_x}$"
+    "name": "$L_{\\nu_x}$",
+    "scale_factor": 1.1269044823088264e+41,
+    "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "Q-nu-a": {
+    "code_unit": "$M_\\odot^{-3}$",
     "file_key": "THC_LEAKAGEBASE::Q_eff_nua",
     "file_name": "thc_leakagebase-thc_leakage_eff_rates",
     "kwargs": {
@@ -54,7 +64,7 @@
       "func": "log"
     },
     "name": "$Q_{\\bar{\\nu}_e}",
-    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "Q-nu-a-free": {
@@ -65,7 +75,7 @@
       "func": "log"
     },
     "name": "$Q_{\\bar{\\nu}_e, \\rm{free}}",
-    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "Q-nu-e": {
@@ -76,7 +86,7 @@
       "func": "log"
     },
     "name": "$Q_{\\nu_e}",
-    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "Q-nu-e-free": {
@@ -87,7 +97,7 @@
       "func": "log"
     },
     "name": "$Q_{\\nu_e, \\rm{free}}",
-    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "Q-nu-x": {
@@ -98,7 +108,7 @@
       "func": "log"
     },
     "name": "$Q_{\\nu_x}",
-    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "Q-nu-x-free": {
@@ -109,7 +119,7 @@
       "func": "log"
     },
     "name": "$Q_{\\nu_x, \\rm{free}}",
-    "scale_factor": "cactus2cgs['Eps']*cactus2cgs['Rho']/cactus2cgs['Time']",
+    "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },
   "R-nu-a": {
@@ -120,7 +130,7 @@
       "func": "log"
     },
     "name": "$R_{\\bar{\\nu}_e}",
-    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "scale_factor": 6.305794161028536e+36,
     "unit": "cm$^{-3}$ ms$^{-1}$"
   },
   "R-nu-a-free": {
@@ -131,7 +141,7 @@
       "func": "log"
     },
     "name": "$R_{\\bar{\\nu}_e, \\rm{free}}",
-    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "scale_factor": 6.305794161028536e+36,
     "unit": "cm$^{-3}$ ms$^{-1}$"
   },
   "R-nu-e": {
@@ -142,7 +152,7 @@
       "func": "log"
     },
     "name": "$R_{\\nu_e}",
-    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "scale_factor": 6.305794161028536e+36,
     "unit": "cm$^{-3}$ ms$^{-1}$"
   },
   "R-nu-e-free": {
@@ -153,7 +163,7 @@
       "func": "log"
     },
     "name": "$R_{\\nu_e, \\rm{free}}",
-    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "scale_factor": 6.305794161028536e+36,
     "unit": "cm$^{-3}$ ms$^{-1}$"
   },
   "R-nu-x": {
@@ -164,7 +174,7 @@
       "func": "log"
     },
     "name": "$R_{\\nu_x}",
-    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "scale_factor": 6.305794161028536e+36,
     "unit": "cm$^{-3}$ ms$^{-1}$"
   },
   "R-nu-x-free": {
@@ -175,7 +185,7 @@
       "func": "log"
     },
     "name": "$R_{\\nu_x, \\rm{free}}",
-    "scale_factor": "1e50/(cactus2cgs['Length']*1e5)**3/cactus2cgs['Time']",
+    "scale_factor": 6.305794161028536e+36,
     "unit": "cm$^{-3}$ ms$^{-1}$"
   },
   "T_tt": {
@@ -275,7 +285,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$alpha$"
+    "name": "$\\alpha$"
   },
   "beta^x": {
     "alias": [
@@ -285,7 +295,7 @@
     "file_name": "admbase-shift",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "$\\beta_{x}$",
     "unit": "$c$"
@@ -298,7 +308,7 @@
     "file_name": "admbase-shift",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "$\\beta_{y}$",
     "unit": "$c$"
@@ -311,7 +321,7 @@
     "file_name": "admbase-shift",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "$\\beta_{z}$",
     "unit": "$c$"
@@ -704,7 +714,7 @@
     "file_name": "thc_core-rhs_densxn",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "rhs_densxn"
   },
@@ -713,7 +723,7 @@
     "file_name": "thc_core-rhs_densxp",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "rhs_densxp"
   },
@@ -722,7 +732,7 @@
     "file_name": "thc_core-rhs_scon",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "rhs_sconx"
   },
@@ -731,7 +741,7 @@
     "file_name": "thc_core-rhs_scon",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "rhs_scony"
   },
@@ -740,7 +750,7 @@
     "file_name": "thc_core-rhs_scon",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "rhs_sconz"
   },
@@ -749,7 +759,7 @@
     "file_name": "thc_core-rhs_tau",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "rhs_tau"
   },
@@ -759,7 +769,7 @@
     "file_name": "thc_core-scon",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "$S_x^{\\rm con.}$",
     "scale_factor": "Rho",
@@ -771,7 +781,7 @@
     "file_name": "thc_core-scon",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "$S_y^{\\rm con.}$",
     "scale_factor": "Rho",
@@ -783,7 +793,7 @@
     "file_name": "thc_core-scon",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "0"
+      "symetric_around": 0
     },
     "name": "$S_z^{\\rm con.}$",
     "scale_factor": "Rho",
@@ -882,12 +892,14 @@
     "unit": "MeV"
   },
   "u_t": {
-    "backups": "u_t-pp",
+    "backups": [
+      "u_t-pp"
+    ],
     "file_key": "BNSANALYSIS::u_t",
     "file_name": "bnsanalysis-u_t",
     "kwargs": {
       "cmap": "seismic",
-      "symetric_around": "-1"
+      "symetric_around": -1
     },
     "name": "$u_t$",
     "unit": "$c$"

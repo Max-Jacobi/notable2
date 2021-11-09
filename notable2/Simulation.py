@@ -1,17 +1,20 @@
-from os.path import basename
+import os
+from os.path import basename, isdir
 from typing import Optional, Type, Callable, overload, Any, Union
 from collections.abc import Iterable
 import numpy as np
 from numpy.typing import NDArray
+from scipy.signal import find_peaks
 from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
 from .EOS import EOS, TabulatedEOS
 from .RCParams import rcParams
-from .Variable import Variable, GridFuncVariable, TimeSeriesVariable, UGridFuncVariable, UTimeSeriesVariable
+from .Variable import Variable, GridFuncVariable, TimeSeriesVariable, PPGridFuncVariable, PPTimeSeriesVariable
 from .DataObjects import GridFunc, TimeSeries
 from .PostProcVariables import get_pp_variables
-from .Plot import plotGD, plotTS, animateGD
+from .Plot import plotGD, plotTS, animateGD, plotHist
+from .Animation import GDAniFunc as GDAF
 from .Utils import IterationError, VariableError, BackupException, RLArgument
 
 
@@ -20,13 +23,14 @@ class Simulation():
     sim_path: str
     sim_name: str
     nice_name: str
+    t_merg: Optional[float]
     rls: NDArray[np.int_]
     data_handler: DataHandler
     eos: EOS
     plotGD: Callable
     plotTS: Callable
     is_cartoon: bool
-    verbose: bool = False
+    verbose: int = 0
     pp_hdf5_path: str
     pp_grid_func_variables: dict[str, dict[str, Any]]
     pp_time_series_variables: dict[str, dict[str, Any]]
@@ -38,7 +42,9 @@ class Simulation():
                  offset: Optional[dict[str, float]] = None,
                  is_cartoon: bool = False
                  ):
-        self.sim_path = sim_path
+        cactus_base = (os.environ['CACTUS_BASEDIR'] if "CACTUS_BASEDIR" in os.environ else None)
+        self.sim_path = (f"{cactus_base}/{sim_path}"
+                         if sim_path[0] != '/' and cactus_base is not None else sim_path)
         self.sim_name = basename(sim_path)
         self.nice_name = self.sim_name
         self.is_cartoon = is_cartoon
@@ -48,6 +54,8 @@ class Simulation():
         if eos_path == 'ideal':
             ...
         else:
+            if eos_path[0] != '/' and cactus_base is not None:
+                eos_path = f"{cactus_base}/EOSs/{eos_path}"
             self.eos = TabulatedEOS(eos_path if eos_path is not None else rcParams.default_eos_path)
         self._offset = offset if offset is not None else dict(x=0, y=0, z=0)
 
@@ -57,13 +65,15 @@ class Simulation():
         self.finest_rl = self.rls.max()
 
         self.pp_grid_func_variables = {}
-        for ufile in rcParams.UGridFuncVariable_files:
+        for ufile in rcParams.PPGridFuncVariable_files:
             self.pp_grid_func_variables.update(get_pp_variables(ufile, self.eos))
         self.pp_time_series_variables = {}
-        for ufile in rcParams.UTimeSeries_files:
+        for ufile in rcParams.PPTimeSeries_files:
             self.pp_time_series_variables.update(get_pp_variables(ufile, self.eos))
 
         self.pp_hdf5_path = f"{self.sim_path}/{self.sim_name}_PP.hdf5"
+
+        self.t_merg = self.get_t_merg() if not self.is_cartoon else None
 
     def __repr__(self):
         return f"Einstein Toolkit simulation {self.sim_name}"
@@ -148,6 +158,13 @@ class Simulation():
         """Get the smallest itteration(s) with time < the given time"""
         return self._its[self._times.searchsorted(time)]
 
+    def get_t_merg(self) -> float:
+        data = self.get_data('alpha_min')
+        times = data.times
+        peaks = find_peaks(-data.data)[0]
+        min_ind = peaks[np.argmax(np.abs(np.diff(data.data[peaks])))+1]
+        return float(times[min_ind])
+
     def get_variable(self, key: str) -> Variable:
         """Return Variable for key"""
         for var in [TimeSeriesVariable, GridFuncVariable]:
@@ -161,9 +178,9 @@ class Simulation():
                 continue
         else:
             if key in self.pp_grid_func_variables:
-                return UGridFuncVariable(key=key, sim=self, **self.pp_grid_func_variables[key])
+                return PPGridFuncVariable(key=key, sim=self, **self.pp_grid_func_variables[key])
             if key in self.pp_time_series_variables:
-                return UTimeSeriesVariable(key=key, sim=self, **self.pp_time_series_variables[key])
+                return PPTimeSeriesVariable(key=key, sim=self, **self.pp_time_series_variables[key])
             raise VariableError(f"Could not find key {key} in {self}.") from last_exc
 
     def get_data(self, key: str, **kwargs) -> Union[GridFunc, TimeSeries]:
@@ -196,11 +213,16 @@ class Simulation():
 
     def delete_saved_pp_variable(self, key: str):
         with HDF5(self.pp_hdf5_path, 'a') as hf:
-            if key in hf:
-                del hf[key]
+            to_delete = [kk for kk in hf if key in kk]
+            for kk in to_delete:
+                del hf[kk]
                 hf.flush()
+
+    def GDAniFunc(self, *args, **kwargs):
+        return GDAF(self, *args, **kwargs)
 
 
 Simulation.plotGD = plotGD
 Simulation.plotTS = plotTS
 Simulation.animateGD = animateGD
+Simulation.plotHist = plotHist

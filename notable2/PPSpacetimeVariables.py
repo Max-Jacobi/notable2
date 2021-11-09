@@ -58,7 +58,8 @@ pp_variables = {
              (vx*bz + bx*vz)*gxz +
              (vy*bz + by*vz)*gyz),
         plot_name_kwargs=dict(
-            name=r"$u_t$ [$c$]"
+            name=r"$u_t$",
+            unit="$c$"
         ),
         kwargs=dict(
             symetric_around=-1,

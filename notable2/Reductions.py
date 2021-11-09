@@ -6,29 +6,30 @@ from scipy.integrate import simps
 from .RCParams import rcParams
 
 if TYPE_CHECKING:
-    from .Utils import GridFuncVariable, UGridFuncVariable, TimeSeriesVariable, UTimeSeriesVariable, Simulation
+    from .Utils import GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable, PPTimeSeriesVariable, Simulation
 
 
 def integral(dependencies: Sequence[Union["GridFuncVariable",
-                                          "UGridFuncVariable",
+                                          "PPGridFuncVariable",
                                           "TimeSeriesVariable",
-                                          "UTimeSeriesVariable"]],
+                                          "PPTimeSeriesVariable"]],
              func: Callable,
              its: NDArray[np.int_],
-             sim: "Simulation",
+             var: "PostProcVariable",
              rls: Optional[NDArray[np.int_]] = None,
              **kwargs) -> NDArray[np.float_]:
 
-    region = 'xz' if sim.is_cartoon else 'xyz'
+    region = 'xz' if var.sim.is_cartoon else 'xyz'
     if rls is None:
-        rls = sim.rls
+        rls = var.sim.rls
 
     result = np.zeros_like(its, dtype=float)
 
     for ii, it in enumerate(its):
-        if sim.verbose:
-            print(f"Integrating iteration {it}")
-        weights = sim.get_variable('reduce-weights').get_data(region=region, it=it)
+        if var.sim.verbose:
+            print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
+                  end=('\r' if var.sim.verbose == 1 else '\n'))
+        weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep_data = []
         for dep in dependencies:
             if dep.vtype == 'grid':
@@ -41,7 +42,7 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
             dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
             coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
 
-            if sim.is_cartoon:
+            if var.sim.is_cartoon:
                 vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
             else:
                 vol = dx['x']*dx['y']*dx['z']
@@ -59,18 +60,18 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
     return result
 
 
-def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "UGridFuncVariable"]],
+def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PPGridFuncVariable"]],
                             func: Callable,
                             its: NDArray[np.int_],
-                            sim: "Simulation",
+                            var: "PostProcVariable",
                             radius: float,
                             **kwargs) -> NDArray[np.float_]:
 
-    region = 'xz' if sim.is_cartoon else 'xyz'
+    region = 'xz' if var.sim.is_cartoon else 'xyz'
 
     thetas = np.linspace(0, np.pi/2, rcParams.surf_int_n_theta)
     dth = thetas[1] - thetas[0]
-    if sim.is_cartoon:
+    if var.sim.is_cartoon:
         phis = np.array([0])
     else:
         phis = np.linspace(0, np.pi/2, rcParams.surf_int_n_phi)
@@ -84,7 +85,7 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "UG
 
     relevant_rls: dict[int, list[int]] = {it: [] for it in its}
     for it in its:
-        coords = sim.get_coords(region=region, it=it)
+        coords = var.sim.get_coords(region=region, it=it)
         for rl in sorted(coords, reverse=True):
             coord = coords[rl]
             if not any(cc.max() >= radius for cc in coord.values()):
@@ -93,19 +94,20 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "UG
             if all(cc.max()*np.sqrt(2) >= radius for cc in coord.values()):
                 break
         else:
-            raise RuntimeError(f"Radius {radius} not fully contained in domain of Simulation {sim} at it {it}")
+            raise RuntimeError(f"Radius {radius} not fully contained in domain of Var.Simulation {var.sim} at it {it}")
 
     result = np.zeros_like(its, dtype=float)
 
     for ii, (it, rls) in enumerate(relevant_rls.items()):
-        if sim.verbose:
-            print(f"Integrating iteration {it}")
-        dep_data = [dep.get_data(region=region, it=it, coords=coords, **kwargs)
+        if var.sim.verbose:
+            print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
+                  end=('\r' if var.sim.verbose == 1 else '\n'))
+        dep_data = [dep.get_data(region=region, it=it, **kwargs)
                     for dep in dependencies]
         for rl in rls:
             int_vals = [dat(**sphere) for dat in dep_data]
 
-            if sim.is_cartoon:
+            if var.sim.is_cartoon:
                 vol = 2*np.pi * dth * radius * sphere['z']
             else:
                 vol = dth * dph * radius * sphere['z']

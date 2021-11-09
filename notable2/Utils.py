@@ -11,8 +11,8 @@ RLArgument = Optional[Union[int, Iterable]]
 
 if TYPE_CHECKING:
     from .Simulation import Simulation
-    from .Variable import Variable, GridFuncVariable, UGridFuncVariable, TimeSeriesVariable, UTimeSeriesVariable, PostProcVariable
-    from .DataObjects import GridFunc, UGridFunc, TimeSeries, UTimeSeries
+    from .Variable import Variable, GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable, PPTimeSeriesVariable, PostProcVariable
+    from .DataObjects import GridFunc, PPGridFunc, TimeSeries, PPTimeSeries
 
 
 class PlotName():
@@ -25,18 +25,18 @@ class PlotName():
                  name: str,
                  unit: str = "",
                  code_unit: Optional[str] = None,
-                 format_options: Optional[list[str]] = None):
+                 format_func: Optional[dict[str, Callable]] = None):
         self.name = name
         self.unit = unit
         self.code_unit = code_unit if code_unit is not None else self.unit
-        self.format_options = format_options if format_options is not None else []
+        self.format_func = format_func if format_func is not None else {}
 
     def print(self, code_units=False, **kwargs):
         ret = self.name
         for key, repl in kwargs.items():
-            if key not in self.format_options:
+            if key not in self.format_func:
                 continue
-            ret = ret.replace(key, repl)
+            ret = ret.replace(key, self.format_func[key](repl, code_units=code_units))
         if code_units:
             if self.code_unit != "":
                 ret += f" [{self.code_unit}]"

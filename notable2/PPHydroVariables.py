@@ -1,5 +1,13 @@
 import numpy as np
 
+
+def _radial(vx, vy, vz, x=0, y=0, z=0, **_):
+    x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
+    r = (x**2 + y**2 + z**2)**.5
+    r[r == 0] = 1
+    return (vx*x + vy*y + vz*z)/r
+
+
 pp_variables = {
     "dens-pp": dict(
         dependencies=('rho', 'W', 'phi'),
@@ -15,11 +23,11 @@ pp_variables = {
             func='log',
         )
     ),
-    "vel^r-xz": dict(
-        dependencies=('phi',),
-        func=lambda phi, *_, **kw: np.exp(phi),
+    "vel^r": dict(
+        dependencies=('vel^x', 'vel^y', 'vel^z'),
+        func=_radial,
         plot_name_kwargs=dict(
-            name="conformal factor",
+            name="radial velocity",
             unit='$c$',
         ),
         kwargs=dict(
@@ -46,7 +54,7 @@ pp_variables = {
         dependencies=("L-nu-e", "L-nu-a", "L-nu-x"),
         func=lambda Le, La, Lx, *_, **kw: Le + La + Lx,
         plot_name_kwargs=dict(
-            name="$L_{\\nu_{\\rm e}}$",
+            name="$L_{\\nu_{\\rm tot}}$",
         ),
         kwargs=dict(
             cmap="viridis",

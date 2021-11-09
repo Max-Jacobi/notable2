@@ -5,10 +5,10 @@ Variable objects Inheritance tree:
 - UVariable
 
 - GridFuncVariable(Variable)
-- UGridFuncVariable(Variable)
+- PPGridFuncVariable(Variable)
 - TimeSeriesVariable(Variable)
-- UTimeSeries(Variable)
-- ?Reduction seperate or as part of UTimeSeries?
+- PPTimeSeries(Variable)
+- ?Reduction seperate or as part of PPTimeSeries?
 """
 
 from abc import ABC, abstractmethod
@@ -19,7 +19,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .RCParams import rcParams
-from .DataObjects import GridFunc, TimeSeries, UGridFunc, UTimeSeries
+from .DataObjects import GridFunc, TimeSeries, PPGridFunc, PPTimeSeries
 from .Utils import PlotName, Units, VariableError, BackupException, IterationError
 
 if TYPE_CHECKING:
@@ -110,8 +110,8 @@ class NativeVariable(Variable):
             except KeyError as exc:
                 for kk, dic in json_dic.items():
                     if 'alias' in dic and key in dic['alias']:
-                        if self.sim.verbose:
-                            print(f"Using aliased key {kk} for {key}")
+                        if self.sim.verbose > 1:
+                            print(f"{self.sim.sim_name}: Using aliased key {kk} for {key}")
                         key_dict = dic
                         break
                 else:
@@ -133,11 +133,6 @@ class NativeVariable(Variable):
                     continue
         self.plot_name = PlotName(**key_dict)
 
-        # if key not in sim.its_lookup:
-        #     if any(self.backups):
-        #         raise BackupException(self.backups)
-        #     raise VariableError(f"Key {key} not in {sim}")
-
 
 class PostProcVariable(Variable):
     """ABC for post processed Variables"""
@@ -152,7 +147,9 @@ class PostProcVariable(Variable):
                  plot_name_kwargs: dict[str, Any],
                  backups: Optional[list[str]] = None,
                  scale_factor: float = 1,
+                 save: bool = True,
                  kwargs: Optional[dict[str, Any]] = None,
+                 PPkeys: list[str] = None,
                  ):
 
         super().__init__(key, sim)
@@ -165,8 +162,10 @@ class PostProcVariable(Variable):
                     continue
 
         self.kwargs = kwargs if kwargs is not None else {}
+        self.PPkeys = PPkeys if PPkeys is not None else []
         self.func = func
         self.scale_factor = scale_factor
+        self.save = save
         if isinstance(self.scale_factor, str):
             self.scale_factor = Units[self.scale_factor]
         self.plot_name = PlotName(**plot_name_kwargs)
@@ -193,8 +192,8 @@ class PostProcVariable(Variable):
                             its.append(bvar.available_its(region))
                         else:
                             its.append(bvar.available_its())
-                        if self.sim.verbose:
-                            print(f"using {bvar.key} instead of {dep.key}")
+                        if self.sim.verbose > 1:
+                            print(f"{self.sim.sim_name}: Using {bvar.key} instead of {dep.key}")
                         break
                     except (VariableError, IterationError):
                         continue
@@ -203,7 +202,7 @@ class PostProcVariable(Variable):
         its = reduce(np.intersect1d, its)
         if len(its) == 0:
             raise IterationError(f"No common iterations found for {self}")
-        return np.array(its)
+        return np.array(its, dtype=int)
 
 
 class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
@@ -229,8 +228,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
                             exclude_ghosts=exclude_ghosts)
         for ali in self.alias:
             if (ali in self.sim.its_lookup) and (region in self.sim.its_lookup[ali]):
-                if self.sim.verbose:
-                    print(f"Found alias key {ali} for {self.key}")
+                if self.sim.verbose > 1:
+                    print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                 self.key = ali
                 return GridFunc(var=self,
                                 region=region,
@@ -244,8 +243,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
                                    it=it,
                                    exclude_ghosts=exclude_ghosts,
                                    **kwargs)
-                if self.sim.verbose:
-                    print(f"trying {bvar.key} instead of {self.key}")
+                if self.sim.verbose > 1:
+                    print(f"{self.sim.sim_name}: trying {bvar.key} instead of {self.key}")
                 return bu
             except (VariableError, IterationError):
                 continue
@@ -253,19 +252,19 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
 
     def available_its(self, region: str) -> NDArray[np.int_]:
         if (self.key in self.sim.its_lookup) and (region in self.sim.its_lookup[self.key]):
-            return self.sim.its_lookup[self.key][region]
+            return self.sim.its_lookup[self.key][region].astype(int)
         for ali in self.alias:
             if (ali in self.sim.its_lookup) and (region in self.sim.its_lookup[ali]):
-                if self.sim.verbose:
-                    print(f"Found alias key {ali} for {self.key}")
+                if self.sim.verbose > 1:
+                    print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                 self.key = ali
                 return self.sim.its_lookup[ali][region]
 
         for bvar in self.backups:
             try:
                 ret = bvar.available_its(region)
-                if self.sim.verbose:
-                    print(f"using available its for {bvar.key} instead of {self.key}")
+                if self.sim.verbose > 1:
+                    print(f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
                 return ret
             except (VariableError, IterationError):
                 continue
@@ -296,8 +295,8 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
             for ali in self.alias:
                 try:
                     its = self.sim.data_handler.get_time_series(ali)[0]
-                    if self.sim.verbose:
-                        print(f"Found alias key {ali} for {self.key}")
+                    if self.sim.verbose > 1:
+                        print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                     self.key = ali
                     return its
                 except VariableError:
@@ -305,35 +304,35 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
         raise excp
 
 
-class UGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
+class PPGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
     """Variable for post processed grid functions"""
 
     def get_data(self,
                  region: str,
                  it: int,
                  exclude_ghosts: int = 0,
-                 **kwargs) -> UGridFunc:
+                 **kwargs) -> PPGridFunc:
 
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
-        return UGridFunc(var=self,
-                         region=region,
-                         it=it,
-                         coords=coords,
-                         exclude_ghosts=exclude_ghosts,
-                         **kwargs)
+        return PPGridFunc(var=self,
+                          region=region,
+                          it=it,
+                          coords=coords,
+                          exclude_ghosts=exclude_ghosts,
+                          **kwargs)
 
     def available_its(self, region: str) -> NDArray[np.int_]:
         return super()._available_its(region)
 
 
-class UTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
+class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
     """Variable for post processed time series functions"""
     reduction: Optional[Callable]
 
     def __init__(self, reduction: Optional[Callable] = None, **kwargs):
         super().__init__(**kwargs)
         self.reduction = reduction
-        if any(isinstance(dep, (GridFuncVariable, UGridFuncVariable)) for dep in self.dependencies):
+        if any(isinstance(dep, (GridFuncVariable, PPGridFuncVariable)) for dep in self.dependencies):
             if self.reduction is None:
                 raise ValueError("Post processed time series needs reduction operator "
                                  f"for GridFuncVariables in {self.dependencies}")
@@ -345,8 +344,8 @@ class UTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
         if len(uni := np.setdiff1d(it, av_its)) != 0:
             raise IterationError(f"Iteration(s) {uni} not found for self")
         if isinstance(it, (int, np.integer)):
-            return UTimeSeries(self, its=np.array([it]), **kwargs).data[0]
-        return UTimeSeries(self, its=it, **kwargs)
+            return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
+        return PPTimeSeries(self, its=it, **kwargs)
 
     def available_its(self) -> NDArray[np.int_]:
         region = 'xz' if self.sim.is_cartoon else 'xyz'
