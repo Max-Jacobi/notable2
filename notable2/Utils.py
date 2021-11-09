@@ -1,11 +1,11 @@
 from typing import Union, Optional, TYPE_CHECKING, Callable, Any
 from collections.abc import Iterable, Mapping
 import numpy as np
-from matplotlib.colors import Normalize
-from matplotlib.contour import QuadContourSet
-from matplotlib.image import AxesImage
-from matplotlib.axes import Axes
-from nptyping import NDArray
+from numpy.typing import NDArray
+from matplotlib.colors import Normalize  # type: ignore
+from matplotlib.contour import QuadContourSet  # type: ignore
+from matplotlib.image import AxesImage  # type: ignore
+from matplotlib.axes import Axes  # type: ignore
 
 RLArgument = Optional[Union[int, Iterable]]
 
@@ -128,3 +128,15 @@ class Plot2D(Mapping):
 
     def __len__(self):
         return len(self.rls)
+
+    def set_data(self,
+                 coords: dict[int, dict[str, NDArray[np.float_]]],
+                 data: dict[int, NDArray[np.float_]],
+                 ):
+        for rl in self.rls[::-1]:
+            xx, yy = coords[rl].values()
+            dx = xx[1] - xx[0]
+            dy = yy[1] - yy[0]
+            extent = [xx[0]-dx/2, xx[-1]+dx/2, yy[0]-dy/2, yy[-1]+dy/2]
+            self[rl].set_extent(extent)
+            self[rl].set_data(data[rl].T)

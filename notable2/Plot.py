@@ -54,7 +54,7 @@ def plotGD(sim: "Simulation",
            region: Optional[str] = None,
            rls: "RLArgument" = None,
            code_units: bool = False,
-           bounds: Optional[Sequence[float]] = None,
+           bounds: Optional[Union[float, Sequence[float]]] = None,
            exclude_ghosts: int = 0,
            ax: Optional[Axes] = None,
            mirror: Optional[str] = None,
@@ -189,6 +189,7 @@ def plotGD(sim: "Simulation",
 
         if bounds is not None:
             if isinstance(bounds, (float, int, np.number)):
+                bounds = float(bounds)
                 if sim.is_cartoon:
                     ax.set_xlim(0, bounds)
                 else:
@@ -334,7 +335,10 @@ def plotGD(sim: "Simulation",
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
             ColorbarBase(ax=cax, cmap=plot_2d.cmap, norm=plot_2d.norm)
-            plt.sca(ax)
+            try:
+                plt.sca(ax)
+            except ValueError:
+                pass
 
         return plot_2d
 
@@ -440,179 +444,6 @@ def plotTS(sim: "Simulation",
     return li
 
 
-def animateGD(sim: "Simulation",
-              key: str,
-              # -----------Plot kwargs-------------------------------
-              rls: "RLArgument" = None,
-              region: Optional[str] = None,
-              min_it: Optional[int] = None,
-              max_it: Optional[int] = None,
-              min_time: Optional[float] = None,
-              max_time: Optional[float] = None,
-              every: int = 1,
-              setup_at: Union[int, float] = 0.,
-              code_units: bool = False,
-              exclude_ghosts: int = 0,
-              label: Union[bool, str] = False,
-              title: Union[bool, str] = True,
-              xlabel: Union[bool, str] = True,
-              ylabel: Union[bool, str] = True,
-              # -----------Variable kwargs----------------------------
-              func: Optional[Union[Callable, str, bool]] = None,
-              slice_ax: Optional[dict[str, float]] = None,
-              interp_ax: Optional[dict[str, float]] = None,
-              # ------------------------------------------------------
-              **kwargs):
-
-    # -------------arguments checking and expanding------------------------
-    if region is None:
-        region = 'xz' if sim.is_cartoon else 'xy'
-
-    var = sim.get_variable(key)
-
-    var_kwargs, popped = _handle_kwargs(var.kwargs, dict(func=(func, None),
-                                                         slice_ax=(slice_ax, None),
-                                                         interp_ax=(interp_ax, None)))
-    func = popped["func"]
-    slice_ax = popped["slice_ax"]
-    interp_ax = popped["interp_ax"]
-
-    kwargs = {**var_kwargs, **kwargs}
-
-    kwargs, PPkwargs = _handle_PPkwargs(kwargs, var)
-
-    actual_rls = sim.expand_rl(rls)
-
-    its = var.available_its(region)
-    times = sim.get_time(its)
-    if sim.t_merg is not None:
-        times -= sim.t_merg
-
-    mask = np.ones_like(its, dtype=bool)
-    if min_it is not None:
-        mask = mask & (its >= min_it)
-    if max_it is not None:
-        mask = mask & (its <= max_it)
-    if min_time is not None:
-        mask = mask & (times >= min_time/(Units['Time'] if not code_units else 1))
-    if max_time is not None:
-        mask = mask & (times <= max_time/(Units['Time'] if not code_units else 1))
-    its = its[mask][::every]
-    times = times[mask][::every]
-
-    if isinstance(func, str):
-        func_str, func = func_dict[func]
-    else:
-        func_str = "{}"
-
-    if title is True:
-        title = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
-        title = f"{title}\nTIME"
-    if isinstance(title, str):
-        title = title.replace('PLOTNAME', func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs)))
-        title = title.replace('SIM', sim.nice_name)
-    if label is True:
-        label = sim.nice_name
-
-    init_it = int(its[int((len(its)-1)*setup_at)])
-
-    if xlabel is True:
-        if code_units:
-            xlabel = f"${region[0]}$ " + r"[$M_\odot$]"
-        else:
-            xlabel = f"${region[0]}$ [km]"
-    if ylabel is True:
-        if len(region) == 1:
-            ylabel = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
-        else:
-            if code_units:
-                ylabel = f"${region[1]}$ " + r"[$M_\odot$]"
-            else:
-                ylabel = f"${region[1]}$ [km]"
-
-    # ----------------setup plot object------------------------------------------
-
-    image = sim.plotGD(key=key,
-                       it=init_it,
-                       region=region,
-                       rls=actual_rls,
-                       code_units=code_units,
-                       title=title,
-                       label=label,
-                       func=func,
-                       slice_ax=slice_ax,
-                       interp_ax=interp_ax,
-                       exclude_ghosts=exclude_ghosts,
-                       **kwargs)
-    ax = image.axes
-    if label:
-        ax.legend()
-
-    # ----------------get animation function------------------------------------------
-    def _animate(ii):
-        it = its[ii]
-        time = times[ii]
-
-        grid_func = var.get_data(region=region,
-                                 it=it,
-                                 exclude_ghosts=exclude_ghosts,
-                                 **PPkwargs)
-        coords = grid_func.coords
-        if not code_units:
-            data = {rl: grid_func.scaled(rl) for rl in actual_rls}
-            coords = {rl: {ax: cc*Units['Length']
-                           for ax, cc in coords[rl].items()}
-                      for rl in actual_rls}
-        else:
-            data = {rl: grid_func[rl] for rl in actual_rls}
-
-        if callable(func):
-            if isinstance(func, np.ufunc):
-                data = {rl: func(dd) for rl, dd in data.items()}
-            elif len(signature(func).parameters) == 1:
-                data = {rl: func(dd, **PPkwargs) for rl, dd in data.items()}
-            else:
-                coords, data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
-        if len(region) == 1:
-            dat = data[actual_rls[-1]]
-            xx = coords[actual_rls[-1]][region]
-            for rl in actual_rls[-2::-1]:
-                dat_rl = data[rl]
-                x_rl = coords[rl][region]
-                mask = (x_rl < xx.min()) | (x_rl > xx.max())
-                xx = np.concatenate([xx, x_rl[mask]])
-                dat = np.concatenate([dat, dat_rl[mask]])
-            isort = np.argsort(xx)
-            xx = xx[isort]
-            dat = dat[isort]
-
-            image.set_data(xx, dat)
-        elif len(region) == 2:
-            for rl in actual_rls[::-1]:
-                im = image[rl]
-                xx, yy = [coords[rl][ax] for ax in region]
-                dx = xx[1] - xx[0]
-                dy = yy[1] - yy[0]
-                extent = [xx[0]-dx/2, xx[-1]+dx/2, yy[0]-dy/2, yy[-1]+dy/2]
-                im.set_extent(extent)
-                im.set_data(data[rl].T)
-            # ax.set_aspect(1)
-
-        if code_units:
-            t_str = f"$t$ = {time: .2f} $M_\\odot$"
-        else:
-            t_str = f"$t$ = {time*Units['Time']: .2f} ms"
-        new_title = title
-        if isinstance(new_title, str):
-            new_title = new_title.replace('TIME', t_str)
-            new_title = new_title.replace('IT', f'{it}')
-            ax.set_title(new_title)
-
-    ani = FuncAnimation(ax.figure, _animate, frames=len(its))
-    plt.close(ax.figure)
-    return ani
-
-
 def plotHist(sim: "Simulation",
              xkey: str,
              ykey: str,
@@ -632,7 +463,6 @@ def plotHist(sim: "Simulation",
              norm: Optional[Normalize] = None,
              # ------------------------------------------------------
              **kwargs):
-
     # -------------arguments checking and expanding------------------------
     if norm is None:
         norm = LogNorm(clip=True)
@@ -759,7 +589,10 @@ def plotHist(sim: "Simulation",
         cax = divider.append_axes("right", size="5%", pad=0.05)
         ColorbarBase(ax=cax, cmap=im[-1].get_cmap(), norm=im[-1].norm)
         cax.set_title(r'$M_\odot$')
-        plt.sca(ax)
+        try:
+            plt.sca(ax)
+        except ValueError:
+            pass
 
     if xlabel is True:
         xlabel = xfunc_str.format(xvar.plot_name.print(code_units=code_units, **xPPkwargs))
@@ -782,3 +615,32 @@ def plotHist(sim: "Simulation",
         title = title.replace('SIM', sim.nice_name)
         ax.set_title(title)
     return im
+
+
+def animateGD(sim: "Simulation",
+              *args,
+              fig: Optional[plt.Figure] = None,
+              ax: Optional[plt.Axes] = None,
+              min_it: Optional[int] = None,
+              max_it: Optional[int] = None,
+              min_time: Optional[float] = None,
+              max_time: Optional[float] = None,
+              every: int = 1,
+              **kwargs):
+
+    from .Animation import Animation
+
+    if fig is None:
+        if ax is None:
+            fig, ax = plt.subplots(1)
+        else:
+            fig = ax.figure
+    elif ax is None:
+        ax = fig.gca()
+
+    ani = Animation(min_time=min_time,
+                    max_time=max_time,
+                    every=every)
+    ani.add_animation(sim.GDAniFunc(*args, ax=ax, **kwargs))
+
+    return ani.animate(fig)

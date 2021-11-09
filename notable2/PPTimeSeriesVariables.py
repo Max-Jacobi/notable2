@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumtrapz  # type: ignore
 from notable2.Reductions import integral, sphere_surface_integral
 from notable2.Utils import Units, RUnits
 

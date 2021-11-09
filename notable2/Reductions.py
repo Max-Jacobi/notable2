@@ -1,12 +1,15 @@
 import numpy as np
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
 from numpy.typing import NDArray
-from scipy.integrate import simps
+from scipy.integrate import simps  # type: ignore
 
 from .RCParams import rcParams
 
 if TYPE_CHECKING:
-    from .Utils import GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable, PPTimeSeriesVariable, Simulation
+    from .Utils import (
+        GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable,
+        PPTimeSeriesVariable, Simulation, PostProcVariable
+    )
 
 
 def integral(dependencies: Sequence[Union["GridFuncVariable",
@@ -47,10 +50,9 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
             else:
                 vol = dx['x']*dx['y']*dx['z']
 
-            integ = [data if isinstance(data, (float, np.floating)) else data[rl]
-                     for data in dep_data]
-
-            integ = func(*integ, **coord, **kwargs) * weights[rl]
+            integ = func(*[data if isinstance(data, (float, np.floating)) else data[rl]
+                           for data in dep_data],
+                         **coord, **kwargs) * weights[rl]
 
             integ[~np.isfinite(integ)] = 0
 

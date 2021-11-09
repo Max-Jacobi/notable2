@@ -9,7 +9,7 @@ from matplotlib.animation import FuncAnimation  # type: ignore
 
 from .Utils import RLArgument, Units, func_dict, Plot2D
 from .Plot import _handle_kwargs, _handle_PPkwargs
-from .Variable import GridFuncBaseVariable
+from .Variable import Variable
 
 if TYPE_CHECKING:
     from .Utils import Simulation
@@ -31,7 +31,7 @@ class AniFunc(ABC):
         ...
 
     @abstractmethod
-    def __call__(self, ii: int, data: Any):
+    def __call__(self, time: np.float_):
         ...
 
 
@@ -41,8 +41,8 @@ class Animation:
     funcs: list[AniFunc]
     init_func: Optional[Callable]
     times: NDArray[np.float_]
-    min_time: float
-    max_time: float
+    min_time: Optional[float]
+    max_time: Optional[float]
     every: int
 
     def __init__(self,
@@ -87,7 +87,7 @@ class GDAniFunc(AniFunc):
 
     sim: "Simulation"
     key: str
-    var: GridFuncBaseVariable
+    var: Variable
     its: NDArray[np.int_]
     times: NDArray[np.float_]
     image: Union[Plot2D, plt.Line2D]
@@ -97,10 +97,10 @@ class GDAniFunc(AniFunc):
     setup_at: float
     code_units: bool
     exclude_ghosts: int = 0
-    label: str
-    title: str
-    xlabel: str
-    ylabel: str
+    label: Union[bool, str]
+    title: Union[bool, str]
+    xlabel: Union[bool, str]
+    ylabel: Union[bool, str]
     # -----------Variable kwargs----------------------------
     func: Optional[Union[Callable]] = None
     slice_ax: Optional[dict[str, float]] = None
@@ -147,6 +147,8 @@ class GDAniFunc(AniFunc):
         self.slice_ax = popped["slice_ax"]
         self.interp_ax = popped["interp_ax"]
         func = popped["func"]
+
+        func_str: Optional[str]
         if isinstance(func, str):
             func_str, self.func = func_dict[func]
         else:
@@ -251,15 +253,7 @@ class GDAniFunc(AniFunc):
 
             self.image.set_data(xx, dat)
         elif len(self.region) == 2:
-            for rl in self.rls[::-1]:
-                im = self.image[rl]
-                xx, yy = [coords[rl][ax] for ax in self.region]
-                dx = xx[1] - xx[0]
-                dy = yy[1] - yy[0]
-                extent = [xx[0]-dx/2, xx[-1]+dx/2, yy[0]-dy/2, yy[-1]+dy/2]
-                im.set_extent(extent)
-                im.set_data(data[rl].T)
-            # self.image.axes.set_aspect(1)
+            self.image.set_data(coords, data)
 
         if self.code_units:
             t_str = f"{time: .2f} $M_\\odot$"

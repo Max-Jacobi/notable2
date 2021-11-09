@@ -4,7 +4,7 @@ from typing import Optional, Type, Callable, overload, Any, Union
 from collections.abc import Iterable
 import numpy as np
 from numpy.typing import NDArray
-from scipy.signal import find_peaks
+from scipy.signal import find_peaks  # type: ignore
 from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
@@ -27,13 +27,15 @@ class Simulation():
     rls: NDArray[np.int_]
     data_handler: DataHandler
     eos: EOS
-    plotGD: Callable
-    plotTS: Callable
     is_cartoon: bool
     verbose: int = 0
     pp_hdf5_path: str
     pp_grid_func_variables: dict[str, dict[str, Any]]
     pp_time_series_variables: dict[str, dict[str, Any]]
+    plotGD: Callable
+    plotTS: Callable
+    animateGD: Callable
+    plotHist: Callable
 
     def __init__(self,
                  sim_path: str,
@@ -51,12 +53,15 @@ class Simulation():
 
         self.data_handler = data_handler(self) if data_handler is not None \
             else rcParams.default_data_handler(self)
-        if eos_path == 'ideal':
+        if eos_path is None:
+            self.eos = TabulatedEOS(rcParams.default_eos_path)
+        elif eos_path == 'ideal':
             ...
         else:
             if eos_path[0] != '/' and cactus_base is not None:
                 eos_path = f"{cactus_base}/EOSs/{eos_path}"
-            self.eos = TabulatedEOS(eos_path if eos_path is not None else rcParams.default_eos_path)
+            self.eos = TabulatedEOS(eos_path)
+
         self._offset = offset if offset is not None else dict(x=0, y=0, z=0)
 
         (self._its, self._times, self._restarts), self._structure, self.its_lookup \
@@ -183,7 +188,7 @@ class Simulation():
                 return PPTimeSeriesVariable(key=key, sim=self, **self.pp_time_series_variables[key])
             raise VariableError(f"Could not find key {key} in {self}.") from last_exc
 
-    def get_data(self, key: str, **kwargs) -> Union[GridFunc, TimeSeries]:
+    def get_data(self, key: str, **kwargs):
         return self.get_variable(key).get_data(**kwargs)
 
     def get_coords(self,
@@ -193,7 +198,7 @@ class Simulation():
                    ) -> dict[int, dict[str, NDArray[np.float_]]]:
 
         if len(region) > 1:
-            ret = {rl: {} for rl in self.rls}
+            ret: dict[int, dict[str, NDArray[np.float_]]] = {rl: {} for rl in self.rls}
             for rl in self.rls:
                 if region not in self._structure[it][rl]:
                     for ax in region:
