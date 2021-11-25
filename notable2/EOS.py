@@ -6,6 +6,8 @@ from numpy.typing import NDArray
 from h5py import File  # type: ignore
 import alpyne.uniform_interpolation as ui  # type: ignore
 
+from .Utils import RUnits
+
 
 class EOS(ABC):
     """EOS abstract base class"""
@@ -37,35 +39,71 @@ class EOS(ABC):
 
 class TabulatedEOS(EOS):
     """Realistic Tabluated EOS """
-    path: str
+    hydro_path: str
+    weak_path: str
     data: dict[str, NDArray[np.float_]]
 
     def __init__(self, path: str):
-        self.path = path
         self._table: Optional[list[NDArray[np.float_]]] = None
         self._table_cold: Optional[list[NDArray[np.float_]]] = None
+        self._ye_r: Optional[tuple[np.float_]] = None
+        self._temp_r: Optional[tuple[np.float_]] = None
+        self._rho_r: Optional[tuple[np.float_]] = None
         self.data = {}
+        self.set_path(path)
+        self.name = path.split('/')[-1]
+
+    def __str__(self) -> str:
+        return self.hydro_path.replace('hydro.h5', '')
+
+    @property
+    def ye_range(self) -> tuple[np.float_]:
+        if self._ye_r is None:
+            with File(self.hydro_path, 'r') as hfile:
+                Ye = np.array(hfile['ye'])
+            self._ye_r = (Ye[0], Ye[-1])
+        return self._ye_r
+
+    @property
+    def temp_range(self) -> tuple[np.float_]:
+        if self._temp_r is None:
+            with File(self.hydro_path, 'r') as hfile:
+                Temp = np.array(hfile['temperature'])
+            self._temp_r = (Temp[0], Temp[-1])
+        return self._temp_r
+
+    @property
+    def rho_range(self) -> tuple[np.float_]:
+        if self._rho_r is None:
+            with File(self.hydro_path, 'r') as hfile:
+                Rho = np.array(hfile['density'])*RUnits['Rho']
+            self._rho_r = (Rho[0], Rho[-1])
+        return self._rho_r
 
     @property
     def table(self) -> list[NDArray[np.float_]]:
         if self._table is None:
-            with File(self.path, 'r') as hfile:
+            with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
                 ltemp = np.log10(hfile['temperature'])
-                lrho = np.log10(hfile['density']) + np.log10(1.6192159539877191e-18)
+                lrho = np.log10(hfile['density']) + np.log10(RUnits['Rho'])
                 iye = 1/(Ye[1]-Ye[0])
                 iltemp = 1/(ltemp[1]-ltemp[0])
                 ilrho = 1/(lrho[1]-lrho[0])
-            self._table = [np.array([Ye[0], ltemp[0], lrho[0]]),
-                           np.array([iye, iltemp, ilrho])]
+                self._table = [np.array([Ye[0], ltemp[0], lrho[0]]),
+                               np.array([iye, iltemp, ilrho])]
         return self._table
+
+    def get_key(self, key):
+        self._get_keys([key])
+        return self.data[key]
 
     @property
     def table_cold(self) -> list[NDArray[np.float_]]:
         if self._table_cold is None:
-            with File(self.path, 'r') as hfile:
+            with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
-                lrho = np.log10(hfile['density']) + np.log10(1.6192159539877191e-18)
+                lrho = np.log10(hfile['density']) + np.log10(RUnits['Rho'])
                 iye = 1/(Ye[1]-Ye[0])
                 ilrho = 1/(lrho[1]-lrho[0])
             self._table_cold = [np.array([Ye[0], lrho[0]]),
@@ -92,11 +130,15 @@ class TabulatedEOS(EOS):
             mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
             args = [arg[mask] for arg in args]
 
-            res = ui.linterp2D(*args, *self.table, [np.log10(self.data[kk]) for kk in keys])
+            data = np.array([self.data[kk][:, 0] for kk in keys])
+            islog = np.array([np.all(dd > 0) for dd in data])
+            data[islog] = np.log10(data[islog])
+
+            res = ui.linterp2D(*args, *self.table_cold, list(data))
 
             data = [np.zeros(fshape)*np.nan for _ in keys]
-            for dd, rr in zip(data, res):
-                dd[mask] = 10**rr
+            for dd, rr, log in zip(data, res, islog):
+                dd[mask] = 10**rr if log else rr
             data = [np.reshape(dd, shape) for dd in data]
 
             return func(*data, rho, ye, **kw)
@@ -124,11 +166,15 @@ class TabulatedEOS(EOS):
             mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
             args = [arg[mask] for arg in args]
 
-            res = ui.linterp3D(*args, *self.table, [np.log10(self.data[kk]) for kk in keys])
+            data = np.array([self.data[kk] for kk in keys])
+            islog = np.array([np.all(dd > 0) for dd in data])
+            data[islog] = np.log10(data[islog])
+
+            res = ui.linterp3D(*args, *self.table, list(data))
 
             data = [np.zeros(fshape)*np.nan for _ in keys]
-            for dd, rr in zip(data, res):
-                dd[mask] = 10**rr
+            for dd, rr, log in zip(data, res, islog):
+                dd[mask] = 10**rr if log else rr
             data = [np.reshape(dd, shape) for dd in data]
 
             return func(*data, rho, temp, ye, **kw)
@@ -136,16 +182,30 @@ class TabulatedEOS(EOS):
         return eos_caller
 
     def _get_keys(self, keys: list[str]):
-        if self.path is None:
-            raise OSError("Path to EOS file not given. Run Simulation.eos.set_path('path/to/eos/hydro.h5'")
+        if self.hydro_path is None:
+            raise OSError("Path to EOS file not given. Run Simulation.eos.set_path('path/to/eos/'")
 
-        new_keys = [kk for kk in keys if kk not in self.data.keys()]
+        new_keys = [kk for kk in keys if kk not in self.data]
+
+        _scale = dict(
+            pressure=RUnits["Press"],
+            internalEnergy=RUnits["Eps"],
+            density=RUnits["Rho"],
+        )
 
         if len(new_keys) > 0:
-            with File(self.path, 'r') as hfile:
-                for kk in new_keys:
-                    self.data[kk] = hfile[kk][()]
+            for kk in new_keys:
+                for path in [self.hydro_path, self.weak_path]:
+                    with File(path, 'r') as hfile:
+                        if kk in hfile:
+                            self.data[kk] = hfile[kk][()]
+                            if kk in _scale:
+                                self.data[kk] *= _scale[kk]
+                            break
+                else:
+                    raise KeyError(f"{kk} not found in EOS tables in {self}")
 
     def set_path(self, path: str):
         "EOS path setter"
-        self.path = path
+        self.hydro_path = f"{path}/hydro.h5"
+        self.weak_path = f"{path}/weak.h5"

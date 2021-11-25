@@ -278,14 +278,45 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
         super().__init__(key, sim, rcParams.TimeSeriesVariables_json)
 
     def get_data(self, it=None, **kwargs):
-        av_its = self.available_its()
-        if it is None:
-            it = av_its
-        if len(uni := np.setdiff1d(it, av_its)) != 0:
-            raise IterationError(f"Iteration(s) {uni} not found for self")
-        if isinstance(it, (int, np.integer)):
-            return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
-        return TimeSeries(self, its=it, **kwargs)
+
+        try:
+            av_its = self.available_its()
+            if it is None:
+                it = av_its
+            if len(uni := np.setdiff1d(it, av_its)) != 0:
+                raise IterationError(f"Iteration(s) {uni} not found for {self.key}")
+            if isinstance(it, (int, np.integer)):
+                return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
+            return TimeSeries(self, its=it, **kwargs)
+        except (VariableError, IterationError):
+            for ali in self.alias:
+                if self.sim.verbose > 1:
+                    print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
+                self.key = ali
+                av_its = self.available_its()
+                if it is None:
+                    it = av_its
+                if len(uni := np.setdiff1d(it, av_its)) != 0:
+                    raise IterationError(f"Iteration(s) {uni} not found for {self.key}")
+                if isinstance(it, (int, np.integer)):
+                    return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
+                return TimeSeries(self, its=it, **kwargs)
+
+            for bvar in self.backups:
+                try:
+                    av_its = bvar.available_its()
+                    if it is None:
+                        it = av_its
+                    if len(uni := np.setdiff1d(it, av_its)) != 0:
+                        raise IterationError(f"Iteration(s) {uni} not found for {bvar.key}")
+                    if isinstance(it, (int, np.integer)):
+                        it = np.array([it])
+                    if isinstance(bvar, PostProcVariable):
+                        return PPTimeSeries(bvar, its=it, **kwargs)
+                    else:
+                        return TimeSeries(bvar, its=it, **kwargs)
+                except (VariableError, IterationError):
+                    continue
 
     def available_its(self) -> NDArray[np.int_]:
         try:
@@ -300,6 +331,14 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                     self.key = ali
                     return its
                 except VariableError:
+                    continue
+            for bvar in self.backups:
+                try:
+                    ret = bvar.available_its()
+                    if self.sim.verbose > 1:
+                        print(f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
+                    return ret
+                except (VariableError, IterationError):
                     continue
         raise excp
 

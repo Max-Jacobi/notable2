@@ -32,6 +32,7 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
                   end=('\r' if var.sim.verbose == 1 else '\n'))
+
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep_data = []
         for dep in dependencies:
@@ -39,7 +40,6 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
                 dep_data.append(dep.get_data(region=region, it=it, **kwargs))
             else:
                 dep_data.append(dep.get_data(it=it, **kwargs))
-
         for rl in rls:
             coord = dep_data[0].coords[rl]
             dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
@@ -51,8 +51,7 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
                 vol = dx['x']*dx['y']*dx['z']
 
             integ = func(*[data if isinstance(data, (float, np.floating)) else data[rl]
-                           for data in dep_data],
-                         **coord, **kwargs) * weights[rl]
+                           for data in dep_data], **coord, **kwargs) * weights[rl]
 
             integ[~np.isfinite(integ)] = 0
 
@@ -115,4 +114,114 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
                 vol = dth * dph * radius * sphere['z']
             integ = func(*int_vals, **sphere, **kwargs)
             result[ii] += np.sum(integ[(mask := np.isfinite(integ))] * vol[mask])
+    return result
+
+
+def minimum(dependencies: Sequence[Union["GridFuncVariable",
+                                         "PPGridFuncVariable"]],
+            its: NDArray[np.int_],
+            var: "PostProcVariable",
+            rls: Optional[NDArray[np.int_]] = None,
+            **kwargs) -> NDArray[np.float_]:
+
+    region = 'xz' if var.sim.is_cartoon else 'xyz'
+    if rls is None:
+        rls = var.sim.rls
+
+    if (len(dependencies) > 1) or (dependencies[0].vtype != 'grid'):
+        raise ValueError
+
+    result = np.zeros_like(its, dtype=float)
+
+    for ii, it in enumerate(its):
+        if var.sim.verbose:
+            print(f"{var.sim.sim_name} - {var.key}: getting min at iteration {it} ({ii/len(its)*100:.1f}%)",
+                  end=('\r' if var.sim.verbose == 1 else '\n'))
+
+        weights = var.sim.get_data('reduce-weights', region=region, it=it)
+        dep = dependencies[0].get_data(region=region, it=it)
+
+        tmp = []
+        for rl in rls:
+            dat = dep[rl]
+            mask = (weights[rl] == 1.) & np.isfinite(dat)
+            tmp.append(np.min(dat[mask]))
+        result[ii] = min(tmp)
+    return result
+
+
+def maximum(dependencies: Sequence[Union["GridFuncVariable",
+                                         "PPGridFuncVariable"]],
+            its: NDArray[np.int_],
+            var: "PostProcVariable",
+            rls: Optional[NDArray[np.int_]] = None,
+            **kwargs) -> NDArray[np.float_]:
+
+    region = 'xz' if var.sim.is_cartoon else 'xyz'
+    if rls is None:
+        rls = var.sim.rls
+
+    if (len(dependencies) > 1) or (dependencies[0].vtype != 'grid'):
+        raise ValueError
+
+    result = np.zeros_like(its, dtype=float)
+
+    for ii, it in enumerate(its):
+        if var.sim.verbose:
+            print(f"{var.sim.sim_name} - {var.key}: getting max at iteration {it} ({ii/len(its)*100:.1f}%)",
+                  end=('\r' if var.sim.verbose == 1 else '\n'))
+
+        weights = var.sim.get_data('reduce-weights', region=region, it=it)
+        dep = dependencies[0].get_data(region=region, it=it)
+
+        tmp = []
+        for rl in rls:
+            dat = dep[rl]
+            mask = (weights[rl] == 1.) & np.isfinite(dat)
+            tmp.append(np.max(dat[mask]))
+        result[ii] = max(tmp)
+    return result
+
+
+def mean(dependencies: Sequence[Union["GridFuncVariable",
+                                      "PPGridFuncVariable"]],
+         its: NDArray[np.int_],
+         var: "PostProcVariable",
+         func: Callable,
+         rls: Optional[NDArray[np.int_]] = None,
+         **kwargs) -> NDArray[np.float_]:
+
+    region = 'xz' if var.sim.is_cartoon else 'xyz'
+    if rls is None:
+        rls = var.sim.rls
+
+    result = np.zeros_like(its, dtype=float)
+
+    for ii, it in enumerate(its):
+        if var.sim.verbose:
+            print(f"{var.sim.sim_name} - {var.key}: getting mean at iteration {it} ({ii/len(its)*100:.1f}%)",
+                  end=('\r' if var.sim.verbose == 1 else '\n'))
+        weights = var.sim.get_data('reduce-weights', region=region, it=it)
+        dens = var.sim.get_data('dens', region=region, it=it)
+        dep_data = [dep.get_data(region=region, it=it) for dep in dependencies]
+
+        tot_mass = 0
+        for rl in rls:
+            coord = dep_data[0].coords[rl]
+            dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
+            coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
+
+            if var.sim.is_cartoon:
+                vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
+            else:
+                vol = dx['x']*dx['y']*dx['z']
+
+            mass = vol*dens[rl]*weights[rl]
+            dat = func(*[data if isinstance(data, (float, np.floating)) else data[rl]
+                         for data in dep_data], **coord, **kwargs) * mass
+
+            mask = np.isfinite(dat)
+            result[ii] += np.sum(dat[mask])
+            tot_mass += np.sum(mass[mask])
+        result[ii] /= tot_mass
     return result

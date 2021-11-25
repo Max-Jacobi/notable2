@@ -26,6 +26,78 @@
     "name": "ADM mass",
     "unit": "M$_\\odot$"
   },
+  "L-a-dummy": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "luminosity_nua(norm1)",
+    "file_name": "thc_leakagebase-thc_leakage_luminosity.scalars.asc",
+    "name": "electron anti neutrino luminosity",
+    "scale_factor": 362825490.441128,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-a-ene-M0": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "thc_M0_nua_ene_flux",
+    "file_name": "thc_leakagem0-thc_leakage_m0_flux..asc",
+    "name": "electron anti neutrino luminosity",
+    "scale_factor": 362825490.441128,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-a-num-M0": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "thc_M0_nua_num_flux",
+    "file_name": "thc_leakagem0-thc_leakage_m0_flux..asc",
+    "name": "electron anti neutrino number luminosity",
+    "scale_factor": 203025.44670054692,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-e-dummy": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "luminosity_nue(norm1)",
+    "file_name": "thc_leakagebase-thc_leakage_luminosity.scalars.asc",
+    "name": "electron neutrino luminosity",
+    "scale_factor": 362825490.441128,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-e-ene-M0": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "thc_M0_nue_ene_flux",
+    "file_name": "thc_leakagem0-thc_leakage_m0_flux..asc",
+    "name": "electron neutrino luminosity",
+    "scale_factor": 362825490.441128,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-e-num-M0": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "thc_M0_nue_num_flux",
+    "file_name": "thc_leakagem0-thc_leakage_m0_flux..asc",
+    "name": "electron neutrino number luminosity",
+    "scale_factor": 203025.44670054692,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-x-dummy": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "luminosity_nux(norm1)",
+    "file_name": "thc_leakagebase-thc_leakage_luminosity.scalars.asc",
+    "name": "x neutrino luminosity",
+    "scale_factor": 362825490.441128,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-x-ene-M0": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "thc_M0_nux_ene_flux",
+    "file_name": "thc_leakagem0-thc_leakage_m0_flux..asc",
+    "name": "x neutrino luminosity",
+    "scale_factor": 362825490.441128,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
+  "L-x-num-M0": {
+    "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
+    "file_key": "thc_M0_nux_num_flux",
+    "file_name": "thc_leakagem0-thc_leakage_m0_flux..asc",
+    "name": "x neutrino number luminosity",
+    "scale_factor": 203025.44670054692,
+    "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
+  },
   "W-max": {
     "alias": [
       "W_max"
@@ -58,7 +130,15 @@
     "file_name": "thc_core-dens.scalars.asc",
     "name": "thc-core-dens"
   },
-  "consH-inf-ccz4": {
+  "bns-sep-tot": {
+    "code_unit": "$M_\\odot$",
+    "file_key": "bns_sep_tot",
+    "file_name": "bnstrackergen-bns_positions..asc",
+    "name": "NS separation",
+    "scale_factor": "Length",
+    "unit": "km"
+  },
+  "consH-norminf": {
     "alias": [
       "consH_inf_ccz4"
     ],
@@ -66,20 +146,20 @@
     "file_name": "ml_ccz4-ml_ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
-  "consH-ni-lean": {
-    "alias": [
-      "consH_ni_lean"
-    ],
-    "file_key": "hc(norm_inf)",
-    "file_name": "leanbssnmol-ham.scalars.asc",
-    "name": "Hamiltonian constrain violation ($\\infty$-norm)"
-  },
-  "consH-norminf": {
+  "consH-norminf-BSSN": {
     "alias": [
       "consH_norminf"
     ],
     "file_key": "H(norm_inf)",
     "file_name": "ml_bssn-ml_ham.scalars.asc",
+    "name": "Hamiltonian constrain violation ($\\infty$-norm)"
+  },
+  "consH-norminf-LEAN": {
+    "alias": [
+      "consH_ni_lean"
+    ],
+    "file_key": "hc(norm_inf)",
+    "file_name": "leanbssnmol-ham.scalars.asc",
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
   "dens-norm1": {
@@ -95,7 +175,7 @@
     "alias": [
       "mph"
     ],
-    "code_unit": "$M_\\odot$",
+    "code_unit": "$M\\odot$",
     "file_key": "physical_time_per_hour",
     "file_name": "carpet-timing..asc",
     "name": "physical time per hour",
@@ -158,7 +238,7 @@
     "alias": [
       "rho_max"
     ],
-    "code_unit": "$M_\\odot$",
+    "code_unit": "$M\\odot$",
     "file_key": "rho(maximum)",
     "file_name": "hydrobase-rho.scalars.asc",
     "name": "maximum density",
@@ -169,7 +249,7 @@
     "alias": [
       "rho_min"
     ],
-    "code_unit": "$M_\\odot$",
+    "code_unit": "$M\\odot$",
     "file_key": "rho(minimum)",
     "file_name": "hydrobase-rho.scalars.asc",
     "name": "minimum density",

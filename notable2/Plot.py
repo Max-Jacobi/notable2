@@ -163,6 +163,21 @@ def plotGD(sim: "Simulation",
         else:
             coords, data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
 
+    if sim.t_merg is not None:
+        t_str = r"$t - t_{\rm merg}$ = "
+    else:
+        t_str = "$t$ = "
+
+    if code_units:
+        t_str += f"{actual_time: .2f} $M_\\odot$"
+        x_str = f"${region}$ " + r"[$M_\odot$]"
+        if xlabel is True:
+            xlabel = f"${region[0]}$ " + r"[$M_\odot$]"
+    else:
+        t_str += f"{actual_time: .2f} ms"
+        if xlabel is True:
+            xlabel = f"${region[0]}$ [km]"
+
     # -------------1D Plots------------------------------------------------
     if len(region) == 1:
         # ----------------Tidy up kwargs-----------------------------------
@@ -198,10 +213,6 @@ def plotGD(sim: "Simulation",
                 ax.set_xlim(*bounds)
         ax.set_ylim(vmin, vmax)
 
-        if code_units:
-            t_str = f"$t$ = {actual_time: .2f} $M_\\odot$"
-        else:
-            t_str = f"$t$ = {actual_time: .2f} ms"
         if label is True:
             label = f"{sim.nice_name}; {t_str}"
         if isinstance(label, str):
@@ -220,11 +231,6 @@ def plotGD(sim: "Simulation",
             title = title.replace('SIM', sim.nice_name)
             ax.set_title(title)
 
-        if xlabel is True:
-            if code_units:
-                xlabel = f"${region}$ " + r"[$M_\odot$]"
-            else:
-                xlabel = f"${region}$ [km]"
         if isinstance(xlabel, str):
             ax.set_xlabel(xlabel)
 
@@ -241,9 +247,9 @@ def plotGD(sim: "Simulation",
         if norm is None:
             norm = Normalize(vmax, vmin)
         if norm.vmax is None:
-            norm.vmax = max(dat[np.isfinite(dat)].max() for dat in data.values())
+            norm.vmax = max((dat[nan_mask].max() if np.any(nan_mask := np.isfinite(dat)) else 1) for dat in data.values())
         if norm.vmin is None:
-            norm.vmin = min(dat[np.isfinite(dat)].min() for dat in data.values())
+            norm.vmin = min((dat[nan_mask].min() if np.any(nan_mask := np.isfinite(dat)) else 0) for dat in data.values())
         if symetric_around is not None:
             dv = max(np.abs(norm.vmin - symetric_around), np.abs(norm.vmax - symetric_around))
             norm.vmin = symetric_around - dv
@@ -293,18 +299,6 @@ def plotGD(sim: "Simulation",
 
         # ax.set_aspect(1)
 
-        if code_units:
-            t_str = f"$t$ = {actual_time: .2f} $M_\\odot$"
-            if xlabel is True:
-                xlabel = f"${region[0]}$ " + r"[$M_\odot$]"
-            if ylabel is True:
-                ylabel = f"${region[1]}$ " + r"[$M_\odot$]"
-        else:
-            t_str = f"$t$ = {actual_time: .2f} ms"
-            if xlabel is True:
-                xlabel = f"${region[0]}$ [km]"
-            if ylabel is True:
-                ylabel = f"${region[1]}$ [km]"
         if label is True:
             label = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
             label = f"{label}\n{t_str}"
@@ -317,7 +311,7 @@ def plotGD(sim: "Simulation",
 
         if title is True:
             title = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
-            title = f"{title}\n $t$ = {t_str}"
+            title = f"{title}\n{t_str}"
         if isinstance(title, str):
             title = title.replace('TIME', t_str)
             title = title.replace('IT', f'{it}')
@@ -328,6 +322,12 @@ def plotGD(sim: "Simulation",
         if isinstance(xlabel, str):
             ax.set_xlabel(xlabel)
 
+        if code_units:
+            if ylabel is True:
+                ylabel = f"${region[1]}$ " + r"[$M_\odot$]"
+        else:
+            if ylabel is True:
+                ylabel = f"${region[1]}$ [km]"
         if isinstance(ylabel, str):
             ax.set_ylabel(ylabel)
 
@@ -422,10 +422,14 @@ def plotTS(sim: "Simulation",
     # ----------------Plot Finish------------------------------------------
 
     if xlabel is True:
-        if code_units:
-            xlabel = "$t$ [$M_\\odot$]"
+        if sim.t_merg is not None:
+            xlabel = r"$t - t_{\rm merg}$"
         else:
-            xlabel = "$t$ [ms]"
+            xlabel = "$t$"
+        if code_units:
+            xlabel += " [$M_\\odot$]"
+        else:
+            xlabel += " [ms]"
     if isinstance(xlabel, str):
         ax.set_xlabel(xlabel)
 
@@ -603,10 +607,14 @@ def plotHist(sim: "Simulation",
     if isinstance(ylabel, str):
         ax.set_ylabel(ylabel)
 
-    if code_units:
-        t_str = f"$t$ = {actual_time: .2f} $M_\\odot$"
+    if sim.t_merg is not None:
+        t_str = r"$t - t_{\rm merg}$ = "
     else:
-        t_str = f"$t$ = {actual_time: .2f} ms"
+        t_str = "$t$ = "
+    if code_units:
+        t_str += f"{actual_time: .2f} $M_\\odot$"
+    else:
+        t_str += f"{actual_time: .2f} ms"
     if title is True:
         title = t_str
     if isinstance(title, str):

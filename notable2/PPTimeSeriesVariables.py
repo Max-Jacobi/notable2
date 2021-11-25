@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import cumtrapz  # type: ignore
 from notable2.Reductions import integral, sphere_surface_integral
+from notable2.Reductions import mean, minimum, maximum
 from notable2.Utils import Units, RUnits
 
 
@@ -50,17 +51,20 @@ def _times_domain_volume(dependencies, its, var, func, **kwargs):
     return func(bmass.data)*vol
 
 
-def _dens_ns(dependencies, its, var, **kwargs):
+def _rho_bulk(dependencies, its, var, **kwargs):
     region = 'xz' if var.sim.is_cartoon else 'xyz'
     rl = var.sim.rls.max()
     result = np.zeros_like(its, dtype=float)
 
+    n_its = len(its)
     for ii, it in enumerate(its):
-        if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: Processing iteration {it} ({ii/len(its)*100:.1f}%)",
+        if var.sim.verbose and n_its > 1:
+            print(f"{var.sim.sim_name} - {var.key}: Processing iteration {it} ({ii/n_its*100:.1f}%)",
                   end=('\r' if var.sim.verbose == 1 else '\n'))
         dens = dependencies[0].get_data(region=region, it=it)
+        rho = dependencies[1].get_data(region=region, it=it)
         dds = dens[rl]
+        rrs = rho[rl]
         coords = dens.coords[rl]
 
         vols = np.ones_like(dds)
@@ -68,22 +72,23 @@ def _dens_ns(dependencies, its, var, **kwargs):
             vols *= np.abs(coords['x'])
 
         dds = dds.ravel()
+        rrs = rrs.ravel()
         vols = vols.ravel()
         mass = vols*dds
 
         fin_msk = np.isfinite(dds)
         mass = mass[fin_msk]
         vols = vols[fin_msk]
-        dds = dds[fin_msk]
+        rrs = rrs[fin_msk]
 
-        isort = np.argsort(dds)[::-1]
+        isort = np.argsort(rrs)[::-1]
 
-        dds = dds[isort]
+        rrs = rrs[isort]
         mass = np.cumsum(mass[isort])
         vols = np.cumsum(vols[isort])
         Cs = mass/vols**.333333333
 
-        result[ii] = dds[Cs.argmax()]
+        result[ii] = rrs[Cs.argmax()]
     return result
 
 
@@ -129,7 +134,7 @@ pp_variables = {
         func=lambda dd, *_, **kw: dd*2,
         plot_name_kwargs=dict(
             name="total baryon mass",
-            unit="$M_\odot$"
+            unit=r"$M_\odot$"
         ),
         reduction=_times_domain_volume,
     ),
@@ -138,24 +143,60 @@ pp_variables = {
         func=lambda dd, *_, **kw: dd*2,
         plot_name_kwargs=dict(
             name="total baryon mass",
-            unit="$M_\odot$"
+            unit=r"$M_\odot$"
         ),
         reduction=integral
     ),
     'L-e': dict(
-        dependencies=('L-nu-e',),
-        func=lambda dd, *_, **kw: dd,
+        backups=["L-e-pp"],
+        dependencies=('L-e-dummy',),
+        func=lambda dd, *_, **kw: 2*dd,
         plot_name_kwargs=dict(
             name=r"electron neutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
+            code_unit=r"$10^{51} m_\odot m_\odot^{-1}$"
+        ),
+        reduction=_times_domain_volume,
+        scale_factor=Units["Energy"]/Units["Time"]*1e3
+    ),
+    'L-a': dict(
+        backups=["L-a-pp"],
+        dependencies=('L-a-dummy',),
+        func=lambda dd, *_, **kw: 2*dd,
+        plot_name_kwargs=dict(
+            name=r"electron antineutrino luminosity",
+            unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
+        ),
+        reduction=_times_domain_volume,
+        scale_factor=Units["Energy"]/Units["Time"]*1e3
+    ),
+    'L-x': dict(
+        backups=["L-pp"],
+        dependencies=('L-x-dummy',),
+        func=lambda dd, *_, **kw: 2*dd,
+        plot_name_kwargs=dict(
+            name=r"x neutrino luminosity",
+            unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
+            code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
+        ),
+        reduction=_times_domain_volume,
+        scale_factor=Units["Energy"]/Units["Time"]*1e3
+    ),
+    'L-e-pp': dict(
+        dependencies=('L-nu-e',),
+        func=lambda dd, *_, **kw: 2*dd,
+        plot_name_kwargs=dict(
+            name=r"electron neutrino luminosity",
+            unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
+            code_unit=r"$10^{51} m_\odot m_\odot^{-1}$"
         ),
         reduction=integral,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-a': dict(
+    'L-a-pp': dict(
         dependencies=('L-nu-a',),
-        func=lambda dd, *_, **kw: dd,
+        func=lambda dd, *_, **kw: 2*dd,
         plot_name_kwargs=dict(
             name=r"electron antineutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
@@ -164,11 +205,11 @@ pp_variables = {
         reduction=integral,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-x': dict(
+    'L-x-pp': dict(
         dependencies=('L-nu-x',),
-        func=lambda dd, *_, **kw: dd,
+        func=lambda dd, *_, **kw: 2*dd,
         plot_name_kwargs=dict(
-            name=r"'x' neutrino luminosity",
+            name=r"x neutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
         ),
@@ -185,51 +226,51 @@ pp_variables = {
         ),
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-e-ns': dict(
-        dependencies=('L-nu-e', 'dens', 'dens-ns'),
+    'L-e-bulk': dict(
+        dependencies=('L-nu-e', 'rho', 'rho-bulk'),
         func=lambda L, dd, dns, *_, **kw: L*(dd >= dns),
         plot_name_kwargs=dict(
-            name=r"HMNS electron neutrino luminosity",
+            name=r"bulk electron neutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
         ),
         reduction=integral,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-a-ns': dict(
-        dependencies=('L-nu-a', 'dens', 'dens-ns'),
+    'L-a-bulk': dict(
+        dependencies=('L-nu-a', 'rho', 'rho-bulk'),
         func=lambda L, dd, dns, *_, **kw: L*(dd >= dns),
         plot_name_kwargs=dict(
-            name=r"HMNS electron antineutrino luminosity",
+            name=r"bulk electron antineutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
         ),
         reduction=integral,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-x-ns': dict(
-        dependencies=('L-nu-x', 'dens', 'dens-ns'),
+    'L-x-bulk': dict(
+        dependencies=('L-nu-x', 'rho', 'rho-bulk'),
         func=lambda L, dd, dns, *_, **kw: L*(dd >= dns),
         plot_name_kwargs=dict(
-            name=r"HMNS 'x' neutrino luminosity",
+            name=r"bulk x neutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
         ),
         reduction=integral,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-tot-ns': dict(
-        dependencies=('L-e-ns', 'L-a-ns', 'L-x-ns'),
+    'L-tot-bulk': dict(
+        dependencies=('L-e-bulk', 'L-a-bulk', 'L-x-bulk'),
         func=lambda e, a, x, *_, **kw: e+a+x,
         plot_name_kwargs=dict(
-            name=r"total HMNS neutrino luminosity",
+            name=r"total bulk neutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
         ),
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
     'L-e-disk': dict(
-        dependencies=('L-nu-e', 'dens', 'dens-ns'),
+        dependencies=('L-nu-e', 'rho', 'rho-bulk'),
         func=lambda L, dd, dns, *_, **kw: L*(dd < dns),
         plot_name_kwargs=dict(
             name=r"disk electron neutrino luminosity",
@@ -240,7 +281,7 @@ pp_variables = {
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
     'L-a-disk': dict(
-        dependencies=('L-nu-a', 'dens', 'dens-ns'),
+        dependencies=('L-nu-a', 'rho', 'rho-bulk'),
         func=lambda L, dd, dns, *_, **kw: L*(dd < dns),
         plot_name_kwargs=dict(
             name=r"disk electron antineutrino luminosity",
@@ -251,10 +292,10 @@ pp_variables = {
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
     'L-x-disk': dict(
-        dependencies=('L-nu-x', 'dens', 'dens-ns'),
+        dependencies=('L-nu-x', 'rho', 'rho-bulk'),
         func=lambda L, dd, dns, *_, **kw: L*(dd < dns),
         plot_name_kwargs=dict(
-            name=r"disk 'x' neutrino luminosity",
+            name=r"disk x neutrino luminosity",
             unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
             code_unit=r"$10^{51} M_\odot M_\odot^{-1}$"
         ),
@@ -280,7 +321,7 @@ pp_variables = {
         func=_mass_flow,
         plot_name_kwargs=dict(
             name="mass flux",
-            unit="$M_\odot$ ms$^{-1}$",
+            unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
         ),
         reduction=sphere_surface_integral,
@@ -293,41 +334,120 @@ pp_variables = {
         func=_mass_flow_cartoon,
         plot_name_kwargs=dict(
             name="mass flux",
-            unit="$M_\odot$ ms$^{-1}$",
+            unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
         ),
         reduction=sphere_surface_integral,
         scale_factor=RUnits['Time'],
     ),
-    'dens-ns': dict(
-        dependencies=("dens",),
+    'rho-bulk': dict(
+        dependencies=("dens", "rho"),
         func=lambda *ar, **kw: 1,
         plot_name_kwargs=dict(
-            name="density on HMNS surface",
+            name="density on bulk surface",
             unit="g cm$^{-3}$",
-            code_unit="$M_\odot^{-2}$"
+            code_unit=r"$M_\odot^{-2}$"
         ),
         kwargs=dict(
             func='log'
         ),
-        reduction=_dens_ns,
+        reduction=_rho_bulk,
         scale_factor='Rho',
     ),
-    'mass-ns': dict(
-        dependencies=("dens", "dens-ns"),
-        func=lambda dens, dens_ns, *_, **kw: 2*dens*(dens >= dens_ns).astype(int),
+    'mass-bulk': dict(
+        dependencies=("dens", "rho", "rho-bulk"),
+        func=lambda dens, rho, rho_ns, *_, **kw: 2*dens*(rho >= rho_ns).astype(int),
         plot_name_kwargs=dict(
-            name="HMNS mass",
-            unit="$M_\odot$"
+            name="bulk mass",
+            unit=r"$M_\odot$"
         ),
         reduction=integral,
     ),
+    'volume-bulk': dict(
+        dependencies=("reduce-weights", "rho", "rho-bulk"),
+        func=lambda rw, rho, rho_ns, *_, **kw: 2*rw*(rho >= rho_ns).astype(int),
+        plot_name_kwargs=dict(
+            name="bulk volume",
+            unit="km$^3$",
+            code_unit=r"$M_\odot^3$"
+        ),
+        reduction=integral,
+        scale_factor=Units['Length']**3,
+    ),
+    'compactness-bulk': dict(
+        dependencies=("rho-bulk", "mass-bulk", "volume-bulk"),
+        func=lambda rb, m, v, *_, **kw: m/v**0.33333333333,
+        plot_name_kwargs=dict(
+            name="bulk compactness",
+        ),
+        save=False,
+    ),
+    'mass-in-rho-cont': dict(
+        dependencies=("dens", "rho"),
+        func=lambda dens, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*dens*(rho >= rho_cont).astype(int),
+        plot_name_kwargs=dict(
+            name=r"mass ($\rho \geq rho_cont)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=integral,
+        PPkeys=['rho_cont'],
+    ),
+    'volume-in-rho-cont': dict(
+        dependencies=("reduce-weights", "rho"),
+        func=lambda rw, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*rw*(rho >= rho_cont).astype(int),
+        plot_name_kwargs=dict(
+            name=r"volume ($\rho \geq rho_cont)",
+            unit="km $^3$",
+            code_unit=r"$M_\odot^3$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=integral,
+        scale_factor=Units['Length']**3,
+        PPkeys=['rho_cont'],
+    ),
+    'compactness-rho-cont': dict(
+        dependencies=("mass-in-rho-cont", "volume-in-rho-cont"),
+        func=lambda mass, vol, *_, **kw: mass/vol**(0.333333333),
+        plot_name_kwargs=dict(
+            name=r"compactness ($\rho \geq rho_cont)",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.1e} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.1e}"+r"\,$g cm$^{-3}$"),
+            ),
+        ),
+        PPkeys=['rho_cont'],
+    ),
+    'mass-out-rho-cont': dict(
+        dependencies=("baryon-mass", "mass-in-rho-cont"),
+        func=lambda Mtot, Min, *_, **kw: Mtot-Min,
+        plot_name_kwargs=dict(
+            name=r"mass ($\rho < rho_cont)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        save=False,
+        PPkeys=['rho_cont'],
+    ),
     'mass-disk': dict(
-        dependencies=("baryon-mass", "mass-ns"),
+        dependencies=("baryon-mass", "mass-bulk"),
         func=lambda mtot, mns, *_, **kw: mtot-mns,
         plot_name_kwargs=dict(
             name="disk mass",
-            unit="$M_\odot$"
+            unit=r"$M_\odot$"
         ),
         save=False,
     ),
@@ -340,11 +460,12 @@ pp_variables = {
         func=_mass_flow_ej,
         plot_name_kwargs=dict(
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
-            unit="$M_\odot$ ms$^{-1}$",
+            unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
             format_func=dict(
                 radius=lambda radius, code_units:
-                (f"{radius:.0f} " + '$M_\\odot$' if code_units else f"{radius*Units['Length']:.0f} km")
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
             ),
         ),
         reduction=sphere_surface_integral,
@@ -356,10 +477,11 @@ pp_variables = {
         func=_time_int,
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, esc}$ ($r=$radius)",
-            unit="$M_\odot$",
+            unit=r"$M_\odot$",
             format_func=dict(
                 radius=lambda radius, code_units:
-                (f"{radius:.0f} " + '$M_\\odot$' if code_units else f"{radius*Units['Length']:.0f} km")
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
             ),
         ),
         save=False,
@@ -370,10 +492,11 @@ pp_variables = {
         func=lambda dens, ut, *_, **kw: 2*dens*(ut <= -1),
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, in}$ ($r=$radius)",
-            unit="$M_\odot$",
+            unit=r"$M_\odot$",
             format_func=dict(
                 radius=lambda radius, code_units:
-                (f"{radius:.0f} " + '$M_\\odot$' if code_units else f"{radius*Units['Length']:.0f} km")
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
             ),
         ),
         reduction=integral,
@@ -384,13 +507,186 @@ pp_variables = {
         func=lambda m_out, m_in, *_, **kw: m_out+m_in,
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, tot}$ ($r=$radius)",
-            unit="$M_\odot$",
+            unit=r"$M_\odot$",
             format_func=dict(
                 radius=lambda radius, code_units:
-                (f"{radius:.0f} " + '$M_\\odot$' if code_units else f"{radius*Units['Length']:.0f} km")
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
             ),
         ),
         save=False,
         PPkeys=['radius'],
+    ),
+    'temp-bulk-mean': dict(
+        dependencies=("temp", "rho", "rho-bulk"),
+        func=lambda temp, rho, rbulk, *_, **kw: temp*(rho >= rbulk),
+        plot_name_kwargs=dict(
+            name=r"mean bulk temperature",
+            unit="MeV",
+        ),
+        reduction=mean,
+    ),
+    'entr-bulk-mean': dict(
+        dependencies=("entr", "rho", "rho-bulk"),
+        func=lambda entr, dens, dns, *_, **kw: entr*(dens >= dns),
+        plot_name_kwargs=dict(
+            name=r"mean bulk entropy",
+            unit=r"$k_{\rm B}$/nuc.",
+        ),
+        reduction=mean,
+    ),
+    'press-bulk-mean': dict(
+        dependencies=("press", "rho", "rho-bulk"),
+        func=lambda press, dens, dns, *_, **kw: press*(dens >= dns),
+        plot_name_kwargs=dict(
+            name=r"mean bulk pressure",
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+        ),
+        reduction=mean,
+        scale_factor="Press",
+    ),
+    'temp-disk-mean': dict(
+        dependencies=("temp", "rho", "rho-bulk"),
+        func=lambda temp, dens, dns, *_, **kw: temp*(dens < dns),
+        plot_name_kwargs=dict(
+            name=r"mean disk temperature",
+            unit="MeV",
+        ),
+        reduction=mean,
+    ),
+    'entr-disk-mean': dict(
+        dependencies=("entr", "rho", "rho-bulk"),
+        func=lambda entr, dens, dns, *_, **kw: entr*(dens < dns),
+        plot_name_kwargs=dict(
+            name=r"mean disk entropy",
+            unit=r"$k_{\rm B}$/nuc.",
+        ),
+        reduction=mean,
+    ),
+    'press-disk-mean': dict(
+        dependencies=("press", "rho", "rho-bulk"),
+        func=lambda press, dens, dns, *_, **kw: press*(dens < dns),
+        plot_name_kwargs=dict(
+            name=r"mean disk pressure",
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+        ),
+        reduction=mean,
+        scale_factor="Press",
+    ),
+    'temp-in-rho-cont-mean': dict(
+        dependencies=("temp", "rho",),
+        func=lambda temp, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: temp*(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean temperature ($\rho \geq rho_cont)",
+            unit="MeV",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'entr-in-rho-cont-mean': dict(
+        dependencies=("entr", "rho",),
+        func=lambda entr, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: entr*(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean entropy ($\rho \geq rho_cont)",
+            unit=r"$k_{\rm B}$/nuc.",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'press-in-rho-cont-mean': dict(
+        dependencies=("press", "rho",),
+        func=lambda press, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: press*(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean pressure ($\rho \geq rho_cont)",
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+        scale_factor="Press",
+    ),
+    'temp-out-rho-cont-mean': dict(
+        dependencies=("temp", "rho",),
+        func=lambda temp, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: temp*(rho < rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean temperature ($\rho \geq rho_cont)",
+            unit="MeV",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'entr-out-rho-cont-mean': dict(
+        dependencies=("entr", "rho",),
+        func=lambda entr, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: entr*(rho < rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean entropy ($\rho \geq rho_cont)",
+            unit=r"$k_{\rm B}$/nuc.",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'press-out-rho-cont-mean': dict(
+        dependencies=("press", "rho",),
+        func=lambda press, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: press*(rho < rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean pressure ($\rho \geq rho_cont)",
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+        scale_factor="Press",
+    ),
+    'entr-min': dict(
+        dependencies=("entr", ),
+        func=lambda entr, *_, **kw: entr,
+        plot_name_kwargs=dict(
+            name=r"minumum entropy",
+            unit=r"$k_{\rm B}$/nuc.",
+        ),
+        reduction=minimum,
+    ),
+    'press-max': dict(
+        dependencies=("press",),
+        func=lambda press, *_, **kw: press,
+        plot_name_kwargs=dict(
+            name=r"maximum pressure",
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+        ),
+        reduction=maximum,
+        scale_factor="Press",
     ),
 }

@@ -218,27 +218,23 @@ class PPTimeSeries(TimeSeries):
 
         # checked for saved version
         if self.var.save:
-            try:
-                hdf5 = HDF5(self.var.sim.pp_hdf5_path, 'a')
-            except OSError as excp:
-                raise VariableError("PP HDF5 file corrupted?") from excp
             key = self.var.key
             for kk, item in self.kwargs.items():
                 if kk in self.var.PPkeys:
                     key += f":{kk}={item}"
-            if key in hdf5:
-                old_its = np.intersect1d(its, hdf5[key].attrs['its'])
-                new_its = np.setdiff1d(its, old_its)
-                if len(new_its) == 0:
-                    self.its = its
-                    inds = np.searchsorted(hdf5[key].attrs['its'], its)
-                    self.data = hdf5[key][inds]
-                    self.times = hdf5[key].attrs['times'][inds]
-                    self.restarts = hdf5[key].attrs['restarts'][inds]
-                    hdf5.close()
-                    return
-                else:
-                    its = new_its
+            with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
+                if key in hdf5:
+                    old_its = np.intersect1d(its, hdf5[key].attrs['its'])
+                    new_its = np.setdiff1d(its, old_its)
+                    if len(new_its) == 0:
+                        self.its = its
+                        inds = np.searchsorted(hdf5[key].attrs['its'], its)
+                        self.data = hdf5[key][inds]
+                        self.times = hdf5[key].attrs['times'][inds]
+                        self.restarts = hdf5[key].attrs['restarts'][inds]
+                        return
+                    else:
+                        its = new_its
 
         if self.var.reduction is not None:
             data = self.var.reduction(dependencies=self.var.dependencies,
@@ -261,35 +257,35 @@ class PPTimeSeries(TimeSeries):
             restarts = dep_data[0].restarts
             data = self.var.func(*[dd.data for dd in dep_data], times, **self.kwargs)
 
-        if self.var.save and key in hdf5:
-            self.its = np.sort(np.concatenate((its, old_its)))
-            self.data = np.zeros_like(self.its, dtype=float)
-            self.times = np.zeros_like(self.its, dtype=float)
-            self.restarts = np.zeros_like(self.its, dtype=int)
+        with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
+            if self.var.save and key in hdf5:
+                self.its = np.sort(np.concatenate((its, old_its)))
+                self.data = np.zeros_like(self.its, dtype=float)
+                self.times = np.zeros_like(self.its, dtype=float)
+                self.restarts = np.zeros_like(self.its, dtype=int)
 
-            n_new = np.searchsorted(self.its, its)
-            self.data[n_new] = data
-            self.times[n_new] = times
-            self.restarts[n_new] = restarts
+                n_new = np.searchsorted(self.its, its)
+                self.data[n_new] = data
+                self.times[n_new] = times
+                self.restarts[n_new] = restarts
 
-            n_old = np.searchsorted(self.its, old_its)
-            n_hdf5 = np.searchsorted(hdf5[key].attrs['its'], old_its)
-            self.data[n_old] = hdf5[key][n_hdf5]
-            self.times[n_old] = hdf5[key].attrs['times'][n_hdf5]
-            self.restarts[n_old] = hdf5[key].attrs['restarts'][n_hdf5]
+                n_old = np.searchsorted(self.its, old_its)
+                n_hdf5 = np.searchsorted(hdf5[key].attrs['its'], old_its)
+                self.data[n_old] = hdf5[key][n_hdf5]
+                self.times[n_old] = hdf5[key].attrs['times'][n_hdf5]
+                self.restarts[n_old] = hdf5[key].attrs['restarts'][n_hdf5]
 
-            del hdf5[key]
+                del hdf5[key]
 
-        else:
-            self.data = data
-            self.its = its
-            self.times = times
-            self.restarts = restarts
+            else:
+                self.data = data
+                self.its = its
+                self.times = times
+                self.restarts = restarts
 
-        if self.var.save:
-            dset = hdf5.create_dataset(key, data=self.data)
-            dset.attrs['its'] = self.its
-            dset.attrs['times'] = self.times
-            dset.attrs['restarts'] = self.restarts
-            hdf5.flush()
-            hdf5.close()
+            if self.var.save:
+                dset = hdf5.create_dataset(key, data=self.data)
+                dset.attrs['its'] = self.its
+                dset.attrs['times'] = self.times
+                dset.attrs['restarts'] = self.restarts
+                hdf5.flush()

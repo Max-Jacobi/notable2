@@ -164,7 +164,7 @@ class Simulation():
         return self._its[self._times.searchsorted(time)]
 
     def get_t_merg(self) -> float:
-        data = self.get_data('alpha_min')
+        data = self.get_data('alpha-min')
         times = data.times
         peaks = find_peaks(-data.data)[0]
         min_ind = peaks[np.argmax(np.abs(np.diff(data.data[peaks])))+1]
@@ -222,6 +222,14 @@ class Simulation():
             for kk in to_delete:
                 del hf[kk]
                 hf.flush()
+
+    def rename_saved_pp_variable(self, key: str,  new_key: str):
+        with HDF5(self.pp_hdf5_path, 'a') as hf:
+            to_rename = {kk: kk.replace(key, new_key) for kk in hf if key in kk}
+            for kk, nk in to_rename.items():
+                hf[nk] = hf[kk][:]
+                del hf[kk]
+            hf.flush()
 
     def GDAniFunc(self, *args, **kwargs):
         return GDAF(self, *args, **kwargs)

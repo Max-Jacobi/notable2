@@ -33,10 +33,9 @@ class PlotName():
 
     def print(self, code_units=False, **kwargs):
         ret = self.name
-        for key, repl in kwargs.items():
-            if key not in self.format_func:
-                continue
-            ret = ret.replace(key, self.format_func[key](repl, code_units=code_units))
+        rep_kw = {kk: arg for kk, arg in kwargs.items() if kk in self.format_func}
+        for key in self.format_func:
+            ret = ret.replace(key, self.format_func[key](code_units=code_units, **rep_kw))
         if code_units:
             if self.code_unit != "":
                 ret += f" [{self.code_unit}]"

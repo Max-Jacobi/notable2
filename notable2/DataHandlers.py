@@ -108,4 +108,4 @@ class PackETHandler(DataHandler):
         try:
             return self.data[f'time_series/{key}'][...]
         except KeyError as excp:
-            raise VariableError(f"{key} not found in simulation data")
+            raise VariableError(f"{key} not found in simulation {self.sim}")
