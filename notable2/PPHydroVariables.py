@@ -40,7 +40,7 @@ pp_variables = {
                       'g_xx', 'g_xy', 'g_xz',
                       'g_yy', 'g_yz', 'g_zz',
                       ),
-        func=lambda vx, vy, vz, gxx, gyy, gzz, gxy, gxz, gyz, *_, **kw: 1./np.sqrt(
+        func=lambda vx, vy, vz, gxx, gxy, gxz, gyy, gyz, gzz, *_, **kw: 1./np.sqrt(
             1. - (vx**2*gxx + vy**2*gyy + vz**2*gzz +
                   2.*(vx*vy*gxy + vx*vz*gxz + vy*vz*gyz))),
         plot_name_kwargs=dict(

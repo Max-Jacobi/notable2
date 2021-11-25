@@ -14,7 +14,7 @@ pp_variables = {
     ),
     "psi-BSSN": dict(
         dependencies=("phi-BSSN",),
-        func=lambda phi, *_, **kw: np.exp("phi"),
+        func=lambda phi, *_, **kw: np.exp("phi-bssn"),
         plot_name_kwargs=dict(
             name="conformal factor",
         ),
@@ -23,11 +23,10 @@ pp_variables = {
         )
     ),
     "phi-pp": dict(
-        dependencies=("g_xx", "g_xy", "g_xz", "g_yy", "g_yz", "g_zz"),
-        func=lambda xx, xy, xz, yy, yz, zz, *_, **kw:
-        np.log10(xx*yy*zz + 2.*xy*yz*xz - xz**2*yy - xy**2*zz - yz**2*xx)/12,
+        dependencies=("psi-pp",),
+        func=lambda psi, *_, **kw: psi**-2,
         plot_name_kwargs=dict(
-            name="log($phi$)",
+            name="$phi$",
         ),
         kwargs=dict(
             cmap="plasma",
