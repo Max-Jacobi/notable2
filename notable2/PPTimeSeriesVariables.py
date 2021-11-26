@@ -526,6 +526,14 @@ pp_variables = {
         ),
         reduction=mean,
     ),
+    'ye-bulk-mean': dict(
+        dependencies=("ye", "rho", "rho-bulk"),
+        func=lambda ye, rho, rbulk, *_, **kw: ye*(rho >= rbulk),
+        plot_name_kwargs=dict(
+            name=r"mean bulk $Y_e$",
+        ),
+        reduction=mean,
+    ),
     'entr-bulk-mean': dict(
         dependencies=("entr", "rho", "rho-bulk"),
         func=lambda entr, dens, dns, *_, **kw: entr*(dens >= dns),
@@ -555,6 +563,14 @@ pp_variables = {
         ),
         reduction=mean,
     ),
+    'ye-disk-mean': dict(
+        dependencies=("ye", "rho", "rho-bulk"),
+        func=lambda ye, dens, dns, *_, **kw: ye*(dens < dns),
+        plot_name_kwargs=dict(
+            name=r"mean disk $Y_e$",
+        ),
+        reduction=mean,
+    ),
     'entr-disk-mean': dict(
         dependencies=("entr", "rho", "rho-bulk"),
         func=lambda entr, dens, dns, *_, **kw: entr*(dens < dns),
@@ -581,6 +597,20 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho \geq rho_cont)",
             unit="MeV",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'ye-in-rho-cont-mean': dict(
+        dependencies=("ye", "rho",),
+        func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean $Y_e$ ($\rho \geq rho_cont)",
             format_func=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
@@ -628,6 +658,20 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho \geq rho_cont)",
             unit="MeV",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'ye-out-rho-cont-mean': dict(
+        dependencies=("ye", "rho",),
+        func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*(rho < rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean $Y_e$ ($\rho \geq rho_cont)",
             format_func=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
