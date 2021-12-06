@@ -109,3 +109,56 @@ class PackETHandler(DataHandler):
             return self.data[f'time_series/{key}'][...]
         except KeyError as excp:
             raise VariableError(f"{key} not found in simulation {self.sim}")
+
+
+class PackET2Handler(DataHandler):
+    """Data getter for packETed data"""
+
+    def __init__(self, sim: "Simulation"):
+        super().__init__(sim)
+        self.data_dir = f'{self.sim.sim_path}/packET'
+        self.structure_file = f'{self.data_dir}/structure.h5'
+
+    def get_structure(self, ):
+        sdict = {}
+        itdict = {}
+
+        with File(self.structure_file, 'r') as hf:
+            # set iterations, times and restarts arrays
+            itr = (hf['iterations'][:], hf['times'][:], hf['restarts'][:])
+
+            # get coords
+            for it_str in hf['coords']:
+                it = int(it_str)
+                sdict[it] = {}
+                for rl_str in hf[f'coords/{it_str}']:
+                    rl = int(rl_str)
+                    sdict[it][rl] = {reg: (ccs[0], ccs[1], ccs[2].astype(int))
+                                     for reg, ccs in hf[f'coords/{it_str}/{rl_str}'].items()}
+
+            for key, reg_its in hf['available_its'].items():
+                itdict[key] = {reg: its[:] for reg, its in reg_its.items()}
+
+        return itr, sdict, itdict
+
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
+        dset_path = f'{region}/{it:08d}/{rl:02d}'
+        try:
+            with File(f'{self.data_dir}/{key}.h5', 'r') as hf:
+                dat = hf[dset_path][:]
+            return dat
+        except OSError as excp:
+            raise VariableError(f"{key} not found in simulation {self.sim}") from excp
+        except KeyError as excp:
+            raise VariableError(
+                f"Data (it: {it}, rl: {rl}, region:{region}) "
+                "not found in data {key}.h5 of simulation {self.sim}"
+            ) from excp
+
+    def get_time_series(self, key):
+        try:
+            with File(f'{self.data_dir}/time_series.h5', 'r') as hf:
+                dat = hf[key][:]
+            return dat
+        except KeyError as excp:
+            raise VariableError(f"{key} not found in simulation {self.sim}") from excp
