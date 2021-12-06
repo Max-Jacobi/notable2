@@ -526,6 +526,14 @@ pp_variables = {
         ),
         reduction=mean,
     ),
+    'ye-bulk-mean': dict(
+        dependencies=("ye", "rho", "rho-bulk"),
+        func=lambda ye, rho, rbulk, *_, **kw: ye*(rho >= rbulk),
+        plot_name_kwargs=dict(
+            name=r"mean bulk $Y_e$",
+        ),
+        reduction=mean,
+    ),
     'entr-bulk-mean': dict(
         dependencies=("entr", "rho", "rho-bulk"),
         func=lambda entr, dens, dns, *_, **kw: entr*(dens >= dns),
@@ -555,6 +563,14 @@ pp_variables = {
         ),
         reduction=mean,
     ),
+    'ye-disk-mean': dict(
+        dependencies=("ye", "rho", "rho-bulk"),
+        func=lambda ye, dens, dns, *_, **kw: ye*(dens < dns),
+        plot_name_kwargs=dict(
+            name=r"mean disk $Y_e$",
+        ),
+        reduction=mean,
+    ),
     'entr-disk-mean': dict(
         dependencies=("entr", "rho", "rho-bulk"),
         func=lambda entr, dens, dns, *_, **kw: entr*(dens < dns),
@@ -581,6 +597,20 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho \geq rho_cont)",
             unit="MeV",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'ye-in-rho-cont-mean': dict(
+        dependencies=("ye", "rho",),
+        func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean $Y_e$ ($\rho \geq rho_cont)",
             format_func=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
@@ -626,8 +656,22 @@ pp_variables = {
         dependencies=("temp", "rho",),
         func=lambda temp, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: temp*(rho < rho_cont),
         plot_name_kwargs=dict(
-            name=r"mean temperature ($\rho \geq rho_cont)",
+            name=r"mean temperature ($\rho < rho_cont)",
             unit="MeV",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=mean,
+        PPkeys=['rho_cont'],
+    ),
+    'ye-out-rho-cont-mean': dict(
+        dependencies=("ye", "rho",),
+        func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*(rho < rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean $Y_e$ ($\rho < rho_cont)",
             format_func=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
@@ -641,7 +685,7 @@ pp_variables = {
         dependencies=("entr", "rho",),
         func=lambda entr, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: entr*(rho < rho_cont),
         plot_name_kwargs=dict(
-            name=r"mean entropy ($\rho \geq rho_cont)",
+            name=r"mean entropy ($\rho < rho_cont)",
             unit=r"$k_{\rm B}$/nuc.",
             format_func=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
@@ -656,7 +700,7 @@ pp_variables = {
         dependencies=("press", "rho",),
         func=lambda press, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: press*(rho < rho_cont),
         plot_name_kwargs=dict(
-            name=r"mean pressure ($\rho \geq rho_cont)",
+            name=r"mean pressure ($\rho < rho_cont)",
             code_unit="$M_\\odot^{-2}$",
             unit="g cm$^{-1}$ s$^{-2}$",
             format_func=dict(
