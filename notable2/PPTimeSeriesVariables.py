@@ -397,6 +397,21 @@ pp_variables = {
         reduction=integral,
         PPkeys=['rho_cont'],
     ),
+    'E-th-in-rho-cont': dict(
+        dependencies=("e-th-eos", "rho"),
+        func=lambda eth, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*eth*(rho >= rho_cont).astype(int),
+        plot_name_kwargs=dict(
+            name=r"thermal energy ($\rho \geq rho_cont)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=integral,
+        PPkeys=['rho_cont'],
+    ),
     'volume-in-rho-cont': dict(
         dependencies=("reduce-weights", "rho"),
         func=lambda rw, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*rw*(rho >= rho_cont).astype(int),

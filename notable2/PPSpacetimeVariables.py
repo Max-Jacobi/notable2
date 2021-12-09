@@ -2,7 +2,7 @@ import numpy as np
 
 pp_variables = {
     "psi": dict(
-        backups=["psi-pp", "psi-BSSN"],
+        backups=["psi-pp", "psi-BSSN", "psi-CCZ4"],
         dependencies=("phi",),
         func=lambda phi, *_, **kw: phi**-.5,
         plot_name_kwargs=dict(
@@ -14,7 +14,17 @@ pp_variables = {
     ),
     "psi-BSSN": dict(
         dependencies=("phi-BSSN",),
-        func=lambda phi, *_, **kw: np.exp("phi-bssn"),
+        func=lambda phi, *_, **kw: np.exp(phi),
+        plot_name_kwargs=dict(
+            name="conformal factor",
+        ),
+        kwargs=dict(
+            cmap='plasma',
+        )
+    ),
+    "psi-CCZ4": dict(
+        dependencies=("phi-CCZ4",),
+        func=lambda phi, *_, **kw: phi-bssn**-.5,
         plot_name_kwargs=dict(
             name="conformal factor",
         ),

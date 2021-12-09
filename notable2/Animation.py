@@ -268,3 +268,27 @@ class GDAniFunc(AniFunc):
             new_title = new_title.replace('TIME', t_str)
             new_title = new_title.replace('IT', f'{it}')
             self.image.axes.set_title(new_title)
+
+
+class TSLineAniFunc(AniFunc):
+
+    def __init__(self,
+                 sim: "Simulation",
+                 key: str,
+                 ax: plt.Axes,
+                 code_units: bool,
+                 **kwargs):
+        self.sim = sim
+        self.ax = ax
+        self.kwargs = kwargs
+        self.key = key
+        self.code_units = code_units
+
+    def get_times(self, *_):
+        return np.array([], dtype=float)
+
+    def init(self, fig):
+        self.im = self.ax.axvline(0, **self.kwargs)
+
+    def __call__(self, time: np.float_):
+        self.im.set_xdata(time)

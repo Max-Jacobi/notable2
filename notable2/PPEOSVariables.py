@@ -1,7 +1,7 @@
 from notable2.EOS import EOS
 from typing import Any
 
-from notable2.Utils import RUnits
+from notable2.Utils import Units, RUnits
 
 
 def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
@@ -62,9 +62,36 @@ def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
             plot_name_kwargs=dict(name="specific internal energy ($T=0$)"),
             kwargs=dict(cmap='inferno'),
         ),
+        'press-th-eos': dict(
+            dependencies=['press', 'press-cold-eos'],
+            func=lambda press, pressc, *_, **kw: press-pressc,
+            save=False,
+            plot_name_kwargs=dict(
+                name=r"thermal pressure",
+                code_unit="$M_\\odot^{-2}$",
+                unit="g cm$^{-1}$ s$^{-2}$",
+            ),
+            kwargs=dict(cmap='plasma'),
+            scale_factor="Press"
+        ),
+        'eps-th-eos': dict(
+            dependencies=['eps', 'eps-cold-eos'],
+            save=False,
+            func=lambda eps, epsc, *_, **kw: eps-epsc,
+            plot_name_kwargs=dict(name=r"$\epsilon_{\rm th}$"),
+            kwargs=dict(cmap='inferno'),
+        ),
+        'e-th-eos': dict(
+            dependencies=['eps-th-eos', 'press-th-eos', 'W', 'rho', 'psi'],
+            save=False,
+            func=lambda eps, press, Wl, rho, psi, *_, **kw: psi**6 * (Wl**2 * (eps*rho + press) - press),
+            plot_name_kwargs=dict(name=r"$e_{\rm th}$"),
+            kwargs=dict(cmap='inferno'),
+            scale_factor="Rho"
+        ),
         'Gamma-th': dict(
-            dependencies=['rho', 'eps', 'press', 'eps-cold-eos', 'press-cold-eos'],
-            func=lambda rho, eps, press, eps0, press0, *_, **kw: (press - press0)/(eps - eps0)/rho + 1,
+            dependencies=['rho', 'eps-th-eos', 'press-th-eos'],
+            func=lambda rho, eps, press, *_, **kw: press/eps/rho + 1,
             plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$"),
             kwargs=dict(cmap='cubehelix'),
         ),

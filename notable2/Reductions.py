@@ -31,7 +31,7 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
     for ii, it in enumerate(its):
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=('\r' if var.sim.verbose == 1 else '\n'))
+                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
 
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep_data = []
@@ -102,7 +102,7 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
     for ii, (it, rls) in enumerate(relevant_rls.items()):
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=('\r' if var.sim.verbose == 1 else '\n'))
+                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
         dep_data = [dep.get_data(region=region, it=it, **kwargs)
                     for dep in dependencies]
         for rl in rls:
@@ -136,7 +136,7 @@ def minimum(dependencies: Sequence[Union["GridFuncVariable",
     for ii, it in enumerate(its):
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: getting min at iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=('\r' if var.sim.verbose == 1 else '\n'))
+                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
 
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep = dependencies[0].get_data(region=region, it=it)
@@ -169,7 +169,7 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
     for ii, it in enumerate(its):
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: getting max at iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=('\r' if var.sim.verbose == 1 else '\n'))
+                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
 
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep = dependencies[0].get_data(region=region, it=it)
@@ -200,7 +200,7 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
     for ii, it in enumerate(its):
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: getting mean at iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=('\r' if var.sim.verbose == 1 else '\n'))
+                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dens = var.sim.get_data('dens', region=region, it=it)
         dep_data = [dep.get_data(region=region, it=it) for dep in dependencies]
