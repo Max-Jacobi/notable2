@@ -34,6 +34,17 @@ def _mass_flow_ej(vx, vy, vz,
                       alp, dens, x, y, z) * (u_t < -1)
 
 
+def _mass_flow_ejb(vx, vy, vz,
+                   bx, by, bz,
+                   gxx, gxy, gxz,
+                   gyy, gyz, gzz,
+                   alp, dens, u_t,
+                   h, x, y, z):
+    return _mass_flow(vx, vy, vz, bx, by, bz,
+                      gxx, gxy, gxz, gyy, gyz, gzz,
+                      alp, dens, x, y, z) * (h*u_t < -1)
+
+
 def _mass_flow_cartoon(vx, vz, bx, bz,
                        gxx, gxz, gzz,
                        alp, dens,
@@ -519,6 +530,72 @@ pp_variables = {
     ),
     'M-ej-tot': dict(
         dependencies=("M-ej-esc", "M-ej-in"),
+        func=lambda m_out, m_in, *_, **kw: m_out+m_in,
+        plot_name_kwargs=dict(
+            name=r"$M_{\rm ej, tot}$ ($r=$radius)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        save=False,
+        PPkeys=['radius'],
+    ),
+    'M-ejb-esc-dot': dict(
+        dependencies=("vel^x", "vel^y", "vel^z",
+                      "beta^x", "beta^y", "beta^z",
+                      'g_xx', 'g_xy', 'g_xz',
+                      'g_yy', 'g_yz', 'g_zz',
+                      "alpha", "dens", "u_t", 'h'),
+        func=_mass_flow_ejb,
+        plot_name_kwargs=dict(
+            name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
+            unit=r"$M_\odot$ ms$^{-1}$",
+            code_unit="",
+            format_func=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        reduction=sphere_surface_integral,
+        scale_factor=RUnits['Time'],
+        PPkeys=['radius'],
+    ),
+    'M-ejb-esc': dict(
+        dependencies=("M-ejb-esc-dot",),
+        func=_time_int,
+        plot_name_kwargs=dict(
+            name=r"$M_{\rm ej, esc}$ ($r=$radius)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        save=False,
+        PPkeys=['radius'],
+    ),
+    'M-ejb-in': dict(
+        dependencies=("dens", "u_t", 'h'),
+        func=lambda dens, ut, h, *_, **kw: 2*dens*(h*ut <= -1),
+        plot_name_kwargs=dict(
+            name=r"$M_{\rm ej, in}$ ($r=$radius)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        reduction=integral,
+        PPkeys=['radius'],
+    ),
+    'M-ejb-tot': dict(
+        dependencies=("M-ejb-esc", "M-ejb-in"),
         func=lambda m_out, m_in, *_, **kw: m_out+m_in,
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, tot}$ ($r=$radius)",

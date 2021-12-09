@@ -23,6 +23,16 @@ pp_variables = {
             func='log',
         )
     ),
+    "h": dict(
+        dependencies=('eps', 'press', 'rho'),
+        func=lambda eps, press, rho, *_, **kw: 1 + eps + press/rho,
+        plot_name_kwargs=dict(
+            name="specific enthalpy",
+        ),
+        kwargs=dict(
+            cmap='inferno',
+        )
+    ),
     "vel^r": dict(
         dependencies=('vel^x', 'vel^y', 'vel^z'),
         func=_radial,

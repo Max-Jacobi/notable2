@@ -152,7 +152,7 @@ class PackET2Handler(DataHandler):
         except KeyError as excp:
             raise VariableError(
                 f"Data (it: {it}, rl: {rl}, region:{region}) "
-                "not found in data {key}.h5 of simulation {self.sim}"
+                f"not found in data {key}.h5 of simulation {self.sim}"
             ) from excp
 
     def get_time_series(self, key):
