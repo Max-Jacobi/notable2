@@ -37,6 +37,7 @@ class Variable(ABC):
     backups: list["Variable"]
     get_data: Callable
     available_its: Callable
+    get_it: Callable
 
     def __init__(self, key: str, sim: "Simulation", ):
         self.sim = sim
@@ -49,7 +50,7 @@ class Variable(ABC):
         return f"{self.plot_name} ({self.key})"
 
 
-class TimeSeriesBaseVariable(ABC):
+class TimeSeriesBaseVariable(Variable, ABC):
     """ABC for TimeSeriesVariables"""
     vtype: str = 'time'
 
@@ -73,8 +74,22 @@ class TimeSeriesBaseVariable(ABC):
         """Returns Array of available iterations"""
         ...
 
+    def get_it(self, time: float):
+        its = self.available_its()
 
-class GridFuncBaseVariable(ABC):
+        times = self.sim.get_time(its)
+        if self.sim.t_merg is not None:
+            times -= self.sim.t_merg
+        if time > (max_time := times.max()):
+            time = max_time
+        if time < (min_time := times.min()):
+            time = min_time
+        it = its[times.searchsorted(time)]
+
+        return it
+
+
+class GridFuncBaseVariable(Variable, ABC):
     """ABC for TimeSeriesVariables"""
     vtype: str = 'grid'
 
@@ -92,6 +107,20 @@ class GridFuncBaseVariable(ABC):
     def available_its(self, region: str) -> NDArray[np.int_]:
         """Returns Array of available iterations"""
         ...
+
+    def get_it(self, time: float, region: str):
+        its = self.available_its(region)
+
+        times = self.sim.get_time(its)
+        if self.sim.t_merg is not None:
+            times -= self.sim.t_merg
+        if time > (max_time := times.max()):
+            time = max_time
+        if time < (min_time := times.min()):
+            time = min_time
+        it = its[times.searchsorted(time)]
+
+        return it
 
 
 class NativeVariable(Variable):

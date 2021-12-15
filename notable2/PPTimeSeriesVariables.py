@@ -39,7 +39,7 @@ def _mass_flow_ejb(vx, vy, vz,
                    gxx, gxy, gxz,
                    gyy, gyz, gzz,
                    alp, dens, u_t,
-                   h, x, y, z):
+                   h, x, y, z, **_):
     return _mass_flow(vx, vy, vz, bx, by, bz,
                       gxx, gxy, gxz, gyy, gyz, gzz,
                       alp, dens, x, y, z) * (h*u_t < -1)
