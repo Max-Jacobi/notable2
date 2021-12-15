@@ -213,6 +213,9 @@ class GDAniFunc(AniFunc):
         self.kwargs, _ = _handle_PPkwargs(self.kwargs, self.var)
 
     def __call__(self, time: np.float_):
+        if time > max(self.times):
+            if self.region == 1:
+                self.image.set_data([], [])
         if time not in self.times:
             return
         ii = self.times.searchsorted(time)

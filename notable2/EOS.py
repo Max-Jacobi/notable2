@@ -94,10 +94,6 @@ class TabulatedEOS(EOS):
                                np.array([iye, iltemp, ilrho])]
         return self._table
 
-    def get_key(self, key):
-        self._get_keys([key])
-        return self.data[key]
-
     @property
     def table_cold(self) -> list[NDArray[np.float_]]:
         if self._table_cold is None:
@@ -109,6 +105,45 @@ class TabulatedEOS(EOS):
             self._table_cold = [np.array([Ye[0], lrho[0]]),
                                 np.array([iye, ilrho])]
         return self._table_cold
+
+    def get_key(self, key):
+        self._get_keys([key])
+        return self.data[key]
+
+    def get_min_caller(self,
+                       keys: list[str],
+                       func: Callable = lambda *args: args[0]
+                       ) -> Callable:
+        def eos_caller_min(ye: NDArray[np.float_],
+                           rho: NDArray[np.float_],
+                           *_, **kw) -> NDArray[np.float_]:
+
+            nonlocal keys
+            nonlocal func
+
+            self._get_keys(keys)
+
+            shape = ye.shape
+            fshape = (np.prod(shape), )
+
+            args = [ye.flatten(), np.log10(rho).flatten()]
+            mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
+            args = [arg[mask] for arg in args]
+
+            data = np.array([np.min(self.data[kk], axis=1) for kk in keys])
+            islog = np.array([np.all(dd > 0) for dd in data])
+            data[islog] = np.log10(data[islog])
+
+            res = ui.linterp2D(*args, *self.table_cold, list(data))
+
+            data = [np.zeros(fshape)*np.nan for _ in keys]
+            for dd, rr, log in zip(data, res, islog):
+                dd[mask] = 10**rr if log else rr
+            data = [np.reshape(dd, shape) for dd in data]
+
+            return func(*data, rho, ye, **kw)
+
+        return eos_caller_min
 
     def get_cold_caller(self,
                         keys: list[str],

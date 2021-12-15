@@ -408,6 +408,21 @@ pp_variables = {
         reduction=integral,
         PPkeys=['rho_cont'],
     ),
+    'E-th-out-rho-cont': dict(
+        dependencies=("e-th-eos", "rho"),
+        func=lambda eth, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*eth*(rho < rho_cont).astype(int),
+        plot_name_kwargs=dict(
+            name=r"thermal energy ($\rho < rho_cont)",
+            unit=r"$M_\odot$",
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
+        reduction=integral,
+        PPkeys=['rho_cont'],
+    ),
     'E-th-in-rho-cont': dict(
         dependencies=("e-th-eos", "rho"),
         func=lambda eth, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*eth*(rho >= rho_cont).astype(int),
@@ -421,6 +436,21 @@ pp_variables = {
             ),
         ),
         reduction=integral,
+        PPkeys=['rho_cont'],
+    ),
+    'E-th/M-in-rho-cont': dict(
+        dependencies=("E-th-in-rho-cont", "mass-in-rho-cont"),
+        func=lambda E, M, *_, **kw: E/M*100,
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\frac{E_{\rm th}}{M_{\rm HMNS}}$ ($\rho \geq rho_cont)",
+            unit='%',
+            format_func=dict(
+                rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
+                (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
+                 else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
+            ),
+        ),
         PPkeys=['rho_cont'],
     ),
     'volume-in-rho-cont': dict(
