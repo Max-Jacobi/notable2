@@ -855,4 +855,20 @@ pp_variables = {
         reduction=maximum,
         scale_factor="Press",
     ),
+    'Gamma-th-max': dict(
+        dependencies=("Gamma-th",),
+        func=lambda Gamma, *_, **kw: Gamma,
+        plot_name_kwargs=dict(
+            name=r"maximum $\Gamma_{\rm th}",
+        ),
+        reduction=maximum,
+    ),
+    'Gamma-th-eos-max': dict(
+        dependencies=("Gamma-th-eos",),
+        func=lambda Gamma, *_, **kw: Gamma,
+        plot_name_kwargs=dict(
+            name=r"maximum $\Gamma_{\rm th}",
+        ),
+        reduction=maximum,
+    ),
 }

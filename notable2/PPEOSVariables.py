@@ -45,8 +45,8 @@ def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
         ),
         'press-cold-eos': dict(
             dependencies=['ye', 'rho'],
-            func=eos.get_min_caller(['pressure'],
-                                    func=lambda pres, *_, **kw: pres),
+            func=eos.get_cold_caller(['pressure'],
+                                     func=lambda pres, *_, **kw: pres),
             plot_name_kwargs=dict(
                 name=r"pressure ($T=0$)",
                 code_unit="$M_\\odot^{-2}$",
@@ -57,8 +57,8 @@ def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
         ),
         'eps-cold-eos': dict(
             dependencies=['ye', 'rho'],
-            func=eos.get_min_caller(['internalEnergy'],
-                                    func=lambda eps, *_, **kw: eps),
+            func=eos.get_cold_caller(['internalEnergy'],
+                                     func=lambda eps, *_, **kw: eps),
             plot_name_kwargs=dict(name="specific internal energy ($T=0$)"),
             kwargs=dict(cmap='inferno'),
         ),
@@ -102,6 +102,13 @@ def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
             dependencies=['rho', 'eps-th-eos', 'press-th-eos'],
             save=False,
             func=lambda rho, eps, press, *_, **kw: press/eps/rho + 1,
+            plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$"),
+            kwargs=dict(cmap='cubehelix'),
+        ),
+        'Gamma-th-eos': dict(
+            dependencies=['ye', 'temp', 'rho'],
+            func=eos.get_caller(['gamma'],
+                                func=lambda gamma, *_, **kw: gamma),
             plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$"),
             kwargs=dict(cmap='cubehelix'),
         ),
