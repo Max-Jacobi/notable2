@@ -5,6 +5,8 @@ from collections.abc import Iterable
 import numpy as np
 from numpy.typing import NDArray
 from scipy.signal import find_peaks  # type: ignore
+from scipy.interpolate import interp2d  # type: ignore
+from scipy.optimize import minimize  # type: ignore
 from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
@@ -167,8 +169,23 @@ class Simulation():
         data = self.get_data('alpha-min')
         times = data.times
         peaks = find_peaks(-data.data)[0]
-        min_ind = peaks[np.argmax(np.abs(np.diff(data.data[peaks])))+1]
+        diffs = np.diff(data.data[peaks])
+        min_ind = np.argwhere[diffs < -.1][0]
+        print(min_ind)
+        min_ind = peaks[np.argmax(np.abs())+1]
+        print(min_ind)
         return float(times[min_ind])
+
+    def get_offset(self, it: int) -> NDArray[np.float_]:
+        if self.is_cartoon:
+            return np.array([0., 0.])
+        frl = self.rls[-1]
+        coords = self.get_coords('xy', it)[frl]
+        alp_dat = self.get_data('alpha', region='xy', it=it)[frl]
+
+        return minimize(
+            lambda xy: interp2d(coords['x'], coords['y'], alp_dat.T, kind='quintic')(*xy)[0],
+            np.array([0., 0.]))['x']
 
     def get_variable(self, key: str) -> Variable:
         """Return Variable for key"""

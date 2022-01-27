@@ -1,9 +1,14 @@
 import numpy as np
+from scipy.interpolate import interp2d
+from scipy.optimize import minimize
+
 
 from notable2.Utils import RUnits, Units
 
 
-def _radial(vx, vy, vz, x=0, y=0, z=0, **_):
+def _radial(vx, vy, vz, alp, x=0, y=0, z=0, **_):
+    ox, oy = minimize(lambda xy: interp2d(x, y, alp.T, kind='quintic')(*xy)[0],
+                      np.array([0., 0.]))['x']
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
     r = (x**2 + y**2 + z**2)**.5
     r[r == 0] = 1
