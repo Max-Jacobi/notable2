@@ -26,7 +26,7 @@
     "name": "ADM mass",
     "unit": "M$_\\odot$"
   },
-  "L-a-dummy": {
+  "L-a": {
     "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
     "file_key": "luminosity_nua(norm1)",
     "file_name": "thc_leakagebase-thc_leakage_luminosity.scalars.asc",
@@ -50,7 +50,7 @@
     "scale_factor": 203025.44670054692,
     "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
   },
-  "L-e-dummy": {
+  "L-e": {
     "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
     "file_key": "luminosity_nue(norm1)",
     "file_name": "thc_leakagebase-thc_leakage_luminosity.scalars.asc",
@@ -74,7 +74,7 @@
     "scale_factor": 203025.44670054692,
     "unit": "$10^{51}\\,\\mathrm{erg\\,s}^{-1}$"
   },
-  "L-x-dummy": {
+  "L-x": {
     "code_unit": "$10^{51} M\\odot M\\odot^{-1}$",
     "file_key": "luminosity_nux(norm1)",
     "file_name": "thc_leakagebase-thc_leakage_luminosity.scalars.asc",

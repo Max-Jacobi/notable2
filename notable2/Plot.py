@@ -159,7 +159,7 @@ def plotGD(sim: "Simulation",
         if isinstance(func, np.ufunc):
             data = {rl: func(dd) for rl, dd in data.items()}
         elif len(signature(func).parameters) == 1:
-            data = {rl: func(dd, **PPkwargs) for rl, dd in data.items()}
+            data = {rl: func(dd) for rl, dd in data.items()}
         else:
             coords, data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
 
@@ -359,7 +359,7 @@ def plotTS(sim: "Simulation",
            # -----------Variable kwargs----------------------------
            func: Optional[Union[Callable, str, bool]] = None,
            # ------------------------------------------------------
-           ** kwargs):
+           **kwargs):
 
     # -------------arguments checking and expanding------------------------
     var = sim.get_variable(key)
@@ -411,9 +411,9 @@ def plotTS(sim: "Simulation",
 
     if callable(func):
         if isinstance(func, np.ufunc) or len(signature(func).parameters) == 1:
-            data = func(data, **PPkwargs)
+            data = func(data)
         else:
-            data = func(data, times, **PPkwargs)
+            data = func(data, times)
 
     # ----------------Plotting---------------------------------------------
 
@@ -558,7 +558,7 @@ def plotHist(sim: "Simulation",
         if isinstance(xfunc, np.ufunc):
             xdata = {rl: xfunc(dd) for rl, dd in xdata.items()}
         elif len(signature(xfunc).parameters) == 1:
-            xdata = {rl: xfunc(dd, **xPPkwargs) for rl, dd in xdata.items()}
+            xdata = {rl: xfunc(dd) for rl, dd in xdata.items()}
         else:
             coords, xdata = {rl: xfunc(dd, **coords[rl]) for rl, dd in xdata.items()}
 
@@ -566,7 +566,7 @@ def plotHist(sim: "Simulation",
         if isinstance(yfunc, np.ufunc):
             ydata = {rl: yfunc(dd) for rl, dd in ydata.items()}
         elif len(signature(yfunc).parameters) == 1:
-            ydata = {rl: yfunc(dd, **yPPkwargs) for rl, dd in ydata.items()}
+            ydata = {rl: yfunc(dd) for rl, dd in ydata.items()}
         else:
             coords, ydata = {rl: yfunc(dd, **coords[rl]) for rl, dd in ydata.items()}
 
@@ -636,7 +636,7 @@ def animateGD(sim: "Simulation",
               every: int = 1,
               **kwargs):
 
-    from .Animation import Animation
+    from .Animations import Animation
 
     if fig is None:
         if ax is None:

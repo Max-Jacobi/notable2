@@ -16,7 +16,7 @@ from .Variable import Variable, GridFuncVariable, TimeSeriesVariable, PPGridFunc
 from .DataObjects import GridFunc, TimeSeries
 from .PostProcVariables import get_pp_variables
 from .Plot import plotGD, plotTS, animateGD, plotHist
-from .Animation import GDAniFunc as GDAF
+from .Animations import GDAniFunc as GDAF
 from .Utils import IterationError, VariableError, BackupException, RLArgument
 
 
@@ -170,11 +170,11 @@ class Simulation():
         times = data.times
         peaks = find_peaks(-data.data)[0]
         diffs = np.diff(data.data[peaks])
-        min_ind = np.argwhere[diffs < -.1][0]
-        print(min_ind)
-        min_ind = peaks[np.argmax(np.abs())+1]
-        print(min_ind)
-        return float(times[min_ind])
+        if np.any(big_diffs := diffs < -.05):
+            min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
+            return float(times[min_ind])
+        else:
+            return None
 
     def get_offset(self, it: int) -> NDArray[np.float_]:
         if self.is_cartoon:

@@ -158,9 +158,9 @@ pp_variables = {
         ),
         reduction=integral
     ),
-    'L-e': dict(
+    'L-e-norm': dict(
         backups=["L-e-pp"],
-        dependencies=('L-e-dummy',),
+        dependencies=('L-e',),
         func=lambda dd, *_, **kw: 2*dd,
         plot_name_kwargs=dict(
             name=r"electron neutrino luminosity",
@@ -170,9 +170,9 @@ pp_variables = {
         reduction=_times_domain_volume,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-a': dict(
+    'L-a-norm': dict(
         backups=["L-a-pp"],
-        dependencies=('L-a-dummy',),
+        dependencies=('L-a',),
         func=lambda dd, *_, **kw: 2*dd,
         plot_name_kwargs=dict(
             name=r"electron antineutrino luminosity",
@@ -182,9 +182,9 @@ pp_variables = {
         reduction=_times_domain_volume,
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
-    'L-x': dict(
+    'L-x-norm': dict(
         backups=["L-pp"],
-        dependencies=('L-x-dummy',),
+        dependencies=('L-x',),
         func=lambda dd, *_, **kw: 2*dd,
         plot_name_kwargs=dict(
             name=r"x neutrino luminosity",
