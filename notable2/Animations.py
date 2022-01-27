@@ -152,6 +152,7 @@ class GDAniFunc(AniFunc):
         if isinstance(func, str):
             func_str, self.func = func_dict[func]
         else:
+            self.func = func
             func_str = None
 
         self.kwargs = {**var_kwargs, **kwargs}
