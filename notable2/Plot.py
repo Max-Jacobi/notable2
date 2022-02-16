@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 def _handle_kwargs(var_kwargs: dict[str, Any],
                    pop: dict[str, tuple]
                    ) -> tuple[dict[str, Any], dict[str, Any]]:
+    var_kwargs = var_kwargs.copy()
     popped = {}
     for key, (item, default) in pop.items():
         popped[key] = default
@@ -101,7 +102,7 @@ def plotGD(sim: "Simulation",
     else:
         raise ValueError
 
-    actual_rls = sim.expand_rl(rls)
+    actual_rls = sim.expand_rl(rls, it)
 
     if ax is None:
         ax = plt.gca()
@@ -115,6 +116,7 @@ def plotGD(sim: "Simulation",
                                                          norm=(norm, Normalize(vmin, vmax))))
     func = popped["func"]
     slice_ax = popped["slice_ax"]
+
     interp_ax = popped["interp_ax"]
     vmax = popped["vmax"]
     vmin = popped["vmin"]
@@ -497,7 +499,7 @@ def plotHist(sim: "Simulation",
     else:
         raise ValueError
 
-    actual_rls = sim.expand_rl(rls)
+    actual_rls = sim.expand_rl(rls, it)
 
     if ax is None:
         ax = plt.gca()

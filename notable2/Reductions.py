@@ -23,8 +23,6 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
              **kwargs) -> NDArray[np.float_]:
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
-    if rls is None:
-        rls = var.sim.rls
 
     result = np.zeros_like(its, dtype=float)
 
@@ -40,7 +38,7 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
                 dep_data.append(dep.get_data(region=region, it=it, **kwargs))
             else:
                 dep_data.append(dep.get_data(it=it, **kwargs))
-        for rl in rls:
+        for rl in var.sim.expand_rl(rls, it=it):
             coord = dep_data[0].coords[rl]
             dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
             coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
@@ -80,9 +78,14 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
 
     thetas, phis = np.meshgrid(thetas, phis, indexing='ij')
 
-    sphere = {'x': radius * np.cos(thetas)*np.cos(phis),
-              'y': radius * np.cos(thetas)*np.sin(phis),
-              'z': radius * np.sin(thetas)}
+    if var.sim.is_cartoon:
+
+        sphere = {'x': radius * np.cos(thetas),
+                  'z': radius * np.sin(thetas)}
+    else:
+        sphere = {'x': radius * np.cos(thetas)*np.cos(phis),
+                  'y': radius * np.cos(thetas)*np.sin(phis),
+                  'z': radius * np.sin(thetas)}
 
     relevant_rls: dict[int, list[int]] = {it: [] for it in its}
     for it in its:
@@ -125,8 +128,6 @@ def minimum(dependencies: Sequence[Union["GridFuncVariable",
             **kwargs) -> NDArray[np.float_]:
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
-    if rls is None:
-        rls = var.sim.rls
 
     if (len(dependencies) > 1) or (dependencies[0].vtype != 'grid'):
         raise ValueError
@@ -134,6 +135,7 @@ def minimum(dependencies: Sequence[Union["GridFuncVariable",
     result = np.zeros_like(its, dtype=float)
 
     for ii, it in enumerate(its):
+        acutal_rls = var.sim.expand_rl(rls, it=it)
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: getting min at iteration {it} ({ii/len(its)*100:.1f}%)",
                   end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
@@ -142,7 +144,7 @@ def minimum(dependencies: Sequence[Union["GridFuncVariable",
         dep = dependencies[0].get_data(region=region, it=it)
 
         tmp = []
-        for rl in rls:
+        for rl in acutal_rls:
             dat = dep[rl]
             mask = (weights[rl] == 1.) & np.isfinite(dat)
             tmp.append(np.min(dat[mask]))
@@ -158,8 +160,6 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
             **kwargs) -> NDArray[np.float_]:
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
-    if rls is None:
-        rls = var.sim.rls
 
     if (len(dependencies) > 1) or (dependencies[0].vtype != 'grid'):
         raise ValueError
@@ -175,7 +175,7 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
         dep = dependencies[0].get_data(region=region, it=it)
 
         tmp = []
-        for rl in rls:
+        for rl in var.sim.expand_rl(rls, it=it):
             dat = dep[rl]
             mask = (weights[rl] == 1.) & np.isfinite(dat)
             tmp.append(np.max(dat[mask]))
@@ -192,8 +192,6 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
          **kwargs) -> NDArray[np.float_]:
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
-    if rls is None:
-        rls = var.sim.rls
 
     result = np.zeros_like(its, dtype=float)
 
@@ -206,7 +204,7 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
         dep_data = [dep.get_data(region=region, it=it) for dep in dependencies]
 
         tot_mass = 0
-        for rl in rls:
+        for rl in var.sim.expand_rl(rls, it=it):
             coord = dep_data[0].coords[rl]
             dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
             coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))

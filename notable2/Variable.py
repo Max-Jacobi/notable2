@@ -14,6 +14,7 @@ Variable objects Inheritance tree:
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Optional, Union, Any, overload
 from functools import reduce
+import re
 import json
 import numpy as np
 from numpy.typing import NDArray
@@ -137,7 +138,17 @@ class NativeVariable(Variable):
             try:
                 key_dict = json_dic[key]
             except KeyError as exc:
+
                 for kk, dic in json_dic.items():
+                    if (match := re.fullmatch(kk, key)) is not None:
+                        key_dict = dic
+                        for ii, val in enumerate(match.groups()):
+                            if 'format_opt' not in key_dict:
+                                key_dict['format_opt'] = {}
+                            key_dict['format_opt'][f'key{ii}'] = val
+                        if self.sim.verbose > 1:
+                            print(f"{self.sim.sim_name}: Using regex key {kk} for {key}")
+                        break
                     if 'alias' in dic and key in dic['alias']:
                         if self.sim.verbose > 1:
                             print(f"{self.sim.sim_name}: Using aliased key {kk} for {key}")

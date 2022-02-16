@@ -44,7 +44,13 @@ class GridFunc(Mapping):
         self.restart = self.var.sim.get_restart(it=it)
 
     def __getitem__(self, rl):
-        data = self.var.sim.data_handler.get_grid_func(self.var.key, rl, self.it, self.region)
+        try:
+            data = self.var.sim.data_handler.get_grid_func(self.var.key, rl, self.it, self.region)
+        except VariableError:
+            if rl > 0:
+                return self.__getitem__(rl-1)
+            else:
+                raise
         if self.exclude_ghosts != 0:
             data = data[self.exclude_ghosts:-self.exclude_ghosts]
             if self.dim > 1:
@@ -102,11 +108,11 @@ class GridFunc(Mapping):
         return result
 
     def __iter__(self):
-        for rl in self.var.sim.rls:
+        for rl in self.var.sim.rls[self.it]:
             yield rl
 
     def __len__(self):
-        return len(self.var.sim.rls)
+        return len(self.var.sim.rls[self.it])
 
     def __str__(self):
         return f"{self.var.key}; {self.region}, it={self.it}, time={self.time*Units['Time']:.2f}ms"
@@ -140,7 +146,8 @@ class PPGridFunc(GridFunc):
             hdf5 = HDF5(self.var.sim.pp_hdf5_path, 'a')
             key = self.var.key
             for kk, item in self.kwargs.items():
-                key += f":{kk}={item}"
+                if kk in self.var.PPkeys:
+                    key += f":{kk}={item}"
             dset_path = f'{key}/{self.region}/{self.it:08d}/{rl}'
             if dset_path in hdf5:
                 data = hdf5[dset_path][...]
@@ -224,6 +231,8 @@ class PPTimeSeries(TimeSeries):
                     key += f":{kk}={item}"
             with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
                 if key in hdf5:
+                    if 'its' not in hdf5[key].attrs:
+                        print(self.var.sim)
                     old_its = np.intersect1d(its, hdf5[key].attrs['its'])
                     new_its = np.setdiff1d(its, old_its)
                     if len(new_its) == 0:
@@ -233,8 +242,7 @@ class PPTimeSeries(TimeSeries):
                         self.times = hdf5[key].attrs['times'][inds]
                         self.restarts = hdf5[key].attrs['restarts'][inds]
                         return
-                    else:
-                        its = new_its
+                    its = new_its
 
         if self.var.reduction is not None:
             data = self.var.reduction(dependencies=self.var.dependencies,

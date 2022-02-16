@@ -17,6 +17,7 @@ from .DataObjects import GridFunc, TimeSeries
 from .PostProcVariables import get_pp_variables
 from .Plot import plotGD, plotTS, animateGD, plotHist
 from .Animations import GDAniFunc as GDAF
+from .Animations import TSLineAniFunc as TSAF
 from .Utils import IterationError, VariableError, BackupException, RLArgument
 
 
@@ -26,7 +27,8 @@ class Simulation():
     sim_name: str
     nice_name: str
     t_merg: Optional[float]
-    rls: NDArray[np.int_]
+    rls: dict[int, NDArray[np.int_]]
+    finest_rl: dict[int, int]
     data_handler: DataHandler
     eos: EOS
     is_cartoon: bool
@@ -68,8 +70,8 @@ class Simulation():
 
         (self._its, self._times, self._restarts), self._structure, self.its_lookup \
             = self.data_handler.get_structure()
-        self.rls = np.array(list(self._structure[0].keys()))
-        self.finest_rl = self.rls.max()
+        self.rls = {it: np.arange(max(struc.keys())+1) for it, struc in self._structure.items()}
+        self.finest_rl = {it: rls.max() for it, rls in self.rls.items()}
 
         self.pp_grid_func_variables = {}
         for ufile in rcParams.PPGridFuncVariable_files:
@@ -88,10 +90,11 @@ class Simulation():
     def __str__(self):
         return self.sim_name
 
-    def expand_rl(self, rls: RLArgument) -> NDArray[np.int_]:
+    def expand_rl(self, rls: RLArgument, it: int) -> NDArray[np.int_]:
         """Expand the "rl" argument to a valid array of refinementlevels"""
+        sim_rls = np.array(list(self._structure[it].keys()))
         if rls is None:
-            return self.rls
+            return sim_rls
         if not isinstance(rls, Iterable):
             rls = np.array([rls, ])
         if ... in rls:
@@ -99,11 +102,11 @@ class Simulation():
             el_ind = rls.index(...)
             rls.remove(...)
             rls = np.array(rls)
-            rls[rls < 0] += self.finest_rl + 1
+            rls[rls < 0] += sim_rls.max() + 1
             if el_ind == 0:
                 bounds = sorted([0, rls[0]])
             elif el_ind == len(rls):
-                bounds = sorted([rls[-1], self.rls.max()])
+                bounds = sorted([rls[-1], sim_rls.max()])
             else:
                 bounds = sorted([rls[el_ind-1], rls[el_ind]])
 
@@ -111,7 +114,7 @@ class Simulation():
             rls = list(rls)
             rls = np.sort(rls[:el_ind-1] + el_ex + rls[el_ind+1:])
         rls = np.array(rls)
-        rls[rls < 0] += self.finest_rl + 1
+        rls[rls < 0] += sim_rls.max() + 1
         return np.sort(rls)
 
     @overload
@@ -173,13 +176,11 @@ class Simulation():
         if np.any(big_diffs := diffs < -.05):
             min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
             return float(times[min_ind])
-        else:
-            return None
 
     def get_offset(self, it: int) -> NDArray[np.float_]:
         if self.is_cartoon:
             return np.array([0., 0.])
-        frl = self.rls[-1]
+        frl = self.finest_rl[it]
         coords = self.get_coords('xy', it)[frl]
         alp_dat = self.get_data('alpha', region='xy', it=it)[frl]
 
@@ -215,8 +216,8 @@ class Simulation():
                    ) -> dict[int, dict[str, NDArray[np.float_]]]:
 
         if len(region) > 1:
-            ret: dict[int, dict[str, NDArray[np.float_]]] = {rl: {} for rl in self.rls}
-            for rl in self.rls:
+            ret: dict[int, dict[str, NDArray[np.float_]]] = {rl: {} for rl in self._structure[it].keys()}
+            for rl in ret.keys():
                 if region not in self._structure[it][rl]:
                     for ax in region:
                         ret[rl][ax] = np.array([])
@@ -228,7 +229,7 @@ class Simulation():
             return ret
 
         ret = {}
-        for rl in self.rls:
+        for rl in self._structure[it].keys():
             ori, dx, nn = self._structure[it][rl][region]
             ret[rl] = {region: ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)}
         return ret
@@ -250,6 +251,9 @@ class Simulation():
 
     def GDAniFunc(self, *args, **kwargs):
         return GDAF(self, *args, **kwargs)
+
+    def TSAniFunc(self, *args, **kwargs):
+        return TSAF(self, *args, **kwargs)
 
 
 Simulation.plotGD = plotGD

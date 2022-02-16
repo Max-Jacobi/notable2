@@ -69,6 +69,7 @@ class Animation:
 
     def animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation:
         def _init():
+            breakpoint()
             for func in self.funcs:
                 func.init()
             if self.init_func is not None:
@@ -92,7 +93,7 @@ class GDAniFunc(AniFunc):
     times: NDArray[np.float_]
     image: Union[Plot2D, plt.Line2D]
     # -----------Plot kwargs-------------------------------
-    rls: NDArray[np.int_]
+    rls: "RLArgument"
     region: str
     setup_at: float
     code_units: bool
@@ -102,7 +103,7 @@ class GDAniFunc(AniFunc):
     xlabel: Union[bool, str]
     ylabel: Union[bool, str]
     # -----------Variable kwargs----------------------------
-    func: Optional[Union[Callable]] = None
+    func: Optional[Union[Callable, bool]] = None
     slice_ax: Optional[dict[str, float]] = None
     interp_ax: Optional[dict[str, float]] = None
     # -----------kwargs dicts----------------------------
@@ -159,8 +160,6 @@ class GDAniFunc(AniFunc):
 
         _, self.PPkwargs = _handle_PPkwargs(self.kwargs, self.var)
 
-        self.rls = sim.expand_rl(rls)
-
         pn_str = self.var.plot_name.print(code_units=code_units, **self.PPkwargs)
         if func_str is not None:
             pn_str = func_str.format(pn_str)
@@ -176,6 +175,8 @@ class GDAniFunc(AniFunc):
 
         self.xlabel = xlabel
         self.ylabel = ylabel
+
+        self.rls = rls
 
     def get_times(self, min_time, max_time, every):
 
@@ -196,10 +197,11 @@ class GDAniFunc(AniFunc):
     def init(self):
         init_it = int(self.its[int((len(self.its)-1)*self.setup_at)])
 
+        rls = self.sim.expand_rl(self.rls, it=init_it)
         self.image = self.sim.plotGD(key=self.key,
                                      it=init_it,
                                      region=self.region,
-                                     rls=self.rls,
+                                     rls=rls,
                                      code_units=self.code_units,
                                      title=self.title,
                                      label=self.label,
@@ -222,18 +224,20 @@ class GDAniFunc(AniFunc):
         ii = self.times.searchsorted(time)
         it = self.its[ii]
 
+        rls = self.sim.expand_rl(self.rls, it=it)
+
         grid_func = self.var.get_data(region=self.region,
                                       it=it,
                                       exclude_ghosts=self.exclude_ghosts,
                                       **self.PPkwargs)
         coords = grid_func.coords
         if not self.code_units:
-            data = {rl: grid_func.scaled(rl) for rl in self.rls}
+            data = {rl: grid_func.scaled(rl) for rl in rls}
             coords = {rl: {ax: cc*Units['Length']
                            for ax, cc in coords[rl].items()}
-                      for rl in self.rls}
+                      for rl in rls}
         else:
-            data = {rl: grid_func[rl] for rl in self.rls}
+            data = {rl: grid_func[rl] for rl in rls}
 
         if callable(self.func):
             if isinstance(self.func, np.ufunc):
@@ -243,9 +247,9 @@ class GDAniFunc(AniFunc):
             else:
                 coords, data = {rl: self.func(dd, **coords[rl]) for rl, dd in data.items()}
         if len(self.region) == 1:
-            dat = data[self.rls[-1]]
-            xx = coords[self.rls[-1]][self.region]
-            for rl in self.rls[-2::-1]:
+            dat = data[rls[-1]]
+            xx = coords[rls[-1]][self.region]
+            for rl in rls[-2::-1]:
                 dat_rl = data[rl]
                 x_rl = coords[rl][self.region]
                 mask = (x_rl < xx.min()) | (x_rl > xx.max())
@@ -278,21 +282,21 @@ class TSLineAniFunc(AniFunc):
 
     def __init__(self,
                  sim: "Simulation",
-                 key: str,
                  ax: plt.Axes,
-                 code_units: bool,
+                 code_units: bool = False,
                  **kwargs):
         self.sim = sim
         self.ax = ax
         self.kwargs = kwargs
-        self.key = key
         self.code_units = code_units
 
-    def get_times(self, *_):
+    def get_times(self, *_, **kwargs):
         return np.array([], dtype=float)
 
-    def init(self, fig):
+    def init(self):
         self.im = self.ax.axvline(0, **self.kwargs)
 
     def __call__(self, time: np.float_):
+        if not self.code_units:
+            time *= Units['Time']
         self.im.set_xdata(time)

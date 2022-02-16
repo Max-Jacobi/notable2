@@ -20,17 +20,19 @@ pp_variables = {
         ),
         kwargs=dict(
             cmap='plasma',
-        )
+        ),
+        save=False
     ),
     "psi-CCZ4": dict(
         dependencies=("phi-CCZ4",),
-        func=lambda phi, *_, **kw: phi-bssn**-.5,
+        func=lambda phi, *_, **kw: phi**-.5,
         plot_name_kwargs=dict(
             name="conformal factor",
         ),
         kwargs=dict(
             cmap='plasma',
-        )
+        ),
+        save=False
     ),
     "phi-pp": dict(
         dependencies=("psi-pp",),
@@ -40,7 +42,8 @@ pp_variables = {
         ),
         kwargs=dict(
             cmap="plasma",
-        )
+        ),
+        save=False
     ),
     "psi-pp": dict(
         dependencies=("g_xx", "g_xy", "g_xz", "g_yy", "g_yz", "g_zz"),
@@ -51,6 +54,7 @@ pp_variables = {
         ),
         kwargs=dict(
             cmap="plasma",
-        )
+        ),
+        save=False
     ),
 }

@@ -25,17 +25,21 @@ class PlotName():
                  name: str,
                  unit: str = "",
                  code_unit: Optional[str] = None,
-                 format_func: Optional[dict[str, Callable]] = None):
+                 format_opt: Optional[dict[str, Union[str, Callable]]] = None):
         self.name = name
         self.unit = unit
         self.code_unit = code_unit if code_unit is not None else self.unit
-        self.format_func = format_func if format_func is not None else {}
+        self.format = format_opt if format_opt is not None else {}
 
     def print(self, code_units=False, **kwargs):
         ret = self.name
-        rep_kw = {kk: arg for kk, arg in kwargs.items() if kk in self.format_func}
-        for key in self.format_func:
-            ret = ret.replace(key, self.format_func[key](code_units=code_units, **rep_kw))
+        rep_kw = {kk: arg for kk, arg in kwargs.items() if kk in self.format}
+        for key, frmt in self.format.items():
+            if callable(frmt):
+                tmp = frmt(code_units=code_units, **{key: rep_kw[key]})
+            else:
+                tmp = frmt
+            ret = ret.replace(key, tmp)
         if code_units:
             if self.code_unit != "":
                 ret += f" [{self.code_unit}]"

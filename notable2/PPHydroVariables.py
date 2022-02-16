@@ -7,7 +7,8 @@ from notable2.Utils import RUnits, Units
 
 
 def _radial(vx, vy, vz, alp, x=0, y=0, z=0, **_):
-    ox, oy = minimize(lambda xy: interp2d(x, y, alp.T, kind='quintic')(*xy)[0],
+    coords = [xyz for xyz in (x, y, z) if isinstance(xyz, np.ndarray)]
+    ox, oy = minimize(lambda xy: interp2d(*coords, alp.T, kind='quintic')(*xy)[0],
                       np.array([0., 0.]))['x']
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
     r = (x**2 + y**2 + z**2)**.5
@@ -48,7 +49,7 @@ pp_variables = {
         )
     ),
     "vel^r": dict(
-        dependencies=('vel^x', 'vel^y', 'vel^z'),
+        dependencies=('vel^x', 'vel^y', 'vel^z', 'alpha'),
         func=_radial,
         plot_name_kwargs=dict(
             name="radial velocity",
