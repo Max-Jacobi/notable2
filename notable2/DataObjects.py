@@ -297,3 +297,17 @@ class PPTimeSeries(TimeSeries):
                 dset.attrs['times'] = self.times
                 dset.attrs['restarts'] = self.restarts
                 hdf5.flush()
+
+
+class GWData(TimeSeries):
+    """Documentation for GWData"""
+    kwargs: dict[str, Any]
+
+    def __init__(self,
+                 var: "PPTimeSeriesVariable",
+                 its: NDArray[np.int_],
+                 **kwargs):
+        self.var = var
+        self.kwargs = kwargs
+
+        self.its, self.times, self.data, self.rsts = self.var.func(self.var, **kwargs)

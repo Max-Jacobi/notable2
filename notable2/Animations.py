@@ -69,7 +69,6 @@ class Animation:
 
     def animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation:
         def _init():
-            breakpoint()
             for func in self.funcs:
                 func.init()
             if self.init_func is not None:
@@ -187,9 +186,9 @@ class GDAniFunc(AniFunc):
 
         mask = np.ones_like(its, dtype=bool)
         if min_time is not None:
-            mask = mask & (times >= min_time/(Units['Time'] if not self.code_units else 1))
+            mask = mask & (times >= min_time)
         if max_time is not None:
-            mask = mask & (times <= max_time/(Units['Time'] if not self.code_units else 1))
+            mask = mask & (times <= max_time)
         self.its = its[mask][::every]
         self.times = times[mask][::every]
         return self.times
@@ -231,13 +230,14 @@ class GDAniFunc(AniFunc):
                                       exclude_ghosts=self.exclude_ghosts,
                                       **self.PPkwargs)
         coords = grid_func.coords
+
         if not self.code_units:
-            data = {rl: grid_func.scaled(rl) for rl in rls}
+            data = {rl: grid_func.scaled(rl) for rl in grid_func}
             coords = {rl: {ax: cc*Units['Length']
                            for ax, cc in coords[rl].items()}
-                      for rl in rls}
+                      for rl in grid_func}
         else:
-            data = {rl: grid_func[rl] for rl in rls}
+            data = {rl: grid_func[rl] for rl in grid_func}
 
         if callable(self.func):
             if isinstance(self.func, np.ufunc):

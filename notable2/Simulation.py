@@ -1,5 +1,6 @@
 import os
-from os.path import basename, isdir
+import re
+from os.path import basename, isdir, isfile
 from typing import Optional, Type, Callable, overload, Any, Union
 from collections.abc import Iterable
 import numpy as np
@@ -12,7 +13,8 @@ from h5py import File as HDF5  # type: ignore
 from .DataHandlers import DataHandler
 from .EOS import EOS, TabulatedEOS
 from .RCParams import rcParams
-from .Variable import Variable, GridFuncVariable, TimeSeriesVariable, PPGridFuncVariable, PPTimeSeriesVariable
+from .Variable import Variable, GridFuncVariable, TimeSeriesVariable
+from .Variable import PPGridFuncVariable, PPTimeSeriesVariable, GravitationalWaveVariable
 from .DataObjects import GridFunc, TimeSeries
 from .PostProcVariables import get_pp_variables
 from .Plot import plotGD, plotTS, animateGD, plotHist
@@ -27,6 +29,8 @@ class Simulation():
     sim_name: str
     nice_name: str
     t_merg: Optional[float]
+    ADM_M: Optional[float]
+    ADM_J: Optional[float]
     rls: dict[int, NDArray[np.int_]]
     finest_rl: dict[int, int]
     data_handler: DataHandler
@@ -36,6 +40,7 @@ class Simulation():
     pp_hdf5_path: str
     pp_grid_func_variables: dict[str, dict[str, Any]]
     pp_time_series_variables: dict[str, dict[str, Any]]
+    pp_gw_variables: dict[str, dict[str, Any]]
     plotGD: Callable
     plotTS: Callable
     animateGD: Callable
@@ -79,10 +84,14 @@ class Simulation():
         self.pp_time_series_variables = {}
         for ufile in rcParams.PPTimeSeries_files:
             self.pp_time_series_variables.update(get_pp_variables(ufile, self.eos))
+        self.pp_gw_variables = {}
+        for ufile in rcParams.PPGW_files:
+            self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
 
         self.pp_hdf5_path = f"{self.sim_path}/{self.sim_name}_PP.hdf5"
 
         self.t_merg = self.get_t_merg() if not self.is_cartoon else None
+        self.ADM_M, self.ADM_J = self.get_ADM_MJ() if not self.is_cartoon else (None, None)
 
     def __repr__(self):
         return f"Einstein Toolkit simulation {self.sim_name}"
@@ -177,6 +186,16 @@ class Simulation():
             min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
             return float(times[min_ind])
 
+    def get_ADM_MJ(self):
+        pattern = r"ADM mass of the system : ([0-9]\.[0-9]+) M_sol\n"
+        pattern += r" *Total angular momentum : ([0-9]\.[0-9]+) G M_sol\^2 / c"
+
+        if not isfile(outf := f"{self.sim_path}/output-0000/{self.sim_name}.out"):
+            return None, None
+        with open(outf, 'r') as file:
+            m = re.search(pattern, file.read())
+        return float(m[1]), float(m[2])
+
     def get_offset(self, it: int) -> NDArray[np.float_]:
         if self.is_cartoon:
             return np.array([0., 0.])
@@ -204,6 +223,8 @@ class Simulation():
                 return PPGridFuncVariable(key=key, sim=self, **self.pp_grid_func_variables[key])
             if key in self.pp_time_series_variables:
                 return PPTimeSeriesVariable(key=key, sim=self, **self.pp_time_series_variables[key])
+            if key in self.pp_gw_variables:
+                return GravitationalWaveVariable(key=key, sim=self, **self.pp_gw_variables[key])
             raise VariableError(f"Could not find key {key} in {self}.") from last_exc
 
     def get_data(self, key: str, **kwargs):

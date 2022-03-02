@@ -142,8 +142,12 @@
     "alias": [
       "consH_inf_ccz4"
     ],
+    "backups": ["consH-norminf-BSSN"],
     "file_key": "H(norm_inf)",
     "file_name": "ml_ccz4-ml_ham.scalars.asc",
+    "kwargs": {
+      "func": "log"
+    },
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
   "consH-norminf-BSSN": {
@@ -152,6 +156,9 @@
     ],
     "file_key": "H(norm_inf)",
     "file_name": "ml_bssn-ml_ham.scalars.asc",
+    "kwargs": {
+      "func": "log"
+    },
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
   },
   "consH-norminf-LEAN": {
@@ -160,7 +167,38 @@
     ],
     "file_key": "hc(norm_inf)",
     "file_name": "leanbssnmol-ham.scalars.asc",
+    "kwargs": {
+      "func": "log"
+    },
     "name": "Hamiltonian constrain violation ($\\infty$-norm)"
+  },
+  "consH-norm2": {
+    "backups": ["consH-norm2-BSSN"],
+    "file_key": "H(norm2)",
+    "file_name": "ml_ccz4-ml_ham.scalars.asc",
+    "kwargs": {
+      "func": "log"
+    },
+    "name": "Hamiltonian constrain violation (2-norm)"
+  },
+  "consH-norm2-BSSN": {
+    "alias": [
+      "consH_norm2"
+    ],
+    "file_key": "H(norm2)",
+    "file_name": "ml_bssn-ml_ham.scalars.asc",
+    "kwargs": {
+      "func": "log"
+    },
+    "name": "Hamiltonian constrain violation (2-norm)"
+  },
+  "consH-norm2-LEAN": {
+    "file_key": "hc(norm2)",
+    "file_name": "leanbssnmol-ham.scalars.asc",
+    "kwargs": {
+      "func": "log"
+    },
+    "name": "Hamiltonian constrain violation (2-norm)"
   },
   "dens-norm1": {
     "alias": [
@@ -223,6 +261,7 @@
       "phi_min",
       "phi-min-CCZ4"
     ],
+    "backups": ["phi-min-BSSN"],
     "file_key": "phi(minimum)",
     "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
     "name": "minimum conformal factor"
@@ -230,7 +269,7 @@
   "phi-min-BSSN": {
     "alias": [
       "phi_min_bssn",
-      "phi-min-bss"
+      "phi-min-bssn"
     ],
     "file_key": "phi(minimum)",
     "file_name": "ml_bssn-ml_log_confac.scalars.asc",

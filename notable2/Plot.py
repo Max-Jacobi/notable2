@@ -35,11 +35,14 @@ def _handle_kwargs(var_kwargs: dict[str, Any],
 def _handle_PPkwargs(kwargs, var):
     PPkwargs = {}
     if isinstance(var, PostProcVariable):
+        if isinstance(var.PPkeys, dict):
+            PPkwargs = var.PPkeys.copy()
         for kk, val in kwargs.items():
             if kk in var.PPkeys:
                 PPkwargs[kk] = val
     for kk in PPkwargs:
-        kwargs.pop(kk)
+        if kk in kwargs:
+            kwargs.pop(kk)
     if isinstance(var, PostProcVariable):
         for dvar in var.dependencies:
             kwargs, new_PPkwargs = _handle_PPkwargs(kwargs, dvar)
@@ -376,7 +379,7 @@ def plotTS(sim: "Simulation",
 
     kwargs, PPkwargs = _handle_PPkwargs(kwargs, var)
     # -------------data handling-------------------------------------------
-    av_its = var.available_its()
+    av_its = var.available_its(**PPkwargs)
     if every is not None:
         its = av_its[::every]
     if min_it is not None:
@@ -415,7 +418,7 @@ def plotTS(sim: "Simulation",
         if isinstance(func, np.ufunc) or len(signature(func).parameters) == 1:
             data = func(data)
         else:
-            data = func(data, times)
+            times, data = func(times, data)
 
     # ----------------Plotting---------------------------------------------
 

@@ -20,7 +20,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .RCParams import rcParams
-from .DataObjects import GridFunc, TimeSeries, PPGridFunc, PPTimeSeries
+from .DataObjects import GridFunc, TimeSeries, PPGridFunc, PPTimeSeries, GWData
 from .Utils import PlotName, Units, VariableError, BackupException, IterationError
 
 if TYPE_CHECKING:
@@ -71,12 +71,12 @@ class TimeSeriesBaseVariable(Variable, ABC):
         ...
 
     @abstractmethod
-    def available_its(self) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> NDArray[np.int_]:
         """Returns Array of available iterations"""
         ...
 
-    def get_it(self, time: float):
-        its = self.available_its()
+    def get_it(self, time: float, **kwargs):
+        its = self.available_its(**kwargs)
 
         times = self.sim.get_time(its)
         if self.sim.t_merg is not None:
@@ -105,12 +105,12 @@ class GridFuncBaseVariable(Variable, ABC):
         ...
 
     @abstractmethod
-    def available_its(self, region: str) -> NDArray[np.int_]:
+    def available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
         """Returns Array of available iterations"""
         ...
 
-    def get_it(self, time: float, region: str):
-        its = self.available_its(region)
+    def get_it(self, time: float, region: str, **kwargs):
+        its = self.available_its(region, **kwargs)
 
         times = self.sim.get_time(its)
         if self.sim.t_merg is not None:
@@ -178,6 +178,7 @@ class PostProcVariable(Variable):
     """ABC for post processed Variables"""
 
     dependencies: list[Variable]
+    PPkeys: Union[list[str], dict[str, Any]]
 
     def __init__(self,
                  key: str,
@@ -189,7 +190,7 @@ class PostProcVariable(Variable):
                  scale_factor: float = 1,
                  save: bool = True,
                  kwargs: Optional[dict[str, Any]] = None,
-                 PPkeys: list[str] = None,
+                 PPkeys: Optional[Union[list[str], dict[str, Any]]] = None,
                  ):
 
         super().__init__(key, sim)
@@ -217,21 +218,21 @@ class PostProcVariable(Variable):
                 raise BackupException(self.backups) from exc
             raise exc
 
-    def _available_its(self, region: str) -> NDArray[np.int_]:
+    def _available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
         its = []
         for dep in self.dependencies:
             try:
                 if dep.vtype == 'grid':
-                    its.append(dep.available_its(region))
+                    its.append(dep.available_its(region, **kwargs))
                 else:
-                    its.append(dep.available_its())
+                    its.append(dep.available_its(**kwargs))
             except BackupException as excp:
                 for bvar in excp.backups:
                     try:
                         if bvar.vtype == 'grid':
-                            its.append(bvar.available_its(region))
+                            its.append(bvar.available_its(region, **kwargs))
                         else:
-                            its.append(bvar.available_its())
+                            its.append(bvar.available_its(**kwargs))
                         if self.sim.verbose > 1:
                             print(f"{self.sim.sim_name}: Using {bvar.key} instead of {dep.key}")
                         break
@@ -290,7 +291,7 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
                 continue
         raise IterationError(f"Iteration {it} not found for {self}")
 
-    def available_its(self, region: str) -> NDArray[np.int_]:
+    def available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
         if (self.key in self.sim.its_lookup) and (region in self.sim.its_lookup[self.key]):
             return self.sim.its_lookup[self.key][region].astype(int)
         for ali in self.alias:
@@ -302,7 +303,7 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
 
         for bvar in self.backups:
             try:
-                ret = bvar.available_its(region)
+                ret = bvar.available_its(region, **kwargs)
                 if self.sim.verbose > 1:
                     print(f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
                 return ret
@@ -320,7 +321,7 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
     def get_data(self, it=None, **kwargs):
 
         try:
-            av_its = self.available_its()
+            av_its = self.available_its(**kwargs)
             if it is None:
                 it = av_its
             if len(uni := np.setdiff1d(it, av_its)) != 0:
@@ -333,18 +334,21 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                 if self.sim.verbose > 1:
                     print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                 self.key = ali
-                av_its = self.available_its()
+                av_its = self.available_its(**kwargs)
                 if it is None:
                     it = av_its
                 if len(uni := np.setdiff1d(it, av_its)) != 0:
                     raise IterationError(f"Iteration(s) {uni} not found for {self.key}")
-                if isinstance(it, (int, np.integer)):
-                    return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
-                return TimeSeries(self, its=it, **kwargs)
+                try:
+                    if isinstance(it, (int, np.integer)):
+                        return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
+                    return TimeSeries(self, its=it, **kwargs)
+                except VariableError:
+                    continue
 
             for bvar in self.backups:
                 try:
-                    av_its = bvar.available_its()
+                    av_its = bvar.available_its(**kwargs)
                     if it is None:
                         it = av_its
                     if len(uni := np.setdiff1d(it, av_its)) != 0:
@@ -358,7 +362,7 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                 except (VariableError, IterationError):
                     continue
 
-    def available_its(self) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> NDArray[np.int_]:
         try:
             return self.sim.data_handler.get_time_series(self.key)[0]
         except VariableError as ex:
@@ -374,7 +378,7 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                     continue
             for bvar in self.backups:
                 try:
-                    ret = bvar.available_its()
+                    ret = bvar.available_its(**kwargs)
                     if self.sim.verbose > 1:
                         print(f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
                     return ret
@@ -400,8 +404,8 @@ class PPGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
                           exclude_ghosts=exclude_ghosts,
                           **kwargs)
 
-    def available_its(self, region: str) -> NDArray[np.int_]:
-        return super()._available_its(region)
+    def available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
+        return super()._available_its(region, **kwargs)
 
 
 class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
@@ -417,7 +421,7 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
                                  f"for GridFuncVariables in {self.dependencies}")
 
     def get_data(self, it=None, **kwargs):
-        av_its = self.available_its()
+        av_its = self.available_its(**kwargs)
         if it is None:
             it = av_its
         if len(uni := np.setdiff1d(it, av_its)) != 0:
@@ -426,6 +430,28 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
             return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return PPTimeSeries(self, its=it, **kwargs)
 
-    def available_its(self) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> NDArray[np.int_]:
         region = 'xz' if self.sim.is_cartoon else 'xyz'
-        return super()._available_its(region)
+        return super()._available_its(region, **kwargs)
+
+
+class GravitationalWaveVariable(PostProcVariable, TimeSeriesBaseVariable):
+    """Variable for post processed GW functions"""
+
+    def __init__(self, **kwargs):
+        super().__init__(dependencies=[], **kwargs)
+
+    def get_data(self, it=None, **kwargs):
+        av_its = self.available_its(**kwargs)
+        if it is None:
+            it = av_its
+        if len(uni := np.setdiff1d(it, av_its)) != 0:
+            raise IterationError(f"Iteration(s) {uni} not found for self")
+        if isinstance(it, (int, np.integer)):
+            return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
+        return GWData(self, its=it, **kwargs)
+
+    def available_its(self, **kwargs) -> NDArray[np.int_]:
+        if "n_points" in kwargs:
+            return np.arange(kwargs["n_points"])
+        return np.arange(3000)

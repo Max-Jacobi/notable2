@@ -141,6 +141,7 @@ pp_variables = {
         ),
     ),
     'baryon-mass': dict(
+        backups=['baryon-mass-pp'],
         dependencies=('b-mass-dummy',),
         func=lambda dd, *_, **kw: dd*2,
         plot_name_kwargs=dict(
@@ -399,14 +400,14 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mass ($\rho \geq rho_cont)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=integral,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'E-th-out-rho-cont': dict(
         dependencies=("e-th-eos", "rho"),
@@ -414,14 +415,14 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"thermal energy ($\rho < rho_cont)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=integral,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'E-th-in-rho-cont': dict(
         dependencies=("e-th-eos", "rho"),
@@ -429,14 +430,14 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"thermal energy ($\rho \geq rho_cont)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=integral,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'E-th/M-in-rho-cont': dict(
         dependencies=("E-th-in-rho-cont", "mass-in-rho-cont"),
@@ -445,13 +446,13 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$\frac{E_{\rm th}}{M_{\rm HMNS}}$ ($\rho \geq rho_cont)",
             unit='%',
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'volume-in-rho-cont': dict(
         dependencies=("reduce-weights", "rho"),
@@ -460,7 +461,7 @@ pp_variables = {
             name=r"volume ($\rho \geq rho_cont)",
             unit="km $^3$",
             code_unit=r"$M_\odot^3$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
@@ -468,21 +469,21 @@ pp_variables = {
         ),
         reduction=integral,
         scale_factor=Units['Length']**3,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'compactness-rho-cont': dict(
         dependencies=("mass-in-rho-cont", "volume-in-rho-cont"),
         func=lambda mass, vol, *_, **kw: mass/vol**(0.333333333),
         plot_name_kwargs=dict(
             name=r"compactness ($\rho \geq rho_cont)",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.1e} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.1e}"+r"\,$g cm$^{-3}$"),
             ),
         ),
         save=False,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'mass-out-rho-cont': dict(
         dependencies=("baryon-mass", "mass-in-rho-cont"),
@@ -490,14 +491,14 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mass ($\rho < rho_cont)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         save=False,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'mass-disk': dict(
         dependencies=("baryon-mass", "mass-bulk"),
@@ -519,7 +520,7 @@ pp_variables = {
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -535,7 +536,7 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, esc}$ ($r=$radius)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -550,7 +551,7 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, in}$ ($r=$radius)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -565,7 +566,7 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, tot}$ ($r=$radius)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -585,7 +586,7 @@ pp_variables = {
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -601,7 +602,7 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, esc}$ ($r=$radius)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -616,7 +617,7 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, in}$ ($r=$radius)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -631,7 +632,7 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, tot}$ ($r=$radius)",
             unit=r"$M_\odot$",
-            format=dict(
+            format_opt=dict(
                 radius=lambda radius, code_units:
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
@@ -720,28 +721,28 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho \geq rho_cont)",
             unit="MeV",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'ye-in-rho-cont-mean': dict(
         dependencies=("ye", "rho",),
         func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $Y_e$ ($\rho \geq rho_cont)",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'entr-in-rho-cont-mean': dict(
         dependencies=("entr", "rho",),
@@ -749,14 +750,14 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean entropy ($\rho \geq rho_cont)",
             unit=r"$k_{\rm B}$/nuc.",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'press-in-rho-cont-mean': dict(
         dependencies=("press", "rho",),
@@ -765,14 +766,14 @@ pp_variables = {
             name=r"mean pressure ($\rho \geq rho_cont)",
             code_unit="$M_\\odot^{-2}$",
             unit="g cm$^{-1}$ s$^{-2}$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
         scale_factor="Press",
     ),
     'temp-out-rho-cont-mean': dict(
@@ -781,28 +782,28 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho < rho_cont)",
             unit="MeV",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'ye-out-rho-cont-mean': dict(
         dependencies=("ye", "rho",),
         func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*(rho < rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $Y_e$ ($\rho < rho_cont)",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'entr-out-rho-cont-mean': dict(
         dependencies=("entr", "rho",),
@@ -810,14 +811,14 @@ pp_variables = {
         plot_name_kwargs=dict(
             name=r"mean entropy ($\rho < rho_cont)",
             unit=r"$k_{\rm B}$/nuc.",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'press-out-rho-cont-mean': dict(
         dependencies=("press", "rho",),
@@ -826,14 +827,14 @@ pp_variables = {
             name=r"mean pressure ($\rho < rho_cont)",
             code_unit="$M_\\odot^{-2}$",
             unit="g cm$^{-1}$ s$^{-2}$",
-            format=dict(
+            format_opt=dict(
                 rho_cont=lambda rho_cont=1e13*RUnits['Rho'], code_units=False:
                 (f"{rho_cont:.0f} " + r'M_\odot^{-2}$' if code_units
                  else f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$")
             ),
         ),
         reduction=mean,
-        PPkeys=['rho_cont'],
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
         scale_factor="Press",
     ),
     'entr-min': dict(
@@ -844,6 +845,14 @@ pp_variables = {
             unit=r"$k_{\rm B}$/nuc.",
         ),
         reduction=minimum,
+    ),
+    'eps-max': dict(
+        dependencies=("eps",),
+        func=lambda press, *_, **kw: press,
+        plot_name_kwargs=dict(
+            name=r"maximum internal energy",
+        ),
+        reduction=maximum,
     ),
     'press-max': dict(
         dependencies=("press",),
