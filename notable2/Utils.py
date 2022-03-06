@@ -137,6 +137,8 @@ class Plot2D(Mapping):
                  data: dict[int, NDArray[np.float_]],
                  ):
         for rl in self.rls[::-1]:
+            if rl not in coords:
+                continue
             xx, yy = coords[rl].values()
             dx = xx[1] - xx[0]
             dy = yy[1] - yy[0]

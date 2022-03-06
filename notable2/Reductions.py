@@ -177,6 +177,8 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
         tmp = []
         for rl in var.sim.expand_rl(rls, it=it):
             dat = dep[rl]
+            if weights[rl].shape != dat.shape:
+                continue  # no idea why this happens sometimes
             mask = (weights[rl] == 1.) & np.isfinite(dat)
             tmp.append(np.max(dat[mask]))
         result[ii] = max(tmp)

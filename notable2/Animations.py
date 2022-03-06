@@ -190,7 +190,7 @@ class GDAniFunc(AniFunc):
         if max_time is not None:
             mask = mask & (times <= max_time)
         self.its = its[mask][::every]
-        self.times = times[mask][::every]
+        self.times = np.round(times[mask][::every], -1)
         return self.times
 
     def init(self):
@@ -218,6 +218,7 @@ class GDAniFunc(AniFunc):
         if time > max(self.times):
             if self.region == 1:
                 self.image.set_data([], [])
+                return
         if time not in self.times:
             return
         ii = self.times.searchsorted(time)
