@@ -1,3 +1,4 @@
+import numpy as np
 from notable2.ExtractGW import extract_strain
 
 

@@ -5,7 +5,7 @@ from typing import Optional, Type, Callable, overload, Any
 from collections.abc import Iterable
 import numpy as np
 from numpy.typing import NDArray
-# from scipy.signal import find_peaks  # type: ignore
+from scipy.signal import find_peaks  # type: ignore
 from scipy.interpolate import interp2d  # type: ignore
 from scipy.optimize import minimize  # type: ignore
 from h5py import File as HDF5  # type: ignore
@@ -88,6 +88,9 @@ class Simulation():
             self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
 
         self.pp_hdf5_path = f"{self.sim_path}/{self.sim_name}_PP.hdf5"
+        if not os.path.isfile(self.pp_hdf5_path):
+            with HDF5(self.pp_hdf5_path, mode='a') as hf:
+                pass
 
         self.ADM_M, self.ADM_J = self.get_ADM_MJ() if not self.is_cartoon else (None, None)
         self.t_merg = self.get_t_merg() if not self.is_cartoon else None
@@ -178,20 +181,20 @@ class Simulation():
 
     def get_t_merg(self) -> Optional[float]:
         try:
-            hp = self.get_data("h+")
-            hx = self.get_data("hx")
-            a2 = hp.data**2 + hx.data**2
-            return hp.times[np.argmax(a2)]
+            habs = self.get_data("h-abs")
+            ind = find_peaks(habs.data, height=.15)[0][0]
+            # ind = np.argmax(habs.data)
+            return habs.times[ind]
         except VariableError:
-            return None
-
-            # data = self.get_data('alpha-min')
-            # times = data.times
-            # peaks = find_peaks(-data.data)[0]
-            # diffs = np.diff(data.data[peaks])
-            # if np.any(big_diffs := diffs < -.05):
-            #     min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
-            #     return float(times[min_ind])
+            if self.verbose:
+                print(f"{self.name} using minumum of alpha to determine merger time")
+            data = self.get_data('alpha-min')
+            times = data.times
+            peaks = find_peaks(-data.data)[0]
+            diffs = np.diff(data.data[peaks])
+            if np.any(big_diffs := diffs < -.05):
+                min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
+                return float(times[min_ind])
 
     def get_ADM_MJ(self):
         pattern = r"ADM mass of the system : ([0-9]\.[0-9]+) M_sol\n"

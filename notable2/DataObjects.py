@@ -143,16 +143,15 @@ class PPGridFunc(GridFunc):
 
         # checked for saved version
         if self.var.save:
-            hdf5 = HDF5(self.var.sim.pp_hdf5_path, 'a')
-            key = self.var.key
-            for kk, item in self.kwargs.items():
-                if kk in self.var.PPkeys:
-                    key += f":{kk}={item}"
-            dset_path = f'{key}/{self.region}/{self.it:08d}/{rl}'
-            if dset_path in hdf5:
-                data = hdf5[dset_path][...]
-                hdf5.close()
-                return data
+            with HDF5(self.var.sim.pp_hdf5_path, 'r') as hdf5:
+                key = self.var.key
+                for kk, item in self.kwargs.items():
+                    if kk in self.var.PPkeys:
+                        key += f":{kk}={item}"
+                dset_path = f'{key}/{self.region}/{self.it:08d}/{rl}'
+                if dset_path in hdf5:
+                    data = hdf5[dset_path][...]
+                    return data
 
         # get dependencies
         dep_data = [dep.get_data(region=self.region,
@@ -169,9 +168,8 @@ class PPGridFunc(GridFunc):
         data = self.var.func(*dep_data, **self.coords[rl], **self.kwargs)
 
         if self.var.save:
-            hdf5.create_dataset(dset_path, data=data)
-            hdf5.flush()
-            hdf5.close()
+            with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
+                hdf5.create_dataset(dset_path, data=data)
 
         return data
 
@@ -229,7 +227,7 @@ class PPTimeSeries(TimeSeries):
             for kk, item in self.kwargs.items():
                 if kk in self.var.PPkeys:
                     key += f":{kk}={item}"
-            with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
+            with HDF5(self.var.sim.pp_hdf5_path, 'r') as hdf5:
                 if key in hdf5:
                     if 'its' not in hdf5[key].attrs:
                         print(self.var.sim)
@@ -296,7 +294,6 @@ class PPTimeSeries(TimeSeries):
                 dset.attrs['its'] = self.its
                 dset.attrs['times'] = self.times
                 dset.attrs['restarts'] = self.restarts
-                hdf5.flush()
 
 
 class GWData(TimeSeries):
@@ -310,4 +307,4 @@ class GWData(TimeSeries):
         self.var = var
         self.kwargs = kwargs
 
-        self.its, self.times, self.data, self.rsts = self.var.func(self.var, **kwargs)
+        self.its, self.times, self.data, self.restarts = self.var.func(self.var, **kwargs)

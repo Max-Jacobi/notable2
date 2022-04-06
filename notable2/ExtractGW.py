@@ -16,20 +16,22 @@ def _get_available_rads(sim, dr=50.):
     rads = []
     for rad in np.arange(1, rmax//dr + 1)*dr:
         try:
-            if sim.get_data(f"psi4-r-l2_m2_r{rad:.2f}") is None:
+            if sim.get_data(f"psi4-r-l2-m2-r{rad:.2f}") is None:
                 continue
         except VariableError:
             continue
         rads.append(rad)
+    if len(rads) == 0:
+        raise VariableError("no psi4 data in simulation {sim}")
     rad = rads[0]
     return np.array(rads)
 
 
 def _get_data(sim, rad, ll, mm):
-    dat = sim.get_data(f"psi4-r-l{ll}_m{mm}_r{rad:.2f}")
+    dat = sim.get_data(f"psi4-r-l{ll}-m{mm}-r{rad:.2f}")
     ts = dat.times
     cc = dat.data
-    icc = sim.get_data(f"psi4-i-l{ll}_m{mm}_r{rad:.2f}").data
+    icc = sim.get_data(f"psi4-i-l{ll}-m{mm}-r{rad:.2f}").data
     return ts, cc + 1j*icc
 
 
@@ -60,7 +62,7 @@ def get_f0(t0, tt, C22):
     return .5 * abs(dtPhit0)
 
 
-def Planck_taper_window(tt, t0, width=200):
+def Planck_taper_window(tt, t0, width=200, end=True):
 
     t1 = t0 + width
     t2 = tt[-1] - width
@@ -75,10 +77,13 @@ def Planck_taper_window(tt, t0, width=200):
     zz[zz > 100] = 100.
     ww[mask] = 1/(np.exp(zz) + 1)
 
-    mask = (tt > t2) & (tt < t3)
-    zz = (t2 - t3)/(tt[mask] - t2) + (t2 - t3)/(tt[mask] - t3)
-    zz[zz > 100] = 100.
-    ww[mask] = 1/(np.exp(zz) + 1)
+    if end:
+        mask = (tt > t2) & (tt < t3)
+        zz = (t2 - t3)/(tt[mask] - t2) + (t2 - t3)/(tt[mask] - t3)
+        zz[zz > 100] = 100.
+        ww[mask] = 1/(np.exp(zz) + 1)
+    else:
+        ww[tt > t2] = 1
 
     return ww
 
@@ -88,7 +93,7 @@ def _isotropic2tortoise(rr, mm, aa=0):
     return ar + 2*mm*np.log(ar/2/mm - 1)
 
 
-def compute_PSD(sim, dist=100, window_width=200, code_units=False, **kwargs):
+def compute_PSD(sim, dist=100, post_merger=True, window_width=200, code_units=False, **kwargs):
     """
     Returns the PSD for the simulation sim.
     Arguments:
@@ -107,11 +112,12 @@ def compute_PSD(sim, dist=100, window_width=200, code_units=False, **kwargs):
 
     data = (hp+1j*hx) / dist
 
-    window = Planck_taper_window(ts, sim.t_merg-window_width, width=window_width)
-    data = data*window
-    zero_mask = (window > 0.)
-    data = data[zero_mask]
-    ts = ts[zero_mask]
+    if post_merger:
+        window = Planck_taper_window(ts, sim.t_merg-window_width, width=window_width, end=False)
+        data = data*window
+    # zero_mask = (window > 0.)
+    # data = data[zero_mask]
+    # ts = ts[zero_mask]
 
     tmp = data - np.polyval(np.polyfit(ts, data, 1), ts)
 

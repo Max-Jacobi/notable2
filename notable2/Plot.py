@@ -166,7 +166,7 @@ def plotGD(sim: "Simulation",
         elif len(signature(func).parameters) == 1:
             data = {rl: func(dd) for rl, dd in data.items()}
         else:
-            coords, data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
+            data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
 
     if sim.t_merg is not None:
         t_str = r"$t - t_{\rm merg}$ = "

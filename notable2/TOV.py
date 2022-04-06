@@ -96,7 +96,77 @@ class TOV:
     def _call_eos(self, press, key):
         if press <= self.table["press"][0]:
             return self.table[key][0]
-        return interp1d(self.table["press"], self.table[key], kind='cubic', bounds_error=True)(press)
+        return interp1d(self.table["press"], self.table[key],
+                        kind='cubic', bounds_error=True)(press)
+
+    def _get_Psources(self, press, r2my):
+        r2, mass, yy = r2my
+
+        En = self._call_eos(press, "En")
+        cs2 = self._call_eos(press, "cs2")
+
+        fourpi = 4*np.pi
+        r3 = r2**1.5
+        rr = r2**.5
+        rminus2m = rr - 2*mass
+
+        denum = (En+press)*(mass + fourpi*r3*press)
+        if denum <= 0.:
+            denum = 1e-20
+
+        dr2 = -2*r2*(rr - 2*mass) / denum
+
+        dm = -fourpi * r2**(1.5) * En * (rr - 2*mass) / denum
+
+        F = rr - fourpi * r3 * (En - press)
+        F /= rminus2m
+        Q = fourpi * rr / rminus2m
+        Q *= (5*En + 9*press + (En + press)/cs2)*r2 - 6/fourpi
+        dnudr = mass + fourpi * r3 * press
+        dnudr /= rminus2m
+        Q -= 4*dnudr**2
+
+        dy = -yy**2 - yy*F - Q
+        dy /= 2 * r2
+
+        dy *= dr2
+
+        return np.array([dr2, dm, dy])
+
+    def Psolve(self, central_press, N_points=1000, terminal_pressure=None, **kwargs):
+        if terminal_pressure is None:
+            terminal_pressure = self.table["press"][0]
+        p_span = central_press, terminal_pressure
+        p_eval = np.linspace(*p_span, N_points)
+
+        y0 = np.array([1e-10, 1e-10, 2.])
+
+        solution = solve_ivp(self._get_Psources,
+                             y0=y0,
+                             t_span=p_span,
+                             t_eval=p_eval,
+                             **kwargs)
+
+        if solution.status >= 0:
+            self.data['p'] = solution.t
+            self.data['r'], self.data['m'], self.data['y'] = solution.y
+            self.data['r'] = self.data['r']**.5
+            self.post_proc()
+
+            self.parameters["R"] = self.data['r'][-1]
+            self.parameters["M"] = self.data['m'][-1]
+            self.parameters["yR"] = self.data['y'][-1]
+            self.parameters["C"] = self.parameters["M"]/self.parameters["R"]
+            y = self.parameters["yR"]
+            c = self.parameters["C"]
+            self.parameters["k_2"] = (
+                8/5*c**5 * (1-2*c)**2 * (2 + 2*c*(y-1) - y)
+                / (2*c*(6 - 3*y + 3*c*(5*y - 8))
+                   + 4*c**3 * (13 - 11*y + c*(3*y - 2) + 2*c**2 * (1 + y))
+                   + 3*(1 - 2*c)**2 * (2 - y + 2*c*(y - 1)) * np.log(1 - 2*c)))
+
+            self.parameters["Lambda"] = 2/3*self.parameters['k_2']*self.parameters['C']**-5
+        return solution.status
 
     def _get_sources(self, rad, mpy):
         mass, press, yy = mpy
@@ -107,11 +177,9 @@ class TOV:
         fourpi = 4*np.pi
         rminus2m = rad - 2*mass
 
-        dP = -press - En
-        dP *= mass + fourpi * rad**3 * press
-        dP /= rminus2m * rad
+        dP = -(press + En) * (mass + fourpi * rad**3 * press) / (rminus2m * rad)
 
-        dm = fourpi * rad**2 * rho
+        dm = fourpi * rad**2 * En
 
         F = rad - fourpi * rad**3 * (En - press)
         F /= rminus2m
@@ -144,6 +212,7 @@ class TOV:
                              t_eval=t_eval,
                              events=terminate,
                              **kwargs)
+
         if solution.status >= 0:
             self.data['r'] = solution.t
             self.data['m'], self.data['p'], self.data['y'] = solution.y
@@ -184,7 +253,7 @@ class TOV:
             self.verbose = False
 
         def _get_mass(p_cent):
-            sol = self.solve(p_cent, dr_out=1e-2, rtol=1e-8, method="DOP853")
+            sol = self.Psolve(p_cent,)
             if sol < 0:
                 raise RuntimeError(f"solver did not converge for central pressure {p_cent}")
             if sol == 0:

@@ -164,6 +164,7 @@ pp_variables = {
             name=r"$h u_t$",
             unit="$c$"
         ),
+        save=False,
         kwargs=dict(
             symetric_around=-1,
             cmap='seismic'

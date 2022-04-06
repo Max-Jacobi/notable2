@@ -4,6 +4,7 @@ from numpy.typing import NDArray
 from scipy.integrate import simps  # type: ignore
 
 from .RCParams import rcParams
+from .Variable import TimeSeriesBaseVariable, GridFuncBaseVariable
 
 if TYPE_CHECKING:
     from .Utils import (
@@ -40,7 +41,10 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
                 dep_data.append(dep.get_data(it=it, **kwargs))
         for rl in var.sim.expand_rl(rls, it=it):
             coord = dep_data[0].coords[rl]
-            dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
+            try:
+                dx = {ax: abs(cc[1] - cc[0]) for ax, cc in coord.items()}
+            except IndexError:
+                dx = {ax: np.nan for ax in coord}
             coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
 
             if var.sim.is_cartoon:
@@ -54,7 +58,7 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
             integ[~np.isfinite(integ)] = 0
 
             integ *= vol
-            result[ii] += np.sum(integ[np.isfinite(integ)])
+            result[ii] += np.sum(integ)
 
     return result
 
@@ -164,7 +168,7 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
     if (len(dependencies) > 1) or (dependencies[0].vtype != 'grid'):
         raise ValueError
 
-    result = np.zeros_like(its, dtype=float)
+    result = np.zeros_like(its, dtype=float)*np.nan
 
     for ii, it in enumerate(its):
         if var.sim.verbose:
@@ -180,8 +184,10 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
             if weights[rl].shape != dat.shape:
                 continue  # no idea why this happens sometimes
             mask = (weights[rl] == 1.) & np.isfinite(dat)
-            tmp.append(np.max(dat[mask]))
-        result[ii] = max(tmp)
+            if np.any(mask):
+                tmp.append(np.max(dat[mask]))
+        if len(tmp) > 0:
+            result[ii] = max(tmp)
     return result
 
 
@@ -197,13 +203,18 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
 
     result = np.zeros_like(its, dtype=float)
 
+    ts_data = {dep.key: dep.get_data(it=its).data
+               for dep in dependencies if isinstance(dep, TimeSeriesBaseVariable)}
+
     for ii, it in enumerate(its):
         if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: getting mean at iteration {it} ({ii/len(its)*100:.1f}%)",
+            print(f"{var.sim.sim_name} - {var.key}: getting mean at iteration {it} ({(ii+1)/len(its)*100:.1f}%)",
                   end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dens = var.sim.get_data('dens', region=region, it=it)
-        dep_data = [dep.get_data(region=region, it=it) for dep in dependencies]
+        dep_data = [dep.get_data(region=region, it=it)
+                    if isinstance(dep,  GridFuncBaseVariable)
+                    else ts_data[dep.key][ii] for dep in dependencies]
 
         tot_mass = 0
         for rl in var.sim.expand_rl(rls, it=it):
@@ -220,7 +231,7 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
             dat = func(*[data if isinstance(data, (float, np.floating)) else data[rl]
                          for data in dep_data], **coord, **kwargs) * mass
 
-            mask = np.isfinite(dat)
+            mask = np.isfinite(dat) & (dat != 0.)
             result[ii] += np.sum(dat[mask])
             tot_mass += np.sum(mass[mask])
         result[ii] /= tot_mass

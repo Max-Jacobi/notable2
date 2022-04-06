@@ -246,7 +246,7 @@ class GDAniFunc(AniFunc):
             elif len(signature(self.func).parameters) == 1:
                 data = {rl: self.func(dd) for rl, dd in data.items()}
             else:
-                coords, data = {rl: self.func(dd, **coords[rl]) for rl, dd in data.items()}
+                data = {rl: self.func(dd, **coords[rl]) for rl, dd in data.items()}
         if len(self.region) == 1:
             dat = data[rls[-1]]
             xx = coords[rls[-1]][self.region]

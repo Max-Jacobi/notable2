@@ -1,7 +1,16 @@
+import numpy as np
 from notable2.EOS import EOS
 from typing import Any
 
 from notable2.Utils import Units, RUnits
+
+
+def _Gamma(rho, eps, press, *_, **kw):
+    gamma = press/eps/rho + 1
+    gamma[rho <= 3e-15] = np.nan
+    gamma[press <= 1e-10] = np.nan
+    gamma[eps < 1e-10] = np.nan
+    return gamma
 
 
 def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
@@ -81,7 +90,7 @@ def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
             plot_name_kwargs=dict(
                 name=r"$P_{\rm th}/P_{\rm cold}$",
             ),
-            kwargs=dict(cmap='plasma'),
+            kwargs=dict(cmap='plasma', func='log'),
         ),
         'eps-th-eos': dict(
             dependencies=['eps', 'eps-cold-eos'],
@@ -101,7 +110,7 @@ def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
         'Gamma-th': dict(
             dependencies=['rho', 'eps-th-eos', 'press-th-eos'],
             save=False,
-            func=lambda rho, eps, press, *_, **kw: press/eps/rho + 1,
+            func=_Gamma,
             plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$"),
             kwargs=dict(cmap='cubehelix'),
         ),

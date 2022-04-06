@@ -147,8 +147,10 @@ class PackET2Handler(DataHandler):
             with File(f'{self.data_dir}/{key}.h5', 'r') as hf:
                 dat = hf[dset_path][:]
             return dat
-        except OSError as excp:
+        except FileNotFoundError as excp:
             raise VariableError(f"{key} not found in simulation {self.sim}") from excp
+        except OSError as excp:
+            raise VariableError(f"{key} data is corrupted in simulation {self.sim}") from excp
         except KeyError as excp:
             raise VariableError(
                 f"Data (it: {it}, rl: {rl}, region:{region}) "

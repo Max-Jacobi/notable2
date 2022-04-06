@@ -431,8 +431,8 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
         return PPTimeSeries(self, its=it, **kwargs)
 
     def available_its(self, **kwargs) -> NDArray[np.int_]:
-        region = 'xz' if self.sim.is_cartoon else 'xyz'
-        return super()._available_its(region, **kwargs)
+        kwargs.setdefault('region', 'xz' if self.sim.is_cartoon else 'xyz')
+        return super()._available_its(**kwargs)
 
 
 class GravitationalWaveVariable(PostProcVariable, TimeSeriesBaseVariable):
