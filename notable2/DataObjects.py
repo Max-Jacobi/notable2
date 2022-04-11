@@ -104,7 +104,11 @@ class GridFunc(Mapping):
             result[mask] = interp
             assert not np.any(interp == 666.), (f"interpolation error on rl {rl}\n"
                                                 f"{{ax: cc[mask][np.isnan(interp) for ax, cc in int_coords.items()]}}")
-        assert not np.any(result == 666.), f"Some interpolation coordinates not in {self}"
+        missing_mask = result == 666.
+        if np.any(missing_mask):
+            #missing_cc = {ax: cc[missing_mask] for ax, cc in int_coords.items()}
+            #raise RuntimeWarning(f"Some interpolation coordinates not in {self}: {missing_cc}")
+            result[missing_mask] = np.nan
         return result
 
     def __iter__(self):

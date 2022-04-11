@@ -5,54 +5,9 @@ from notable2.Reductions import mean, minimum, maximum
 from notable2.Utils import Units, RUnits
 
 
-def _mass_flow(vx, vy, vz,
-               bx, by, bz,
-               gxx, gxy, gxz,
-               gyy, gyz, gzz,
-               alp, dens,
-               x, y, z, **_):
-    Vx = alp*vx - bx
-    Vy = alp*vy - by
-    Vz = alp*vz - bz
-    r = (gxx*x**2 + gyy*y**2 + gzz*z**2 +
-         2*gxy*x*y + 2*gxz*x*z + 2*gyz*y*z)**.5
-    return dens*(gxx*Vx*x + gyy*Vy*y + gzz*Vz*z +
-                 gxy*(Vx*y + Vy*x) +
-                 gxz*(Vx*z + Vz*x) +
-                 gyz*(Vy*z + Vz*y)
-                 )/r
-
-
-def _mass_flow_ej(vx, vy, vz,
-                  bx, by, bz,
-                  gxx, gxy, gxz,
-                  gyy, gyz, gzz,
-                  alp, dens, u_t,
-                  x, y, z, **_):
-    return _mass_flow(vx, vy, vz, bx, by, bz,
-                      gxx, gxy, gxz, gyy, gyz, gzz,
-                      alp, dens, x, y, z) * (u_t < -1)
-
-
-def _mass_flow_ejb(vx, vy, vz,
-                   bx, by, bz,
-                   gxx, gxy, gxz,
-                   gyy, gyz, gzz,
-                   alp, dens, u_t,
-                   h, x=0, y=0, z=0, **_):
-    return _mass_flow(vx, vy, vz, bx, by, bz,
-                      gxx, gxy, gxz, gyy, gyz, gzz,
-                      alp, dens, x, y, z) * (h*u_t < -1)
-
-
-def _mass_flow_cartoon(vx, vz, bx, bz,
-                       gxx, gxz, gzz,
-                       alp, dens,
-                       x, z, **_):
-    Vx = alp*vx - bx
-    Vz = alp*vz - bz
-    r = (gxx*x**2 + gzz*z**2 + 2*gxz*x*z)**.5
-    return dens*(gxx*Vx*x + gzz*Vz*z + gxz*(Vx*z + Vz*x))/r
+def _mass_flow(Vr, dens, *_, **kw):
+    Vr[Vr < 0] = 0
+    return dens*Vr
 
 
 def _times_domain_volume(dependencies, its, var, func, **kwargs):
@@ -345,11 +300,7 @@ pp_variables = {
         scale_factor=Units["Energy"]/Units["Time"]*1e3
     ),
     'mass-flow': dict(
-        dependencies=("vel^x", "vel^y", "vel^z",
-                      "beta^x", "beta^y", "beta^z",
-                      'g_xx', 'g_xy', 'g_xz',
-                      'g_yy', 'g_yz', 'g_zz',
-                      "alpha", "dens"),
+        dependencies=("V^r", "dens"),
         func=_mass_flow,
         plot_name_kwargs=dict(
             name="mass flux",
@@ -360,10 +311,8 @@ pp_variables = {
         scale_factor=1/Units['Time'],
     ),
     'mass-flow-cartoon': dict(
-        dependencies=("vel^x", "vel^z", "beta^x", "beta^z",
-                      'g_xx', 'g_xz', 'g_zz',
-                      "alpha", "dens"),
-        func=_mass_flow_cartoon,
+        dependencies=("V^r", "dens"),
+        func=_mass_flow,
         plot_name_kwargs=dict(
             name="mass flux",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -516,12 +465,8 @@ pp_variables = {
         save=False,
     ),
     'M-ej-esc-dot': dict(
-        dependencies=("vel^x", "vel^y", "vel^z",
-                      "beta^x", "beta^y", "beta^z",
-                      'g_xx', 'g_xy', 'g_xz',
-                      'g_yy', 'g_yz', 'g_zz',
-                      "alpha", "dens", "u_t"),
-        func=_mass_flow_ej,
+        dependencies=("V^r", "dens", "u_t"),
+        func=lambda vr, dens, u_t, *_, **kw: _mass_flow(vr, dens) * (u_t < -1),
         plot_name_kwargs=dict(
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -582,12 +527,8 @@ pp_variables = {
         PPkeys=['radius'],
     ),
     'M-ejb-esc-dot': dict(
-        dependencies=("vel^x", "vel^y", "vel^z",
-                      "beta^x", "beta^y", "beta^z",
-                      'g_xx', 'g_xy', 'g_xz',
-                      'g_yy', 'g_yz', 'g_zz',
-                      "alpha", "dens", "u_t", 'h'),
-        func=_mass_flow_ejb,
+        dependencies=("V^r", "dens", "u_t", 'h'),
+        func=lambda vr, dens, u_t, h, *_, **kw: _mass_flow(vr, dens) * (h*u_t < -1),
         plot_name_kwargs=dict(
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",

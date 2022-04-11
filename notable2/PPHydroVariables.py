@@ -1,15 +1,32 @@
 import numpy as np
-from scipy.interpolate import interp2d
+from scipy.interpolate import interpn
 from scipy.optimize import minimize
 
 
 from notable2.Utils import RUnits, Units
 
 
-def _radial(vx, vy, vz, alp, x=0, y=0, z=0, **_):
-    coords = [xyz for xyz in (x, y, z) if isinstance(xyz, np.ndarray)]
-    ox, oy = minimize(lambda xy: interp2d(*coords, alp.T, kind='quintic')(*xy)[0],
-                      np.array([0., 0.]))['x']
+def _r_proj(vx, vy, vz,
+            gxx, gxy, gxz,
+            gyy, gyz, gzz,
+            x=0, y=0, z=0, **_):
+    x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
+    r = (gxx*x**2 + gyy*y**2 + gzz*z**2 +
+         2*gxy*x*y + 2*gxz*x*z + 2*gyz*y*z)**.5
+    vr = (gxx*vx*x + gyy*vy*y + gzz*vz*z +
+          gxy*(vx*y + vy*x) +
+          gxz*(vx*z + vz*x) +
+          gyz*(vy*z + vz*y)
+          )/r
+    return vr
+
+
+def _radial(vx, vy, vz, x=0, y=0, z=0, **_):
+    # coords = [xyz for xyz in (x, y, z) if isinstance(xyz, np.ndarray)]
+    # ori = minimize(lambda xy: interpn(coords, alp, xy, method='linear')[0],
+    #               np.array([0. for _ in coords]))['x']
+    # for ii, oo in enumerate(ori):
+    #    coords[ii] -= oo
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
     r = (x**2 + y**2 + z**2)**.5
     r[r == 0] = 1
@@ -49,7 +66,7 @@ pp_variables = {
         )
     ),
     "vel^r": dict(
-        dependencies=('vel^x', 'vel^y', 'vel^z', 'alpha'),
+        dependencies=('vel^x', 'vel^y', 'vel^z'),  # , 'alpha'),
         func=_radial,
         plot_name_kwargs=dict(
             name="radial velocity",
@@ -94,6 +111,42 @@ pp_variables = {
         kwargs=dict(
             cmap='seismic',
             symetric_around=0,
+        )
+    ),
+    "V^r": dict(
+        dependencies=('V^x', 'V^y', 'V^z',
+                      'g_xx', 'g_xy', 'g_xz',
+                      'g_yy', 'g_yz', 'g_zz'),  # , 'alpha'),
+        func=_r_proj,
+        plot_name_kwargs=dict(
+            name="$V^r$",
+            unit='$c$',
+        ),
+        kwargs=dict(
+            cmap='seismic',
+            symetric_around=0,
+        )
+    ),
+    "ejb-flow": dict(
+        dependencies=('V^r', 'dens', 'h', 'u_t'),
+        func=lambda vv, dd, hh, ut, *_, **kw: vv*dd*(hh*ut < -1),
+        plot_name_kwargs=dict(
+            name="$ejecta flow$",
+            unit='$M_\\odot ^{-2}$',
+        ),
+        kwargs=dict(
+            cmap='cubehelix',
+        )
+    ),
+    "ejb-flow": dict(
+        dependencies=('V^r', 'dens', 'u_t'),
+        func=lambda vv, dd, ut, *_, **kw: vv*dd*(ut < -1),
+        plot_name_kwargs=dict(
+            name="$ejecta flow$",
+            unit='$M_\\odot ^{-2}$',
+        ),
+        kwargs=dict(
+            cmap='cubehelix',
         )
     ),
     "W-pp": dict(

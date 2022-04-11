@@ -72,55 +72,40 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 
-    thetas = np.linspace(0, np.pi/2, rcParams.surf_int_n_theta)
-    dth = thetas[1] - thetas[0]
+    dth = np.pi/2/rcParams.surf_int_n_theta
+    thetas = (np.arange(rcParams.surf_int_n_theta)+.5)*dth
     if var.sim.is_cartoon:
         phis = np.array([0])
     else:
-        phis = np.linspace(0, np.pi/2, rcParams.surf_int_n_phi)
-        dph = phis[1] - phis[0]
+        dph = np.pi*2/rcParams.surf_int_n_phi
+        phis = (np.arange(rcParams.surf_int_n_phi) + .5)*dph
 
     thetas, phis = np.meshgrid(thetas, phis, indexing='ij')
 
     if var.sim.is_cartoon:
 
-        sphere = {'x': radius * np.cos(thetas),
-                  'z': radius * np.sin(thetas)}
+        sphere = {'x': radius * np.sin(thetas),
+                  'z': radius * np.cos(thetas)}
     else:
-        sphere = {'x': radius * np.cos(thetas)*np.cos(phis),
-                  'y': radius * np.cos(thetas)*np.sin(phis),
-                  'z': radius * np.sin(thetas)}
-
-    relevant_rls: dict[int, list[int]] = {it: [] for it in its}
-    for it in its:
-        coords = var.sim.get_coords(region=region, it=it)
-        for rl in sorted(coords, reverse=True):
-            coord = coords[rl]
-            if not any(cc.max() >= radius for cc in coord.values()):
-                continue
-            relevant_rls[it].append(rl)
-            if all(cc.max()*np.sqrt(2) >= radius for cc in coord.values()):
-                break
-        else:
-            raise RuntimeError(f"Radius {radius} not fully contained in domain of Var.Simulation {var.sim} at it {it}")
+        sphere = {'x': radius * np.sin(thetas)*np.cos(phis),
+                  'y': radius * np.sin(thetas)*np.sin(phis),
+                  'z': radius * np.cos(thetas)}
 
     result = np.zeros_like(its, dtype=float)
-
-    for ii, (it, rls) in enumerate(relevant_rls.items()):
+    for ii, it in enumerate(its):
         if var.sim.verbose:
             print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
                   end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
         dep_data = [dep.get_data(region=region, it=it, **kwargs)
                     for dep in dependencies]
-        for rl in rls:
-            int_vals = [dat(**sphere) for dat in dep_data]
+        int_vals = [dat(**sphere) for dat in dep_data]
 
-            if var.sim.is_cartoon:
-                vol = 2*np.pi * dth * radius * sphere['z']
-            else:
-                vol = dth * dph * radius * sphere['z']
-            integ = func(*int_vals, **sphere, **kwargs)
-            result[ii] += np.sum(integ[(mask := np.isfinite(integ))] * vol[mask])
+        if var.sim.is_cartoon:
+            vol = 2*np.pi * dth * radius**2 * np.sin(thetas)
+        else:
+            vol = dth * dph * radius**2 * np.sin(thetas)
+        integ = func(*int_vals, **sphere, **kwargs)
+        result[ii] += np.sum(integ[(mask := np.isfinite(integ))] * vol[mask])
     return result
 
 

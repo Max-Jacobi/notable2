@@ -75,11 +75,11 @@ class TimeSeriesBaseVariable(Variable, ABC):
         """Returns Array of available iterations"""
         ...
 
-    def get_it(self, time: float, **kwargs):
+    def get_it(self, time: float, t_merg=False, **kwargs):
         its = self.available_its(**kwargs)
 
         times = self.sim.get_time(its)
-        if self.sim.t_merg is not None:
+        if self.sim.t_merg is not None and t_merg:
             times -= self.sim.t_merg
         if time > (max_time := times.max()):
             time = max_time
