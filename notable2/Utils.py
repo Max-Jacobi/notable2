@@ -1,7 +1,6 @@
 from typing import Union, Optional, TYPE_CHECKING, Callable, Any
 from collections.abc import Iterable, Mapping
 import numpy as np
-from numpy.typing import NDArray
 from matplotlib.colors import Normalize  # type: ignore
 from matplotlib.contour import QuadContourSet  # type: ignore
 from matplotlib.image import AxesImage  # type: ignore
@@ -13,6 +12,7 @@ if TYPE_CHECKING:
     from .Simulation import Simulation
     from .Variable import Variable, GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable, PPTimeSeriesVariable, PostProcVariable
     from .DataObjects import GridFunc, PPGridFunc, TimeSeries, PPTimeSeries
+    from numpy.typing import NDArray
 
 
 class PlotName():

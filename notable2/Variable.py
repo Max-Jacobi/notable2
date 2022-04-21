@@ -17,7 +17,6 @@ from functools import reduce
 import re
 import json
 import numpy as np
-from numpy.typing import NDArray
 
 from .RCParams import rcParams
 from .DataObjects import GridFunc, TimeSeries, PPGridFunc, PPTimeSeries, GWData
@@ -25,6 +24,7 @@ from .Utils import PlotName, Units, VariableError, BackupException, IterationErr
 
 if TYPE_CHECKING:
     from .Utils import Simulation
+    from numpy.typing import NDArray
 
 
 class Variable(ABC):
@@ -109,11 +109,11 @@ class GridFuncBaseVariable(Variable, ABC):
         """Returns Array of available iterations"""
         ...
 
-    def get_it(self, time: float, region: str, **kwargs):
+    def get_it(self, time: float, region: str, t_merg: bool = False, **kwargs):
         its = self.available_its(region, **kwargs)
 
         times = self.sim.get_time(its)
-        if self.sim.t_merg is not None:
+        if self.sim.t_merg is not None and t_merg:
             times -= self.sim.t_merg
         if time > (max_time := times.max()):
             time = max_time

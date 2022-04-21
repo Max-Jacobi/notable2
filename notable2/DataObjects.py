@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 from inspect import signature
 from collections.abc import Mapping
 from h5py import File as HDF5  # type: ignore
 import numpy as np
-from numpy.typing import NDArray
 from alpyne.uniform_interpolation import (linterp1D,  linterp2D,  # type: ignore
                                           linterp3D,  chinterp1D,  # type: ignore
                                           chinterp2D,  chinterp3D)  # type: ignore
@@ -12,6 +11,7 @@ from .Utils import Units, VariableError
 
 if TYPE_CHECKING:
     from .Utils import PPTimeSeriesVariable, PPGridFuncVariable, Variable
+    from numpy.typing import NDArray
 
 
 class GridFunc(Mapping):
@@ -26,6 +26,7 @@ class GridFunc(Mapping):
     time: float
     restart: int
     exclude_ghosts: int
+    mem_data: dict[int, NDArray[np.float_]]
 
     def __init__(self,
                  var: "Variable",
@@ -42,8 +43,13 @@ class GridFunc(Mapping):
         self.dim = len(region)
         self.time = self.var.sim.get_time(it=it)
         self.restart = self.var.sim.get_restart(it=it)
+        self.mem_load = False
+        self.mem_data = {}
 
     def __getitem__(self, rl):
+        if rl in self.mem_data:
+            return self.mem_data[rl]
+
         try:
             data = self.var.sim.data_handler.get_grid_func(self.var.key, rl, self.it, self.region)
         except VariableError:
@@ -51,12 +57,15 @@ class GridFunc(Mapping):
                 return self.__getitem__(rl-1)
             else:
                 raise
+
         if self.exclude_ghosts != 0:
             data = data[self.exclude_ghosts:-self.exclude_ghosts]
             if self.dim > 1:
                 data = data[:, self.exclude_ghosts:-self.exclude_ghosts]
             elif self.dim > 2:
                 data = data[:, :, self.exclude_ghosts:-self.exclude_ghosts]
+        if self.mem_load:
+            self.mem_data[rl] = data
         return data
 
     def __call__(self, kind: str = 'linear',
@@ -88,7 +97,6 @@ class GridFunc(Mapping):
 
         for rl in self:
             coords_level = self.coords[rl]
-            dat = self[rl]
             dx = np.array([cc[1]-cc[0] for cc in coords_level.values()])
             ih = 1/dx
             orig = np.array([cc[0] for cc in coords_level.values()])
@@ -98,8 +106,10 @@ class GridFunc(Mapping):
                 cc = int_coords[ax]
                 mask = mask & ((cl[loff] <= cc) & (cl[roff] > cc))
 
+            if not np.any(mask):
+                continue
             interp, = interpolate(*[int_coords[ax][mask] for ax in coords_level],
-                                  orig, ih, np.array([dat]))
+                                  orig, ih, np.array([self[rl]]))
 
             result[mask] = interp
             assert not np.any(interp == 666.), (f"interpolation error on rl {rl}\n"
@@ -145,6 +155,9 @@ class PPGridFunc(GridFunc):
 
     def __getitem__(self, rl):
 
+        if rl in self.mem_data:
+            return self.mem_data[rl]
+
         # checked for saved version
         if self.var.save:
             with HDF5(self.var.sim.pp_hdf5_path, 'r') as hdf5:
@@ -155,6 +168,8 @@ class PPGridFunc(GridFunc):
                 dset_path = f'{key}/{self.region}/{self.it:08d}/{rl}'
                 if dset_path in hdf5:
                     data = hdf5[dset_path][...]
+                    if self.mem_load:
+                        self.mem_data[rl] = data
                     return data
 
         # get dependencies
@@ -174,6 +189,9 @@ class PPGridFunc(GridFunc):
         if self.var.save:
             with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
                 hdf5.create_dataset(dset_path, data=data)
+
+        if self.mem_load:
+            self.mem_data[rl] = data
 
         return data
 

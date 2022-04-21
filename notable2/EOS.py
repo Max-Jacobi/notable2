@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 from functools import reduce
 import numpy as np
-from numpy.typing import NDArray
 from h5py import File  # type: ignore
 import alpyne.uniform_interpolation as ui  # type: ignore
 
 from .Utils import RUnits
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 class EOS(ABC):

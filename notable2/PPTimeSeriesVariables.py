@@ -869,6 +869,7 @@ pp_variables = {
     'h-abs': dict(
         dependencies=('h+', 'hx'),
         func=lambda hp, hx, *_, **kw: np.abs(hp-1j*hx),
+        save=False,
         plot_name_kwargs=dict(
             name="$|h^{ll mm}|$",
             format_opt=dict(
@@ -878,6 +879,4 @@ pp_variables = {
         ),
         PPkeys=dict(ll=2, mm=2, power=1, n_points=3000, u_junk=200.)
     ),
-
-
 }

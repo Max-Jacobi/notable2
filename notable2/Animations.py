@@ -4,7 +4,6 @@ from inspect import signature
 from typing import Iterable, Callable, Optional, Union, TYPE_CHECKING, Any
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
-from numpy.typing import NDArray
 from matplotlib.animation import FuncAnimation  # type: ignore
 
 from .Utils import RLArgument, Units, func_dict, Plot2D
@@ -13,6 +12,7 @@ from .Variable import Variable
 
 if TYPE_CHECKING:
     from .Utils import Simulation
+    from numpy.typing import NDArray
 
 
 class AniFunc(ABC):
@@ -301,3 +301,17 @@ class TSLineAniFunc(AniFunc):
         if not self.code_units:
             time *= Units['Time']
         self.im.set_xdata(time)
+
+
+class AnyAniFunc(AniFunc):
+    def __init__(self, ani_func):
+        self.ani_func = ani_func
+
+    def get_times(self, *_, **kw):
+        return np.array([], dtype=float)
+
+    def init(self):
+        ...
+
+    def __call__(self, time: np.float_):
+        self.ani_func(time)

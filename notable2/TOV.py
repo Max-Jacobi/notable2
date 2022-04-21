@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING, Optional
 import numpy as np
-from numpy.typing import NDArray
 from scipy.interpolate import interp1d
 from scipy.optimize import toms748
 from scipy.integrate import solve_ivp
@@ -9,6 +8,7 @@ from .Utils import RUnits
 
 if TYPE_CHECKING:
     from .EOS import TabulatedEOS
+    from numpy.typing import NDArray
 
 
 class TOV:

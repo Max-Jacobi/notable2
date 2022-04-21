@@ -87,7 +87,7 @@ pp_variables = {
         kwargs=dict(
             cmap='seismic',
             symetric_around=0,
-        )
+        ),
     ),
     "V^y": dict(
         dependencies=('vel^y', 'beta^y', 'alpha'),
@@ -99,7 +99,7 @@ pp_variables = {
         kwargs=dict(
             cmap='seismic',
             symetric_around=0,
-        )
+        ),
     ),
     "V^z": dict(
         dependencies=('vel^z', 'beta^z', 'alpha'),
@@ -111,7 +111,7 @@ pp_variables = {
         kwargs=dict(
             cmap='seismic',
             symetric_around=0,
-        )
+        ),
     ),
     "V^r": dict(
         dependencies=('V^x', 'V^y', 'V^z',
@@ -125,7 +125,7 @@ pp_variables = {
         kwargs=dict(
             cmap='seismic',
             symetric_around=0,
-        )
+        ),
     ),
     "ejb-flow": dict(
         dependencies=('V^r', 'dens', 'h', 'u_t'),

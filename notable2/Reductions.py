@@ -1,6 +1,5 @@
 import numpy as np
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
-from numpy.typing import NDArray
 from scipy.integrate import simps  # type: ignore
 
 from .RCParams import rcParams
@@ -11,6 +10,7 @@ if TYPE_CHECKING:
         GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable,
         PPTimeSeriesVariable, Simulation, PostProcVariable
     )
+    from numpy.typing import NDArray
 
 
 def integral(dependencies: Sequence[Union["GridFuncVariable",

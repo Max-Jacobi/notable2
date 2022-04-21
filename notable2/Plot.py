@@ -2,7 +2,6 @@ from inspect import signature
 from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING
 from collections.abc import Iterable
 import numpy as np
-from numpy.typing import NDArray
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.animation import FuncAnimation  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -14,6 +13,7 @@ from .Utils import Units, func_dict, Plot2D, IterationError, BackupException, Va
 from .Variable import PostProcVariable, PPTimeSeriesVariable
 if TYPE_CHECKING:
     from .Utils import Simulation, RLArgument
+    from numpy.typing import NDArray
 
 
 def _handle_kwargs(var_kwargs: dict[str, Any],

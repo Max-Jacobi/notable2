@@ -12,11 +12,11 @@ from pickle import loads
 from gzip import decompress
 from h5py import File  # type: ignore
 import numpy as np
-from numpy.typing import NDArray
 
 from .Utils import VariableError
 if TYPE_CHECKING:
     from .Utils import Simulation
+    from numpy.typing import NDArray
 
 
 class DataHandler(ABC):

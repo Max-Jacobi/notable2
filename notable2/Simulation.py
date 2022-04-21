@@ -1,10 +1,9 @@
 import os
 import re
 from os.path import basename, isfile
-from typing import Optional, Type, Callable, overload, Any
+from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING
 from collections.abc import Iterable
 import numpy as np
-from numpy.typing import NDArray
 from scipy.signal import find_peaks  # type: ignore
 from scipy.interpolate import interp2d  # type: ignore
 from scipy.optimize import minimize  # type: ignore
@@ -20,6 +19,9 @@ from .Plot import plotGD, plotTS, animateGD, plotHist
 from .Animations import GDAniFunc as GDAF
 from .Animations import TSLineAniFunc as TSAF
 from .Utils import IterationError, VariableError, BackupException, RLArgument
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 class Simulation():
@@ -146,7 +148,7 @@ class Simulation():
             return self._times[self._its.searchsorted(it)]
         if it not in self._its:
             raise IterationError(f"Iteration {it} not all in {self.sim_name}")
-        return self._times[np.argwhere(self._its == it)][0][0]
+        return self._times[self._its == it][0]
 
     @overload
     def get_restart(self, it: int) -> int:
