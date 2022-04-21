@@ -1,3 +1,4 @@
+import os
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Dict
 from inspect import signature
 from collections.abc import Mapping
@@ -160,17 +161,18 @@ class PPGridFunc(GridFunc):
 
         # checked for saved version
         if self.var.save:
-            with HDF5(self.var.sim.pp_hdf5_path, 'r') as hdf5:
-                key = self.var.key
-                for kk, item in self.kwargs.items():
-                    if kk in self.var.PPkeys:
-                        key += f":{kk}={item}"
-                dset_path = f'{key}/{self.region}/{self.it:08d}/{rl}'
-                if dset_path in hdf5:
-                    data = hdf5[dset_path][...]
-                    if self.mem_load:
-                        self.mem_data[rl] = data
-                    return data
+            key = self.var.key
+            for kk, item in self.kwargs.items():
+                if kk in self.var.PPkeys:
+                    key += f":{kk}={item}"
+            dset_path = f'{self.region}/{self.it:08d}/{rl}'
+            if os.path.isfile(f'{self.var.sim.pp_hdf5_path}/{key}.h5'):
+                with HDF5(f'{self.var.sim.pp_hdf5_path}/{key}.h5', 'r') as hdf5:
+                    if dset_path in hdf5:
+                        data = hdf5[dset_path][...]
+                        if self.mem_load:
+                            self.mem_data[rl] = data
+                        return data
 
         # get dependencies
         dep_data = [dep.get_data(region=self.region,
@@ -187,7 +189,7 @@ class PPGridFunc(GridFunc):
         data = self.var.func(*dep_data, **self.coords[rl], **self.kwargs)
 
         if self.var.save:
-            with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
+            with HDF5(f'{self.var.sim.pp_hdf5_path}/{key}.h5', 'a') as hdf5:
                 hdf5.create_dataset(dset_path, data=data)
 
         if self.mem_load:
@@ -249,20 +251,21 @@ class PPTimeSeries(TimeSeries):
             for kk, item in self.kwargs.items():
                 if kk in self.var.PPkeys:
                     key += f":{kk}={item}"
-            with HDF5(self.var.sim.pp_hdf5_path, 'r') as hdf5:
-                if key in hdf5:
-                    if 'its' not in hdf5[key].attrs:
-                        print(self.var.sim)
-                    old_its = np.intersect1d(its, hdf5[key].attrs['its'])
-                    new_its = np.setdiff1d(its, old_its)
-                    if len(new_its) == 0:
-                        self.its = its
-                        inds = np.searchsorted(hdf5[key].attrs['its'], its)
-                        self.data = hdf5[key][inds]
-                        self.times = hdf5[key].attrs['times'][inds]
-                        self.restarts = hdf5[key].attrs['restarts'][inds]
-                        return
-                    its = new_its
+            if os.path.isfile(f'{self.var.sim.pp_hdf5_path}/time_series.h5'):
+                with HDF5(f'{self.var.sim.pp_hdf5_path}/time_series.h5', 'r') as hdf5:
+                    if key in hdf5:
+                        if 'its' not in hdf5[key].attrs:
+                            print(self.var.sim)
+                        old_its = np.intersect1d(its, hdf5[key].attrs['its'])
+                        new_its = np.setdiff1d(its, old_its)
+                        if len(new_its) == 0:
+                            self.its = its
+                            inds = np.searchsorted(hdf5[key].attrs['its'], its)
+                            self.data = hdf5[key][inds]
+                            self.times = hdf5[key].attrs['times'][inds]
+                            self.restarts = hdf5[key].attrs['restarts'][inds]
+                            return
+                        its = new_its
 
         if self.var.reduction is not None:
             data = self.var.reduction(dependencies=self.var.dependencies,
@@ -285,7 +288,7 @@ class PPTimeSeries(TimeSeries):
             restarts = dep_data[0].restarts
             data = self.var.func(*[dd.data for dd in dep_data], times, **self.kwargs)
 
-        with HDF5(self.var.sim.pp_hdf5_path, 'a') as hdf5:
+        with HDF5(f'{self.var.sim.pp_hdf5_path}/time_series.h5', 'a') as hdf5:
             if self.var.save and key in hdf5:
                 self.its = np.sort(np.concatenate((its, old_its)))
                 self.data = np.zeros_like(self.its, dtype=float)

@@ -232,7 +232,7 @@ class tracer():
         for kk in self.trace:
             fmt += "%15.7e "
             header += f"{kk:>15s} "
-        np.savetxt(f"{path}/tracer_{self.num:07d}.dat", out.T[::-1], fmt=fmt, header=header)
+        np.savetxt(f"{path}/tracer_{self.num:07d}.dat", out.T, fmt=fmt, header=header)
 
 
 def load_tracer(file_path):

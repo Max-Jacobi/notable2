@@ -145,8 +145,8 @@ class NativeVariable(Variable):
                         key_dict = dic
                         for ii, val in enumerate(match.groups()):
                             if 'format_opt' not in key_dict:
-                                key_Dict['format_opt'] = {}
-                            key_Dict['format_opt'][f'key{ii}'] = val
+                                key_dict['format_opt'] = {}
+                            key_dict['format_opt'][f'key{ii}'] = val
                         if self.sim.verbose > 1:
                             print(f"{self.sim.sim_name}: Using regex key {kk} for {key}")
                         break
@@ -262,7 +262,7 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
         it_dict = self.sim.its_lookup
 
-        if (self.key in it_dict) and (region in it_Dict[self.key]):
+        if (self.key in it_dict) and (region in it_dict[self.key]):
             return GridFunc(var=self,
                             region=region,
                             it=it,

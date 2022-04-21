@@ -156,7 +156,7 @@ def plotGD(sim: "Simulation",
         data = {rl: grid_func[rl] for rl in actual_rls}
 
     if isinstance(func, str):
-        func_str, func = func_Dict[func]
+        func_str, func = func_dict[func]
     else:
         func_str = "{}"
 
@@ -410,7 +410,7 @@ def plotTS(sim: "Simulation",
     data = data[mask]
 
     if isinstance(func, str):
-        func_str, func = func_Dict[func]
+        func_str, func = func_dict[func]
     else:
         func_str = "{}"
 
@@ -551,11 +551,11 @@ def plotHist(sim: "Simulation",
     wdata = {rl: wgrid_func[rl] for rl in actual_rls}
 
     if isinstance(xfunc, str):
-        xfunc_str, xfunc = func_Dict[xfunc]
+        xfunc_str, xfunc = func_dict[xfunc]
     else:
         xfunc_str = "{}"
     if isinstance(yfunc, str):
-        yfunc_str, yfunc = func_Dict[yfunc]
+        yfunc_str, yfunc = func_dict[yfunc]
     else:
         yfunc_str = "{}"
 

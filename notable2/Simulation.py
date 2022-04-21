@@ -89,10 +89,9 @@ class Simulation():
         for ufile in rcParams.PPGW_files:
             self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
 
-        self.pp_hdf5_path = f"{self.sim_path}/{self.sim_name}_PP.hdf5"
-        if not os.path.isfile(self.pp_hdf5_path):
-            with HDF5(self.pp_hdf5_path, mode='a') as hf:
-                pass
+        self.pp_hdf5_path = f"{self.sim_path}/PPVars"
+        if not os.path.isdir(self.pp_hdf5_path):
+            os.mkdir(self.pp_hdf5_path)
 
         self.ADM_M, self.ADM_J = self.get_ADM_MJ() if not self.is_cartoon else (None, None)
         self.t_merg = self.get_t_merg() if not self.is_cartoon else None
@@ -267,20 +266,20 @@ class Simulation():
             ret[rl] = {region: ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)}
         return ret
 
-    def delete_saved_pp_variable(self, key: str):
-        with HDF5(self.pp_hdf5_path, 'a') as hf:
-            to_delete = [kk for kk in hf if key in kk]
-            for kk in to_delete:
-                del hf[kk]
-                hf.flush()
+    # def delete_saved_pp_variable(self, key: str):
+    #     with HDF5(self.pp_hdf5_path, 'a') as hf:
+    #         to_delete = [kk for kk in hf if key in kk]
+    #         for kk in to_delete:
+    #             del hf[kk]
+    #             hf.flush()
 
-    def rename_saved_pp_variable(self, key: str,  new_key: str):
-        with HDF5(self.pp_hdf5_path, 'a') as hf:
-            to_rename = {kk: kk.replace(key, new_key) for kk in hf if key in kk}
-            for kk, nk in to_rename.items():
-                hf[nk] = hf[kk][:]
-                del hf[kk]
-            hf.flush()
+    # def rename_saved_pp_variable(self, key: str,  new_key: str):
+    #     with HDF5(self.pp_hdf5_path, 'a') as hf:
+    #         to_rename = {kk: kk.replace(key, new_key) for kk in hf if key in kk}
+    #         for kk, nk in to_rename.items():
+    #             hf[nk] = hf[kk][:]
+    #             del hf[kk]
+    #         hf.flush()
 
     def GDAniFunc(self, *args, **kwargs):
         return GDAF(self, *args, **kwargs)

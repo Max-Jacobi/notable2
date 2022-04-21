@@ -118,13 +118,13 @@ class Plot2D(Mapping):
         self.rls = np.sort(list(self._dict.keys()))
         self.norm = norm
         rl = self.rls.min()
-        self.first = self._Dict[rl]
+        self.first = self._dict[rl]
         self.cmap = self.first.get_cmap()
         self.axes = self.first.axes
         self.kwargs = kwargs
 
     def __getitem__(self, rl):
-        return self._Dict[rl]
+        return self._dict[rl]
 
     def __iter__(self):
         for rl in self.rls:

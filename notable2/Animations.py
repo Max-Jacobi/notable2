@@ -150,7 +150,7 @@ class GDAniFunc(AniFunc):
 
         func_str: Optional[str]
         if isinstance(func, str):
-            func_str, self.func = func_Dict[func]
+            func_str, self.func = func_dict[func]
         else:
             self.func = func
             func_str = None
