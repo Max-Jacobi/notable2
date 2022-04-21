@@ -77,7 +77,7 @@ class TracerBunch():
                 for kk in self.dats[it]:
                     self.dats[it][kk].mem_load = True
                     cc = self.dats[it][kk].coords[0]
-                    ss = len(cc['x'])*len(cc['y'])*len(cc['z'])*8*2
+                    ss = len(cc['x'])*len(cc['y'])*len(cc['z'])*8
                     cur_size += ss
             if cur_size > self.chunksize:
                 break
