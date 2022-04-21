@@ -20,19 +20,19 @@ class GridFunc(Mapping):
     """
 
     var: "Variable"
-    coords: dict[int, dict[str, NDArray[np.float_]]]
+    coords: dict[int, dict[str, 'NDArray[np.float_]']]
     region: str
     it: int
     time: float
     restart: int
     exclude_ghosts: int
-    mem_data: dict[int, NDArray[np.float_]]
+    mem_data: dict[int, 'NDArray[np.float_]']
 
     def __init__(self,
                  var: "Variable",
                  region: str,
                  it: int,
-                 coords: dict[int, dict[str, NDArray[np.float_]]],
+                 coords: dict[int, dict[str, 'NDArray[np.float_]']],
                  exclude_ghosts: int = 0):
         self.var = var
         self.region = region
@@ -69,8 +69,8 @@ class GridFunc(Mapping):
         return data
 
     def __call__(self, kind: str = 'linear',
-                 **int_coords: NDArray[np.float_]
-                 ) -> NDArray[np.float_]:
+                 **int_coords: 'NDArray[np.float_]'
+                 ) -> 'NDArray[np.float_]':
 
         if len(int_coords) == 0:
             raise ValueError("No interpolation points give")
@@ -146,7 +146,7 @@ class PPGridFunc(GridFunc):
                  var: "PPGridFuncVariable",
                  region: str,
                  it: int,
-                 coords: dict[int, dict[str, NDArray[np.float_]]],
+                 coords: dict[int, dict[str, 'NDArray[np.float_]']],
                  exclude_ghosts: int = 0,
                  **kwargs):
         super().__init__(var=var, region=region, it=it, coords=coords,
@@ -200,14 +200,14 @@ class TimeSeries():
     """Documentation for TimeSeries """
 
     var: "Variable"
-    its: NDArray[np.int_]
-    data: NDArray[np.float_]
-    times: NDArray[np.float_]
-    restarts: NDArray[np.int_]
+    its: 'NDArray[np.int_]'
+    data: 'NDArray[np.float_]'
+    times: 'NDArray[np.float_]'
+    restarts: 'NDArray[np.int_]'
 
     def __init__(self,
                  var: "Variable",
-                 its: Optional[NDArray[np.int_]] = None,
+                 its: Optional['NDArray[np.int_]'] = None,
                  **kwargs):
         self.var = var
         self.its, self.times, self.data, self.restarts = self.var.sim.data_handler.get_time_series(self.var.key)
@@ -220,7 +220,7 @@ class TimeSeries():
             self.restarts = self.restarts[inds]
 
     @property
-    def scaled_data(self) -> "NDArray[np.float_]":
+    def scaled_data(self) -> "'NDArray[np.float_]'":
         return self.data * self.var.scale_factor
 
     def __len__(self):
@@ -238,7 +238,7 @@ class PPTimeSeries(TimeSeries):
 
     def __init__(self,
                  var: "PPTimeSeriesVariable",
-                 its: NDArray[np.int_],
+                 its: 'NDArray[np.int_]',
                  **kwargs):
         self.var = var
         self.kwargs = kwargs
@@ -324,7 +324,7 @@ class GWData(TimeSeries):
 
     def __init__(self,
                  var: "PPTimeSeriesVariable",
-                 its: NDArray[np.int_],
+                 its: 'NDArray[np.int_]',
                  **kwargs):
         self.var = var
         self.kwargs = kwargs

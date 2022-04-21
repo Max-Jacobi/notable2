@@ -1,4 +1,4 @@
-from typing import Union, Optional, TYPE_CHECKING, Callable, Any
+from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List
 from collections.abc import Iterable, Mapping
 import numpy as np
 from matplotlib.colors import Normalize  # type: ignore
@@ -10,7 +10,8 @@ RLArgument = Optional[Union[int, Iterable]]
 
 if TYPE_CHECKING:
     from .Simulation import Simulation
-    from .Variable import Variable, GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable, PPTimeSeriesVariable, PostProcVariable
+    from .Variable import (Variable, GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable,
+                           PPTimeSeriesVariable, PostProcVariable)
     from .DataObjects import GridFunc, PPGridFunc, TimeSeries, PPTimeSeries
     from numpy.typing import NDArray
 
@@ -19,7 +20,7 @@ class PlotName():
     """String wrapper for plot labels"""
     unit: str
     code_unit: str
-    format_options: list[str]
+    format_options: List[str]
 
     def __init__(self,
                  name: str,
@@ -80,9 +81,9 @@ class VariableError(Exception):
 
 
 class BackupException(Exception):
-    backups: list["Variable"]
+    backups: List["Variable"]
 
-    def __init__(self, backups: list["Variable"]):
+    def __init__(self, backups: List["Variable"]):
         super().__init__()
         self.backups = backups
 
@@ -102,7 +103,7 @@ func_dict: dict[str, tuple[str, Callable]] = dict(
 
 class Plot2D(Mapping):
 
-    rls: NDArray[np.int_]
+    rls: 'NDArray[np.int_]'
     norm: Normalize
     first: Union[AxesImage, QuadContourSet]
     cmap: str
@@ -133,8 +134,8 @@ class Plot2D(Mapping):
         return len(self.rls)
 
     def set_data(self,
-                 coords: dict[int, dict[str, NDArray[np.float_]]],
-                 data: dict[int, NDArray[np.float_]],
+                 coords: dict[int, dict[str, 'NDArray[np.float_]']],
+                 data: dict[int, 'NDArray[np.float_]'],
                  ):
         for rl in self.rls[::-1]:
             if rl not in coords:

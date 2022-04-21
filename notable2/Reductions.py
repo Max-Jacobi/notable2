@@ -18,10 +18,10 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
                                           "TimeSeriesVariable",
                                           "PPTimeSeriesVariable"]],
              func: Callable,
-             its: NDArray[np.int_],
+             its: 'NDArray[np.int_]',
              var: "PostProcVariable",
-             rls: Optional[NDArray[np.int_]] = None,
-             **kwargs) -> NDArray[np.float_]:
+             rls: Optional['NDArray[np.int_]'] = None,
+             **kwargs) -> 'NDArray[np.float_]':
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 
@@ -65,10 +65,10 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
 
 def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PPGridFuncVariable"]],
                             func: Callable,
-                            its: NDArray[np.int_],
+                            its: 'NDArray[np.int_]',
                             var: "PostProcVariable",
                             radius: float,
-                            **kwargs) -> NDArray[np.float_]:
+                            **kwargs) -> 'NDArray[np.float_]':
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 
@@ -111,10 +111,10 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
 
 def minimum(dependencies: Sequence[Union["GridFuncVariable",
                                          "PPGridFuncVariable"]],
-            its: NDArray[np.int_],
+            its: 'NDArray[np.int_]',
             var: "PostProcVariable",
-            rls: Optional[NDArray[np.int_]] = None,
-            **kwargs) -> NDArray[np.float_]:
+            rls: Optional['NDArray[np.int_]'] = None,
+            **kwargs) -> 'NDArray[np.float_]':
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 
@@ -143,10 +143,10 @@ def minimum(dependencies: Sequence[Union["GridFuncVariable",
 
 def maximum(dependencies: Sequence[Union["GridFuncVariable",
                                          "PPGridFuncVariable"]],
-            its: NDArray[np.int_],
+            its: 'NDArray[np.int_]',
             var: "PostProcVariable",
-            rls: Optional[NDArray[np.int_]] = None,
-            **kwargs) -> NDArray[np.float_]:
+            rls: Optional['NDArray[np.int_]'] = None,
+            **kwargs) -> 'NDArray[np.float_]':
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 
@@ -178,11 +178,11 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
 
 def mean(dependencies: Sequence[Union["GridFuncVariable",
                                       "PPGridFuncVariable"]],
-         its: NDArray[np.int_],
+         its: 'NDArray[np.int_]',
          var: "PostProcVariable",
          func: Callable,
-         rls: Optional[NDArray[np.int_]] = None,
-         **kwargs) -> NDArray[np.float_]:
+         rls: Optional['NDArray[np.int_]'] = None,
+         **kwargs) -> 'NDArray[np.float_]':
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 

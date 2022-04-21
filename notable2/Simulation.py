@@ -32,7 +32,7 @@ class Simulation():
     t_merg: Optional[float]
     ADM_M: Optional[float]
     ADM_J: Optional[float]
-    rls: dict[int, NDArray[np.int_]]
+    rls: dict[int, 'NDArray[np.int_]']
     finest_rl: dict[int, int]
     data_handler: DataHandler
     eos: EOS
@@ -103,7 +103,7 @@ class Simulation():
     def __str__(self):
         return self.sim_name
 
-    def expand_rl(self, rls: RLArgument, it: int) -> NDArray[np.int_]:
+    def expand_rl(self, rls: RLArgument, it: int) -> 'NDArray[np.int_]':
         """Expand the "rl" argument to a valid array of refinementlevels"""
         sim_rls = np.array(list(self._structure[it].keys()))
         if rls is None:
@@ -135,7 +135,7 @@ class Simulation():
         ...
 
     @overload
-    def get_time(self, it: NDArray[np.int_]) -> NDArray[np.float_]:
+    def get_time(self, it: 'NDArray[np.int_]') -> 'NDArray[np.float_]':
         ...
 
     def get_time(self, it):
@@ -155,7 +155,7 @@ class Simulation():
         ...
 
     @overload
-    def get_restart(self, it: NDArray[np.int_]) -> NDArray[np.int_]:
+    def get_restart(self, it: 'NDArray[np.int_]') -> 'NDArray[np.int_]':
         ...
 
     def get_restart(self, it):
@@ -174,7 +174,7 @@ class Simulation():
         ...
 
     @overload
-    def get_it(self, time: NDArray[np.float_]) -> NDArray[np.int_]:
+    def get_it(self, time: 'NDArray[np.float_]') -> 'NDArray[np.int_]':
         ...
 
     def get_it(self, time):
@@ -208,7 +208,7 @@ class Simulation():
             m = re.search(pattern, file.read())
         return float(m[1]), float(m[2])
 
-    def get_offset(self, it: int) -> NDArray[np.float_]:
+    def get_offset(self, it: int) -> 'NDArray[np.float_]':
         if self.is_cartoon:
             return np.array([0., 0.])
         frl = self.finest_rl[it]
@@ -246,10 +246,10 @@ class Simulation():
                    region: str,
                    it: int,
                    exclude_ghosts: int = 0
-                   ) -> dict[int, dict[str, NDArray[np.float_]]]:
+                   ) -> dict[int, dict[str, 'NDArray[np.float_]']]:
 
         if len(region) > 1:
-            ret: dict[int, dict[str, NDArray[np.float_]]] = {rl: {} for rl in self._structure[it].keys()}
+            ret: dict[int, dict[str, 'NDArray[np.float_]']] = {rl: {} for rl in self._structure[it].keys()}
             for rl in ret.keys():
                 if region not in self._structure[it][rl]:
                     for ax in region:

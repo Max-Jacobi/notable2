@@ -12,7 +12,8 @@ Variable objects Inheritance tree:
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, Optional, Union, Any, overload
+from typing import (TYPE_CHECKING, Callable, List,
+                    Optional, Union, Any, overload)
 from functools import reduce
 import re
 import json
@@ -35,7 +36,7 @@ class Variable(ABC):
     plot_name: PlotName
     kwargs: dict[str, Any]
     scale_factor: float
-    backups: list["Variable"]
+    backups: List["Variable"]
     get_data: Callable
     available_its: Callable
     get_it: Callable
@@ -60,18 +61,18 @@ class TimeSeriesBaseVariable(Variable, ABC):
         ...
 
     @overload
-    def get_data(self, it: Optional[NDArray[np.int_]], **kwargs) -> TimeSeries:
+    def get_data(self, it: Optional['NDArray[np.int_]'], **kwargs) -> TimeSeries:
         ...
 
     @abstractmethod
-    def get_data(self, it: Optional[Union[int, NDArray[np.int_]]], **kwargs):
+    def get_data(self, it: Optional[Union[int, 'NDArray[np.int_]']], **kwargs):
         """Returns TimeSeries DataObject.
         If it is an int the value at that iteration is returned instead.
         If it is an array only those iterations are returned"""
         ...
 
     @abstractmethod
-    def available_its(self, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> 'NDArray[np.int_]':
         """Returns Array of available iterations"""
         ...
 
@@ -105,7 +106,7 @@ class GridFuncBaseVariable(Variable, ABC):
         ...
 
     @abstractmethod
-    def available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, region: str, **kwargs) -> 'NDArray[np.int_]':
         """Returns Array of available iterations"""
         ...
 
@@ -128,7 +129,7 @@ class NativeVariable(Variable):
     """ABC for Native variables"""
     file_key: str
     file_name: str
-    alias: list[str]
+    alias: List[str]
 
     def __init__(self, key: str, sim: "Simulation", json_path: str):
         super().__init__(key, sim)
@@ -177,20 +178,20 @@ class NativeVariable(Variable):
 class PostProcVariable(Variable):
     """ABC for post processed Variables"""
 
-    dependencies: list[Variable]
-    PPkeys: Union[list[str], dict[str, Any]]
+    dependencies: List[Variable]
+    PPkeys: Union[List[str], dict[str, Any]]
 
     def __init__(self,
                  key: str,
                  sim: "Simulation",
-                 dependencies: list[str],
+                 dependencies: List[str],
                  func: Callable,
                  plot_name_kwargs: dict[str, Any],
-                 backups: Optional[list[str]] = None,
+                 backups: Optional[List[str]] = None,
                  scale_factor: float = 1,
                  save: bool = True,
                  kwargs: Optional[dict[str, Any]] = None,
-                 PPkeys: Optional[Union[list[str], dict[str, Any]]] = None,
+                 PPkeys: Optional[Union[List[str], dict[str, Any]]] = None,
                  ):
 
         super().__init__(key, sim)
@@ -218,7 +219,7 @@ class PostProcVariable(Variable):
                 raise BackupException(self.backups) from exc
             raise exc
 
-    def _available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
+    def _available_its(self, region: str, **kwargs) -> 'NDArray[np.int_]':
         its = []
         for dep in self.dependencies:
             try:
@@ -291,7 +292,7 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
                 continue
         raise IterationError(f"Iteration {it} not found for {self}")
 
-    def available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, region: str, **kwargs) -> 'NDArray[np.int_]':
         if (self.key in self.sim.its_lookup) and (region in self.sim.its_lookup[self.key]):
             return self.sim.its_lookup[self.key][region].astype(int)
         for ali in self.alias:
@@ -362,7 +363,7 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                 except (VariableError, IterationError):
                     continue
 
-    def available_its(self, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> 'NDArray[np.int_]':
         try:
             return self.sim.data_handler.get_time_series(self.key)[0]
         except VariableError as ex:
@@ -404,7 +405,7 @@ class PPGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
                           exclude_ghosts=exclude_ghosts,
                           **kwargs)
 
-    def available_its(self, region: str, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, region: str, **kwargs) -> 'NDArray[np.int_]':
         return super()._available_its(region, **kwargs)
 
 
@@ -430,7 +431,7 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
             return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return PPTimeSeries(self, its=it, **kwargs)
 
-    def available_its(self, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> 'NDArray[np.int_]':
         kwargs.setdefault('region', 'xz' if self.sim.is_cartoon else 'xyz')
         return super()._available_its(**kwargs)
 
@@ -451,7 +452,7 @@ class GravitationalWaveVariable(PostProcVariable, TimeSeriesBaseVariable):
             return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
         return GWData(self, its=it, **kwargs)
 
-    def available_its(self, **kwargs) -> NDArray[np.int_]:
+    def available_its(self, **kwargs) -> 'NDArray[np.int_]':
         if "n_points" in kwargs:
             return np.arange(kwargs["n_points"])
         return np.arange(3000)

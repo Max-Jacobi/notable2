@@ -42,12 +42,12 @@ class DataHandler(ABC):
         ...
 
     @abstractmethod
-    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> 'NDArray[np.float_]':
         """Gets the GridFunc from simulation data"""
         ...
 
     @abstractmethod
-    def get_time_series(self, key: str) -> NDArray[np.float_]:
+    def get_time_series(self, key: str) -> 'NDArray[np.float_]':
         """Gets time series data from simulation data
         format: its, times, data, restarts"""
         ...
@@ -98,7 +98,7 @@ class PackETHandler(DataHandler):
 
         return itr, sdict, itdict
 
-    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> 'NDArray[np.float_]':
         dset_path = str(f'{it:08d}/{rl:02d}/{region}/{key}')
         dat = self.data[dset_path][()]
         dat[dat == 666] = np.nan
@@ -141,7 +141,7 @@ class PackET2Handler(DataHandler):
 
         return itr, sdict, itdict
 
-    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> NDArray[np.float_]:
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> 'NDArray[np.float_]':
         dset_path = f'{region}/{it:08d}/{rl:02d}'
         try:
             with File(f'{self.data_dir}/{key}.h5', 'r') as hf:

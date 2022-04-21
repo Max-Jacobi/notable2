@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING, List
 from functools import reduce
 import numpy as np
 from h5py import File  # type: ignore
@@ -16,7 +16,7 @@ class EOS(ABC):
 
     @abstractmethod
     def get_caller(self,
-                   keys: list[str],
+                   keys: List[str],
                    func: Callable = lambda *args: args[0]
                    ) -> Callable:
         """
@@ -28,7 +28,7 @@ class EOS(ABC):
 
     @abstractmethod
     def get_cold_caller(self,
-                        keys: list[str],
+                        keys: List[str],
                         func: Callable = lambda *args: args[0]
                         ) -> Callable:
         """
@@ -43,11 +43,11 @@ class TabulatedEOS(EOS):
     """Realistic Tabluated EOS """
     hydro_path: str
     weak_path: str
-    data: dict[str, NDArray[np.float_]]
+    data: dict[str, 'NDArray[np.float_]']
 
     def __init__(self, path: str):
-        self._table: Optional[list[NDArray[np.float_]]] = None
-        self._table_cold: Optional[list[NDArray[np.float_]]] = None
+        self._table: Optional[List['NDArray[np.float_]']] = None
+        self._table_cold: Optional[List['NDArray[np.float_]']] = None
         self._ye_r: Optional[tuple[np.float_]] = None
         self._temp_r: Optional[tuple[np.float_]] = None
         self._rho_r: Optional[tuple[np.float_]] = None
@@ -83,7 +83,7 @@ class TabulatedEOS(EOS):
         return self._rho_r
 
     @property
-    def table(self) -> list[NDArray[np.float_]]:
+    def table(self) -> List['NDArray[np.float_]']:
         if self._table is None:
             with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
@@ -97,7 +97,7 @@ class TabulatedEOS(EOS):
         return self._table
 
     @property
-    def table_cold(self) -> list[NDArray[np.float_]]:
+    def table_cold(self) -> List['NDArray[np.float_]']:
         if self._table_cold is None:
             with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
@@ -113,12 +113,12 @@ class TabulatedEOS(EOS):
         return self.data[key]
 
     def get_min_caller(self,
-                       keys: list[str],
+                       keys: List[str],
                        func: Callable = lambda *args: args[0]
                        ) -> Callable:
-        def eos_caller_min(ye: NDArray[np.float_],
-                           rho: NDArray[np.float_],
-                           *_, **kw) -> NDArray[np.float_]:
+        def eos_caller_min(ye: 'NDArray[np.float_]',
+                           rho: 'NDArray[np.float_]',
+                           *_, **kw) -> 'NDArray[np.float_]':
 
             nonlocal keys
             nonlocal func
@@ -148,12 +148,12 @@ class TabulatedEOS(EOS):
         return eos_caller_min
 
     def get_cold_caller(self,
-                        keys: list[str],
+                        keys: List[str],
                         func: Callable = lambda *args: args[0]
                         ) -> Callable:
-        def eos_caller_cold(ye: NDArray[np.float_],
-                            rho: NDArray[np.float_],
-                            *_, **kw) -> NDArray[np.float_]:
+        def eos_caller_cold(ye: 'NDArray[np.float_]',
+                            rho: 'NDArray[np.float_]',
+                            *_, **kw) -> 'NDArray[np.float_]':
 
             nonlocal keys
             nonlocal func
@@ -183,13 +183,13 @@ class TabulatedEOS(EOS):
         return eos_caller_cold
 
     def get_caller(self,
-                   keys: list[str],
+                   keys: List[str],
                    func: Callable = lambda *args: args[0]
                    ) -> Callable:
-        def eos_caller(ye: NDArray[np.float_],
-                       temp: NDArray[np.float_],
-                       rho: NDArray[np.float_],
-                       *_, **kw) -> NDArray[np.float_]:
+        def eos_caller(ye: 'NDArray[np.float_]',
+                       temp: 'NDArray[np.float_]',
+                       rho: 'NDArray[np.float_]',
+                       *_, **kw) -> 'NDArray[np.float_]':
 
             nonlocal keys
             nonlocal func
@@ -218,7 +218,7 @@ class TabulatedEOS(EOS):
 
         return eos_caller
 
-    def _get_keys(self, keys: list[str]):
+    def _get_keys(self, keys: List[str]):
         if self.hydro_path is None:
             raise OSError("Path to EOS file not given. Run Simulation.eos.set_path('path/to/eos/'")
 

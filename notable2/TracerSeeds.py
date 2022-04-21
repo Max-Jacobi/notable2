@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING, List
 import numpy as np
 from scipy.optimize import bisect
 
@@ -133,7 +133,7 @@ class GridRefine:
 
     def __init__(self,
                  grid_shape: tuple[int, ...],
-                 densities: list[GridFunc],
+                 densities: List[GridFunc],
                  get_mass_func: Callable,
                  ):
         self.dens = densities

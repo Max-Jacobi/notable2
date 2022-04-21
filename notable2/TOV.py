@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 
 
 class TOV:
-    table: dict[str, NDArray[np.float_]]
-    pizza_table: dict[str, NDArray[np.float_]]
-    data: dict[str, NDArray[np.float_]]
+    table: dict[str, 'NDArray[np.float_]']
+    pizza_table: dict[str, 'NDArray[np.float_]']
+    data: dict[str, 'NDArray[np.float_]']
     prameters: dict[str, float]
 
     def __init__(self,

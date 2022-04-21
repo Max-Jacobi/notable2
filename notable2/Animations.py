@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import reduce
 from inspect import signature
-from typing import Iterable, Callable, Optional, Union, TYPE_CHECKING, Any
+from typing import Iterable, Callable, Optional, Union, TYPE_CHECKING, Any, List
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 from matplotlib.animation import FuncAnimation  # type: ignore
@@ -38,9 +38,9 @@ class AniFunc(ABC):
 class Animation:
 
     fig: plt.Figure
-    funcs: list[AniFunc]
+    funcs: List[AniFunc]
     init_func: Optional[Callable]
-    times: NDArray[np.float_]
+    times: 'NDArray[np.float_]'
     min_time: Optional[float]
     max_time: Optional[float]
     every: int
@@ -88,8 +88,8 @@ class GDAniFunc(AniFunc):
     sim: "Simulation"
     key: str
     var: Variable
-    its: NDArray[np.int_]
-    times: NDArray[np.float_]
+    its: 'NDArray[np.int_]'
+    times: 'NDArray[np.float_]'
     image: Union[Plot2D, plt.Line2D]
     # -----------Plot kwargs-------------------------------
     rls: "RLArgument"
