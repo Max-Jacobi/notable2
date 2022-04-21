@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Dict
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import toms748
@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 
 
 class TOV:
-    table: dict[str, 'NDArray[np.float_]']
-    pizza_table: dict[str, 'NDArray[np.float_]']
-    data: dict[str, 'NDArray[np.float_]']
-    prameters: dict[str, float]
+    table: Dict[str, 'NDArray[np.float_]']
+    pizza_table: Dict[str, 'NDArray[np.float_]']
+    data: Dict[str, 'NDArray[np.float_]']
+    prameters: Dict[str, float]
 
     def __init__(self,
                  eos: "TabulatedEOS",

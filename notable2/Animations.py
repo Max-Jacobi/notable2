@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from functools import reduce
 from inspect import signature
-from typing import Iterable, Callable, Optional, Union, TYPE_CHECKING, Any, List
+from typing import Iterable, Callable, Optional, Union, TYPE_CHECKING, Any, List, Dict
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 from matplotlib.animation import FuncAnimation  # type: ignore
@@ -103,11 +103,11 @@ class GDAniFunc(AniFunc):
     ylabel: Union[bool, str]
     # -----------Variable kwargs----------------------------
     func: Optional[Union[Callable, bool]] = None
-    slice_ax: Optional[dict[str, float]] = None
-    interp_ax: Optional[dict[str, float]] = None
+    slice_ax: Optional[Dict[str, float]] = None
+    interp_ax: Optional[Dict[str, float]] = None
     # -----------kwargs dicts----------------------------
-    kwargs: dict[str, Any]
-    PPkwargs: dict[str, Any]
+    kwargs: Dict[str, Any]
+    PPkwargs: Dict[str, Any]
 
     def __init__(self,
                  sim: "Simulation",
@@ -124,8 +124,8 @@ class GDAniFunc(AniFunc):
                  ylabel: Union[bool, str] = True,
                  # -----------Variable kwargs----------------------------
                  func: Optional[Union[Callable, str, bool]] = None,
-                 slice_ax: Optional[dict[str, float]] = None,
-                 interp_ax: Optional[dict[str, float]] = None,
+                 slice_ax: Optional[Dict[str, float]] = None,
+                 interp_ax: Optional[Dict[str, float]] = None,
                  # ------------------------------------------------------
                  **kwargs):
         self.sim = sim
@@ -150,7 +150,7 @@ class GDAniFunc(AniFunc):
 
         func_str: Optional[str]
         if isinstance(func, str):
-            func_str, self.func = func_dict[func]
+            func_str, self.func = func_Dict[func]
         else:
             self.func = func
             func_str = None

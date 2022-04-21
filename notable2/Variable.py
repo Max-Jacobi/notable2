@@ -12,7 +12,7 @@ Variable objects Inheritance tree:
 """
 
 from abc import ABC, abstractmethod
-from typing import (TYPE_CHECKING, Callable, List,
+from typing import (TYPE_CHECKING, Callable, List, Dict,
                     Optional, Union, Any, overload)
 from functools import reduce
 import re
@@ -34,7 +34,7 @@ class Variable(ABC):
     key: str
     vtype: str
     plot_name: PlotName
-    kwargs: dict[str, Any]
+    kwargs: Dict[str, Any]
     scale_factor: float
     backups: List["Variable"]
     get_data: Callable
@@ -145,8 +145,8 @@ class NativeVariable(Variable):
                         key_dict = dic
                         for ii, val in enumerate(match.groups()):
                             if 'format_opt' not in key_dict:
-                                key_dict['format_opt'] = {}
-                            key_dict['format_opt'][f'key{ii}'] = val
+                                key_Dict['format_opt'] = {}
+                            key_Dict['format_opt'][f'key{ii}'] = val
                         if self.sim.verbose > 1:
                             print(f"{self.sim.sim_name}: Using regex key {kk} for {key}")
                         break
@@ -179,19 +179,19 @@ class PostProcVariable(Variable):
     """ABC for post processed Variables"""
 
     dependencies: List[Variable]
-    PPkeys: Union[List[str], dict[str, Any]]
+    PPkeys: Union[List[str], Dict[str, Any]]
 
     def __init__(self,
                  key: str,
                  sim: "Simulation",
                  dependencies: List[str],
                  func: Callable,
-                 plot_name_kwargs: dict[str, Any],
+                 plot_name_kwargs: Dict[str, Any],
                  backups: Optional[List[str]] = None,
                  scale_factor: float = 1,
                  save: bool = True,
-                 kwargs: Optional[dict[str, Any]] = None,
-                 PPkeys: Optional[Union[List[str], dict[str, Any]]] = None,
+                 kwargs: Optional[Dict[str, Any]] = None,
+                 PPkeys: Optional[Union[List[str], Dict[str, Any]]] = None,
                  ):
 
         super().__init__(key, sim)
@@ -262,7 +262,7 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
         it_dict = self.sim.its_lookup
 
-        if (self.key in it_dict) and (region in it_dict[self.key]):
+        if (self.key in it_dict) and (region in it_Dict[self.key]):
             return GridFunc(var=self,
                             region=region,
                             it=it,

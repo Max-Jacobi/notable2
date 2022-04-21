@@ -7,7 +7,7 @@ For a different simulation data layout implement a new DataHandler.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict
 from pickle import loads
 from gzip import decompress
 from h5py import File  # type: ignore
@@ -74,18 +74,18 @@ class PackETHandler(DataHandler):
         for ii, it in enumerate(itr[0]):
             # set times and restarts arrays
             dic, itr[1][ii], itr[2][ii] = self.structure[it]
-            sdict[it] = {}
+            sDict[it] = {}
 
             # restructure dictionary formats
             for rl, dc in dic.items():
-                sdict[it][rl] = {}
-                for region, (keys, *(sdict[it][rl][region])) in dc.items():
+                sDict[it][rl] = {}
+                for region, (keys, *(sDict[it][rl][region])) in dc.items():
                     for key in keys:
                         if key not in itdict.keys():
-                            itdict[key] = {}
-                        if region not in itdict[key].keys():
-                            itdict[key][region] = []
-                        itdict[key][region].append(it)
+                            itDict[key] = {}
+                        if region not in itDict[key].keys():
+                            itDict[key][region] = []
+                        itDict[key][region].append(it)
 
         # convert available iterations to a numpy array
         for dic in itdict.values():
@@ -94,7 +94,7 @@ class PackETHandler(DataHandler):
 
         # Time series for itdict
         for key, data in self.data['time_series'].items():
-            itdict[key] = {'ts': data[0]}
+            itDict[key] = {'ts': data[0]}
 
         return itr, sdict, itdict
 
@@ -130,14 +130,14 @@ class PackET2Handler(DataHandler):
             # get coords
             for it_str in hf['coords']:
                 it = int(it_str)
-                sdict[it] = {}
+                sDict[it] = {}
                 for rl_str in hf[f'coords/{it_str}']:
                     rl = int(rl_str)
-                    sdict[it][rl] = {reg: (ccs[0], ccs[1], ccs[2].astype(int))
+                    sDict[it][rl] = {reg: (ccs[0], ccs[1], ccs[2].astype(int))
                                      for reg, ccs in hf[f'coords/{it_str}/{rl_str}'].items()}
 
             for key, reg_its in hf['available_its'].items():
-                itdict[key] = {reg: its[:] for reg, its in reg_its.items()}
+                itDict[key] = {reg: its[:] for reg, its in reg_its.items()}
 
         return itr, sdict, itdict
 

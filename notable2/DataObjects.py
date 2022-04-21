@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence, Dict
 from inspect import signature
 from collections.abc import Mapping
 from h5py import File as HDF5  # type: ignore
@@ -20,19 +20,19 @@ class GridFunc(Mapping):
     """
 
     var: "Variable"
-    coords: dict[int, dict[str, 'NDArray[np.float_]']]
+    coords: Dict[int, Dict[str, 'NDArray[np.float_]']]
     region: str
     it: int
     time: float
     restart: int
     exclude_ghosts: int
-    mem_data: dict[int, 'NDArray[np.float_]']
+    mem_data: Dict[int, 'NDArray[np.float_]']
 
     def __init__(self,
                  var: "Variable",
                  region: str,
                  it: int,
-                 coords: dict[int, dict[str, 'NDArray[np.float_]']],
+                 coords: Dict[int, Dict[str, 'NDArray[np.float_]']],
                  exclude_ghosts: int = 0):
         self.var = var
         self.region = region
@@ -140,13 +140,13 @@ class GridFunc(Mapping):
 
 class PPGridFunc(GridFunc):
     """Documentation for PPGridFunc"""
-    kwargs: dict[str, Any]
+    kwargs: Dict[str, Any]
 
     def __init__(self,
                  var: "PPGridFuncVariable",
                  region: str,
                  it: int,
-                 coords: dict[int, dict[str, 'NDArray[np.float_]']],
+                 coords: Dict[int, Dict[str, 'NDArray[np.float_]']],
                  exclude_ghosts: int = 0,
                  **kwargs):
         super().__init__(var=var, region=region, it=it, coords=coords,
@@ -234,7 +234,7 @@ class TimeSeries():
 
 class PPTimeSeries(TimeSeries):
     """Documentation for PPTimeSeries"""
-    kwargs: dict[str, Any]
+    kwargs: Dict[str, Any]
 
     def __init__(self,
                  var: "PPTimeSeriesVariable",
@@ -320,7 +320,7 @@ class PPTimeSeries(TimeSeries):
 
 class GWData(TimeSeries):
     """Documentation for GWData"""
-    kwargs: dict[str, Any]
+    kwargs: Dict[str, Any]
 
     def __init__(self,
                  var: "PPTimeSeriesVariable",

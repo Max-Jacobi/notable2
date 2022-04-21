@@ -1,4 +1,4 @@
-from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List
+from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List, Dict
 from collections.abc import Iterable, Mapping
 import numpy as np
 from matplotlib.colors import Normalize  # type: ignore
@@ -26,7 +26,7 @@ class PlotName():
                  name: str,
                  unit: str = "",
                  code_unit: Optional[str] = None,
-                 format_opt: Optional[dict[str, Union[str, Callable]]] = None):
+                 format_opt: Optional[Dict[str, Union[str, Callable]]] = None):
         self.name = name
         self.unit = unit
         self.code_unit = code_unit if code_unit is not None else self.unit
@@ -95,7 +95,7 @@ def _save_log(dd):
     return res
 
 
-func_dict: dict[str, tuple[str, Callable]] = dict(
+func_dict: Dict[str, tuple[str, Callable]] = dict(
     log=('log({})', _save_log),
     logabs=('log($|${}$|$)', lambda d: np.log10(np.abs(d))),
 )
@@ -108,23 +108,23 @@ class Plot2D(Mapping):
     first: Union[AxesImage, QuadContourSet]
     cmap: str
     axes: Axes
-    kwarg: dict[str, Any]
+    kwarg: Dict[str, Any]
 
     def __init__(self,
-                 dictionary: dict[int, Union[AxesImage, QuadContourSet]],
+                 dictionary: Dict[int, Union[AxesImage, QuadContourSet]],
                  norm: Normalize,
                  **kwargs):
         self._dict = dictionary
         self.rls = np.sort(list(self._dict.keys()))
         self.norm = norm
         rl = self.rls.min()
-        self.first = self._dict[rl]
+        self.first = self._Dict[rl]
         self.cmap = self.first.get_cmap()
         self.axes = self.first.axes
         self.kwargs = kwargs
 
     def __getitem__(self, rl):
-        return self._dict[rl]
+        return self._Dict[rl]
 
     def __iter__(self):
         for rl in self.rls:
@@ -134,8 +134,8 @@ class Plot2D(Mapping):
         return len(self.rls)
 
     def set_data(self,
-                 coords: dict[int, dict[str, 'NDArray[np.float_]']],
-                 data: dict[int, 'NDArray[np.float_]'],
+                 coords: Dict[int, Dict[str, 'NDArray[np.float_]']],
+                 data: Dict[int, 'NDArray[np.float_]'],
                  ):
         for rl in self.rls[::-1]:
             if rl not in coords:

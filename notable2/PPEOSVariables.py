@@ -2,7 +2,7 @@ import numpy as np
 from notable2.EOS import EOS
 from typing import Any
 
-from notable2.Utils import Units, RUnits
+from notable2.Utils import Units, RUnits, Dict
 
 
 def _Gamma(rho, eps, press, *_, **kw):
@@ -13,7 +13,7 @@ def _Gamma(rho, eps, press, *_, **kw):
     return gamma
 
 
-def pp_variables(eos: EOS) -> dict[str, dict[str, Any]]:
+def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
     ppvars = {
         'h-eos': dict(
             dependencies=['ye', 'temp', 'rho'],

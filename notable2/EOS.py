@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, TYPE_CHECKING, List
+from typing import Callable, Optional, TYPE_CHECKING, List, Dict
 from functools import reduce
 import numpy as np
 from h5py import File  # type: ignore
@@ -43,7 +43,7 @@ class TabulatedEOS(EOS):
     """Realistic Tabluated EOS """
     hydro_path: str
     weak_path: str
-    data: dict[str, 'NDArray[np.float_]']
+    data: Dict[str, 'NDArray[np.float_]']
 
     def __init__(self, path: str):
         self._table: Optional[List['NDArray[np.float_]']] = None

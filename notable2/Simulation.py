@@ -1,7 +1,7 @@
 import os
 import re
 from os.path import basename, isfile
-from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING
+from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING, Dict
 from collections.abc import Iterable
 import numpy as np
 from scipy.signal import find_peaks  # type: ignore
@@ -32,16 +32,16 @@ class Simulation():
     t_merg: Optional[float]
     ADM_M: Optional[float]
     ADM_J: Optional[float]
-    rls: dict[int, 'NDArray[np.int_]']
-    finest_rl: dict[int, int]
+    rls: Dict[int, 'NDArray[np.int_]']
+    finest_rl: Dict[int, int]
     data_handler: DataHandler
     eos: EOS
     is_cartoon: bool
     verbose: int = 0
     pp_hdf5_path: str
-    pp_grid_func_variables: dict[str, dict[str, Any]]
-    pp_time_series_variables: dict[str, dict[str, Any]]
-    pp_gw_variables: dict[str, dict[str, Any]]
+    pp_grid_func_variables: Dict[str, Dict[str, Any]]
+    pp_time_series_variables: Dict[str, Dict[str, Any]]
+    pp_gw_variables: Dict[str, Dict[str, Any]]
     plotGD: Callable
     plotTS: Callable
     animateGD: Callable
@@ -51,7 +51,7 @@ class Simulation():
                  sim_path: str,
                  data_handler: Optional[Type[DataHandler]] = None,
                  eos_path: Optional[str] = None,
-                 offset: Optional[dict[str, float]] = None,
+                 offset: Optional[Dict[str, float]] = None,
                  is_cartoon: bool = False
                  ):
         cactus_base = (os.environ['CACTUS_BASEDIR'] if "CACTUS_BASEDIR" in os.environ else None)
@@ -246,10 +246,10 @@ class Simulation():
                    region: str,
                    it: int,
                    exclude_ghosts: int = 0
-                   ) -> dict[int, dict[str, 'NDArray[np.float_]']]:
+                   ) -> Dict[int, Dict[str, 'NDArray[np.float_]']]:
 
         if len(region) > 1:
-            ret: dict[int, dict[str, 'NDArray[np.float_]']] = {rl: {} for rl in self._structure[it].keys()}
+            ret: Dict[int, Dict[str, 'NDArray[np.float_]']] = {rl: {} for rl in self._structure[it].keys()}
             for rl in ret.keys():
                 if region not in self._structure[it][rl]:
                     for ax in region:

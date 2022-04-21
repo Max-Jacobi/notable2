@@ -1,5 +1,5 @@
 from inspect import signature
-from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING
+from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING, Dict
 from collections.abc import Iterable
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
@@ -16,9 +16,9 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
-def _handle_kwargs(var_kwargs: dict[str, Any],
-                   pop: dict[str, tuple]
-                   ) -> tuple[dict[str, Any], dict[str, Any]]:
+def _handle_kwargs(var_kwargs: Dict[str, Any],
+                   pop: Dict[str, tuple]
+                   ) -> tuple[Dict[str, Any], Dict[str, Any]]:
     var_kwargs = var_kwargs.copy()
     popped = {}
     for key, (item, default) in pop.items():
@@ -70,8 +70,8 @@ def plotGD(sim: "Simulation",
            contour: bool = False,
            # -----------Variable kwargs----------------------------
            func: Optional[Union[Callable, str, bool]] = None,
-           slice_ax: Optional[dict[str, float]] = None,
-           interp_ax: Optional[dict[str, float]] = None,
+           slice_ax: Optional[Dict[str, float]] = None,
+           interp_ax: Optional[Dict[str, float]] = None,
            vmax: Optional[float] = None,
            vmin: Optional[float] = None,
            symetric_around: Optional[Union[float, bool]] = None,
@@ -156,7 +156,7 @@ def plotGD(sim: "Simulation",
         data = {rl: grid_func[rl] for rl in actual_rls}
 
     if isinstance(func, str):
-        func_str, func = func_dict[func]
+        func_str, func = func_Dict[func]
     else:
         func_str = "{}"
 
@@ -410,7 +410,7 @@ def plotTS(sim: "Simulation",
     data = data[mask]
 
     if isinstance(func, str):
-        func_str, func = func_dict[func]
+        func_str, func = func_Dict[func]
     else:
         func_str = "{}"
 
@@ -551,11 +551,11 @@ def plotHist(sim: "Simulation",
     wdata = {rl: wgrid_func[rl] for rl in actual_rls}
 
     if isinstance(xfunc, str):
-        xfunc_str, xfunc = func_dict[xfunc]
+        xfunc_str, xfunc = func_Dict[xfunc]
     else:
         xfunc_str = "{}"
     if isinstance(yfunc, str):
-        yfunc_str, yfunc = func_dict[yfunc]
+        yfunc_str, yfunc = func_Dict[yfunc]
     else:
         yfunc_str = "{}"
 

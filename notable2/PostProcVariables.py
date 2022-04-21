@@ -1,6 +1,6 @@
 import os
 import importlib.util
-from typing import TYPE_CHECKING, ItemsView, Any
+from typing import TYPE_CHECKING, ItemsView, Any, Dict
 
 from .EOS import EOS
 
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from .Utils import PostProcVariable
 
 
-def get_pp_variables(path: str, eos: EOS) -> ItemsView[str, dict[str, Any]]:
+def get_pp_variables(path: str, eos: EOS) -> ItemsView[str, Dict[str, Any]]:
     name = os.path.basename(path).replace(".py", "")
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None:
