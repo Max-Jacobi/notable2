@@ -1,5 +1,5 @@
 from inspect import signature
-from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING, Dict
+from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING, Dict, Tuple
 from collections.abc import Iterable
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 def _handle_kwargs(var_kwargs: Dict[str, Any],
                    pop: Dict[str, tuple]
-                   ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+                   ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     var_kwargs = var_kwargs.copy()
     popped = {}
     for key, (item, default) in pop.items():

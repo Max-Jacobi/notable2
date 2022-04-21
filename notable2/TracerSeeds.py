@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Callable, Optional, TYPE_CHECKING, List
+from typing import Callable, Optional, TYPE_CHECKING, List, Tuple
 import numpy as np
 from scipy.optimize import bisect
 
@@ -132,7 +132,7 @@ def SaveSeeds(path, seeds, sim, n_files):
 class GridRefine:
 
     def __init__(self,
-                 grid_shape: tuple[int, ...],
+                 grid_shape: Tuple[int, ...],
                  densities: List[GridFunc],
                  get_mass_func: Callable,
                  ):

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, TYPE_CHECKING, List, Dict
+from typing import Callable, Optional, TYPE_CHECKING, List, Dict, Tuple
 from functools import reduce
 import numpy as np
 from h5py import File  # type: ignore
@@ -48,9 +48,9 @@ class TabulatedEOS(EOS):
     def __init__(self, path: str):
         self._table: Optional[List['NDArray[np.float_]']] = None
         self._table_cold: Optional[List['NDArray[np.float_]']] = None
-        self._ye_r: Optional[tuple[np.float_]] = None
-        self._temp_r: Optional[tuple[np.float_]] = None
-        self._rho_r: Optional[tuple[np.float_]] = None
+        self._ye_r: Optional[Tuple[np.float_]] = None
+        self._temp_r: Optional[Tuple[np.float_]] = None
+        self._rho_r: Optional[Tuple[np.float_]] = None
         self.data = {}
         self.set_path(path)
         self.name = path.split('/')[-1]
@@ -59,7 +59,7 @@ class TabulatedEOS(EOS):
         return self.hydro_path.replace('hydro.h5', '')
 
     @property
-    def ye_range(self) -> tuple[np.float_]:
+    def ye_range(self) -> Tuple[np.float_]:
         if self._ye_r is None:
             with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
@@ -67,7 +67,7 @@ class TabulatedEOS(EOS):
         return self._ye_r
 
     @property
-    def temp_range(self) -> tuple[np.float_]:
+    def temp_range(self) -> Tuple[np.float_]:
         if self._temp_r is None:
             with File(self.hydro_path, 'r') as hfile:
                 Temp = np.array(hfile['temperature'])
@@ -75,7 +75,7 @@ class TabulatedEOS(EOS):
         return self._temp_r
 
     @property
-    def rho_range(self) -> tuple[np.float_]:
+    def rho_range(self) -> Tuple[np.float_]:
         if self._rho_r is None:
             with File(self.hydro_path, 'r') as hfile:
                 Rho = np.array(hfile['density'])*RUnits['Rho']

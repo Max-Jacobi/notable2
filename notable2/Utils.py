@@ -1,4 +1,4 @@
-from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List, Dict
+from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List, Dict, Tuple
 from collections.abc import Iterable, Mapping
 import numpy as np
 from matplotlib.colors import Normalize  # type: ignore
@@ -95,7 +95,7 @@ def _save_log(dd):
     return res
 
 
-func_dict: Dict[str, tuple[str, Callable]] = dict(
+func_dict: Dict[str, Tuple[str, Callable]] = dict(
     log=('log({})', _save_log),
     logabs=('log($|${}$|$)', lambda d: np.log10(np.abs(d))),
 )
