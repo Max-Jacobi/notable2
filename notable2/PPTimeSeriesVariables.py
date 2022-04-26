@@ -558,6 +558,37 @@ pp_variables = {
         save=False,
         PPkeys=['radius'],
     ),
+    'Mp-ejb-esc-dot': dict(
+        dependencies=("V^r", "dens", "ye", "u_t", 'h'),
+        func=lambda vr, dens, ye, u_t, h, *_, **kw: _mass_flow(vr, dens*ye) * (h*u_t < -1),
+        plot_name_kwargs=dict(
+            name=r"$\dot{M_p}_{\rm ej}$ ($r=$radius)",
+            unit=r"$M_\odot$ ms$^{-1}$",
+            code_unit="",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        reduction=sphere_surface_integral,
+        scale_factor=RUnits['Time'],
+        PPkeys=['radius'],
+    ),
+    'ye-ejb-esc': dict(
+        dependencies=("Mp-ejb-esc-dot", "M-ejb-esc-dot",),
+        func=lambda Mp, M, *_, **kw: Mp/M,
+        plot_name_kwargs=dict(
+            name=r"$Y_{e, {\rm ej, esc}}$ ($r=$radius)",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        save=False,
+        PPkeys=['radius'],
+    ),
     'M-ejb-in': dict(
         dependencies=("dens", "u_t", 'h'),
         func=lambda dens, ut, h, *_, **kw: 2*dens*(h*ut <= -1),
