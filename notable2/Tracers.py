@@ -12,7 +12,7 @@ class TracerBunch():
                  seed_path,
                  max_step=None,
                  to_trace=('rho', 'temp', 'ye'),
-                 verbose=True,
+                 verbose=False,
                  chunksize=2e9,
                  terminate_var=None,
                  terminate_val=None,
@@ -101,7 +101,8 @@ class TracerBunch():
                                        termval=self.terminate_val,
                                        data_getter=self.get_data,
                                        max_step=self.max_step))
-        print(f"loaded {len(self.tracers)} tracer")
+        if self.verbose:
+            print(f"loaded {len(self.tracers)} tracer")
         return max(tr.times[-1] for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
@@ -124,10 +125,12 @@ class TracerBunch():
                 break
             t_start = self.times[self.i_start-self.off+1]
             t_end = self.times[i_end+self.off]
-            print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M")
+            if self.verbose:
+                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M")
 
             for nn, tr in enumerate(self.tracers):
-                print(f"integrating tracer {nn} ({tr.num})           ", end='\r')
+                if self.verbose:
+                    print(f"integrating tracer {nn} ({tr.num})           ", end='\r')
                 tr.integrate(t_start, t_end)
 
             n_not_started = sum(tr.status == -2 for tr in self.tracers)
@@ -136,9 +139,11 @@ class TracerBunch():
             n_done = sum(tr.status == 1 for tr in self.tracers)
             if n_running+n_not_started == 0:
                 break
-            print(f"{n_not_started} not started, {n_running} running, {n_failed} failed, {n_done} done")
+            if self.verbose:
+                print(f"{n_not_started} not started, {n_running} running, {n_failed} failed, {n_done} done")
             self.i_start = i_end + self.off*2
         if self.verbose:
+            print()
             print("Done")
 
     def save_all(self):
