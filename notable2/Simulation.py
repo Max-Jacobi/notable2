@@ -205,7 +205,9 @@ class Simulation():
             return None, None
         with open(outf, 'r') as file:
             m = re.search(pattern, file.read())
-        return float(m[1]), float(m[2])
+        if m is not None:
+            return float(m[1]), float(m[2])
+        return np.nan, np.nan
 
     def get_offset(self, it: int) -> 'NDArray[np.float_]':
         if self.is_cartoon:
@@ -266,12 +268,12 @@ class Simulation():
             ret[rl] = {region: ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)}
         return ret
 
-    # def delete_saved_pp_variable(self, key: str):
-    #     with HDF5(self.pp_hdf5_path, 'a') as hf:
-    #         to_delete = [kk for kk in hf if key in kk]
-    #         for kk in to_delete:
-    #             del hf[kk]
-    #             hf.flush()
+    def delete_saved_pp_time_series(self, key: str):
+        with HDF5(f"{self.pp_hdf5_path}/time_series.h5", 'a') as hf:
+            to_delete = [kk for kk in hf if key in kk]
+            for kk in to_delete:
+                del hf[kk]
+                hf.flush()
 
     # def rename_saved_pp_variable(self, key: str,  new_key: str):
     #     with HDF5(self.pp_hdf5_path, 'a') as hf:

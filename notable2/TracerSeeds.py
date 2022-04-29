@@ -6,7 +6,7 @@ from scipy.optimize import bisect
 from notable2.DataObjects import GridFunc
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
+    from .Utils import Simulation
 
 ############################################
 # 9 point 2D Gaus quadrature parameters
@@ -27,7 +27,7 @@ def FluxSeeds(sim: "Simulation",
               n_phi: int = 20,
               min_time: Optional[float] = None,
               max_time: Optional[float] = None,
-              unbound: Optional[float] = None):
+              unbound: Optional[str] = None):
 
     region = 'xz' if sim.is_cartoon else 'xyz'
     # find the relevant reflevels

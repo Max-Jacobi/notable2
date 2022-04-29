@@ -161,7 +161,7 @@ def extract_strain(var, ll=2, mm=2, power=1, u_junk=200., n_points=3000):
         key = var.key
         for kk, item in dict(ll=ll, mm=mm, n_points=n_points, power=power, u_junk=u_junk).items():
             key += f":{kk}={item}"
-        with File(f"{sim.pp_hdf5_path}/gw_vars.h5", 'a') as hdf5:
+        with File(f"{sim.pp_hdf5_path}/time_series.h5", 'a') as hdf5:
             if key in hdf5:
                 return hdf5[key].attrs['its'][:], hdf5[key].attrs['times'][:], hdf5[key][:], hdf5[key].attrs['restarts'][:]
 
@@ -244,7 +244,7 @@ def extract_strain(var, ll=2, mm=2, power=1, u_junk=200., n_points=3000):
     its = np.arange(len(uu)).astype(float)
     rsts = np.zeros(len(uu)).astype(float)
     if var.save:
-        with File(f"{sim.pp_hdf5_path}/gw_vars.h5", 'a') as hf:
+        with File(f"{sim.pp_hdf5_path}/time_series.h5", 'a') as hf:
             for pol, hh in zip("+ x".split(), (hp, hx)):
                 name = f"h{pol}"
                 for kk, item in dict(ll=ll, mm=mm, n_points=n_points, power=power, u_junk=u_junk).items():

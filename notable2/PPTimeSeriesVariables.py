@@ -575,6 +575,35 @@ pp_variables = {
         scale_factor=RUnits['Time'],
         PPkeys=['radius'],
     ),
+    'Mp-ejb-esc': dict(
+        dependencies=("Mp-ejb-esc-dot",),
+        func=_time_int,
+        plot_name_kwargs=dict(
+            name=r"$M_{p, {\rm ej, esc}}$ ($r=$radius)",
+            unit=r"$M_\odot$",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        save=False,
+        PPkeys=['radius'],
+    ),
+    'ye-ejb-esc-tot': dict(
+        dependencies=("Mp-ejb-esc", "M-ejb-esc",),
+        func=lambda Mp, M, *_, **kw: Mp/M,
+        plot_name_kwargs=dict(
+            name=r"$Y_{e, {\rm ej, esc}}$ (cumulative) ($r=$radius)",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        save=False,
+        PPkeys=['radius'],
+    ),
     'ye-ejb-esc': dict(
         dependencies=("Mp-ejb-esc-dot", "M-ejb-esc-dot",),
         func=lambda Mp, M, *_, **kw: Mp/M,
@@ -852,10 +881,21 @@ pp_variables = {
     ),
     'Gamma-th-out-rho-cont-mean': dict(
         dependencies=("Gamma-th", "rho", ),
-        func=lambda Gamma, rho, rho_cont=1e13 *
-        RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho < rho_cont),
+        func=lambda Gamma, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho < rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $\Gamma_{\rm th}$ ($\rho < rho_cont)",
+            format_opt=dict(
+                rho_cont=_rho_cont_format_func
+            ),
+        ),
+        reduction=mean,
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
+    'Gamma-th-in-rho-cont-mean': dict(
+        dependencies=("Gamma-th", "rho"),
+        func=lambda Gamma, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"mean $\Gamma_{\rm th}$ ($\rho > rho_cont)",
             format_opt=dict(
                 rho_cont=_rho_cont_format_func
             ),

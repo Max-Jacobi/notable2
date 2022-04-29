@@ -166,6 +166,7 @@ class TOV:
                    + 3*(1 - 2*c)**2 * (2 - y + 2*c*(y - 1)) * np.log(1 - 2*c)))
 
             self.parameters["Lambda"] = 2/3*self.parameters['k_2']*self.parameters['C']**-5
+            self.parameters["k2T"] = 3/16*self.parameters['Lambda']
         return solution.status
 
     def _get_sources(self, rad, mpy):

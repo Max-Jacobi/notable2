@@ -380,8 +380,7 @@ def plotTS(sim: "Simulation",
     kwargs, PPkwargs = _handle_PPkwargs(kwargs, var)
     # -------------data handling-------------------------------------------
     av_its = var.available_its(**PPkwargs)
-    if every is not None:
-        its = av_its[::every]
+    its = av_its[::every]
     if min_it is not None:
         its = its[its >= min_it]
     if max_it is not None:

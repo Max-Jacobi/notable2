@@ -220,31 +220,30 @@ class PostProcVariable(Variable):
             raise exc
 
     def _available_its(self, region: str, **kwargs) -> 'NDArray[np.int_]':
-        its = []
-        for dep in self.dependencies:
-            try:
+        try:
+            its = []
+            for dep in self.dependencies:
                 if dep.vtype == 'grid':
                     its.append(dep.available_its(region, **kwargs))
                 else:
                     its.append(dep.available_its(**kwargs))
-            except BackupException as excp:
-                for bvar in excp.backups:
-                    try:
-                        if bvar.vtype == 'grid':
-                            its.append(bvar.available_its(region, **kwargs))
-                        else:
-                            its.append(bvar.available_its(**kwargs))
-                        if self.sim.verbose > 1:
-                            print(f"{self.sim.sim_name}: Using {bvar.key} instead of {dep.key}")
-                        break
-                    except (VariableError, IterationError):
-                        continue
-                else:
-                    raise VariableError(f"Could not find {dep.key} for PP variable {self.key}") from excp
-        its = reduce(np.intersect1d, its)
-        if len(its) == 0:
-            raise IterationError(f"No common iterations found for {self}")
-        return np.array(its, dtype=int)
+            its = reduce(np.intersect1d, its)
+            if len(its) == 0:
+                raise IterationError(f"No common iterations found for {self}")
+            return np.array(its, dtype=int)
+        except VariableError:
+            for bvar in self.backups:
+                try:
+                    if bvar.vtype == 'grid':
+                        its = bvar.available_its(region, **kwargs)
+                    else:
+                        its = bvar.available_its(**kwargs)
+                    if self.sim.verbose > 1:
+                        print(f"{self.sim.sim_name}: Using {bvar.key} instead of {dep.key}")
+                    return its
+                except (VariableError, IterationError):
+                    continue
+            raise
 
 
 class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
@@ -422,14 +421,22 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
                                  f"for GridFuncVariables in {self.dependencies}")
 
     def get_data(self, it=None, **kwargs):
-        av_its = self.available_its(**kwargs)
-        if it is None:
-            it = av_its
-        if len(uni := np.setdiff1d(it, av_its)) != 0:
-            raise IterationError(f"Iteration(s) {uni} not found for self")
-        if isinstance(it, (int, np.integer)):
-            return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
-        return PPTimeSeries(self, its=it, **kwargs)
+        try:
+            av_its = self.available_its(**kwargs)
+            if it is None:
+                it = av_its
+            if len(uni := np.setdiff1d(it, av_its)) != 0:
+                raise IterationError(f"Iteration(s) {uni} not found for self")
+            if isinstance(it, (int, np.integer)):
+                return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
+            return PPTimeSeries(self, its=it, **kwargs)
+        except VariableError:
+            for bvar in self.backups:
+                try:
+                    return bvar.get_data(it=it, **kwargs)
+                except VariableError:
+                    continue
+            raise
 
     def available_its(self, **kwargs) -> 'NDArray[np.int_]':
         kwargs.setdefault('region', 'xz' if self.sim.is_cartoon else 'xyz')

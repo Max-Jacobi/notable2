@@ -65,6 +65,16 @@ pp_variables = {
             cmap='inferno',
         )
     ),
+    "E-rel": dict(
+        dependencies=('rho', 'h', 'W', 'press'),
+        func=lambda rho, hh, ww, press, *_, **kw: rho*hh*ww**2 - press,
+        plot_name_kwargs=dict(
+            name="relativistic energy density",
+        ),
+        kwargs=dict(
+            cmap='inferno',
+        )
+    ),
     "vel^r": dict(
         dependencies=('vel^x', 'vel^y', 'vel^z'),  # , 'alpha'),
         func=_radial,
