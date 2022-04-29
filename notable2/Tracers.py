@@ -54,8 +54,8 @@ class TracerBunch():
         max_t = self.init_tracers()
 
         i_start = self.times.searchsorted(max_t)
-        self.times = self.times[:i_start+self.off]
-        self.its = self.its[:i_start+self.off]
+        self.times = self.times[:i_start+self.off+1]
+        self.its = self.its[:i_start+self.off+1]
 
         self.i_start = len(self.times)-1
 
@@ -109,10 +109,16 @@ class TracerBunch():
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
 
         ind = self.times.searchsorted(tt, side='right')
+        its = self.its[np.arange(ind-self.off, ind+self.off)]
+        data = {}
+        for it in its:
+            if it not in self.dats:
+                self.dats[it] = {kk: var.get_data(region=self.region, it=it)
+                                 for kk, var in self.vars.items()}
 
-        data = {kk: np.array([self.dats[self.its[ii]][kk](**coords)[0]
-                              for ii in range(ind-self.off, ind+self.off)])
+        data = {kk: np.array([self.dats[it][kk](**coords)[0] for it in its])
                 for kk in keys}
+
         result = np.array([interp1d(self.times[ind-self.off: ind+self.off],
                            data[kk], kind=self.t_int_kind)(tt)
                            for kk in keys])
@@ -125,8 +131,10 @@ class TracerBunch():
                 break
             t_start = self.times[self.i_start-self.off+1]
             t_end = self.times[i_end+self.off]
+            it_start = self.its[self.i_start-self.off+1]
+            it_end = self.its[i_end+self.off]
             if self.verbose:
-                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M")
+                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})")
 
             for nn, tr in enumerate(self.tracers):
                 if self.verbose:
