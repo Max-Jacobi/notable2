@@ -207,13 +207,18 @@ class tracer():
             return
         min_time, max_time = min(t_start, t_end), max(t_start, t_end)
         if min_time <= self.times[-1] <= max_time:
+            if self.t_step > (max_step := abs(self.times[-1] - t_end)):
+                self.t_step = max_step
             sol = sint.solve_ivp(self.get_rhs,
                                  (self.times[-1], t_end),
                                  self.pos[-1],
                                  first_step=self.t_step,
                                  rtol=1e-5,
                                  max_step=self.max_step)
-            self.t_step = abs(sol.t[-2] - sol.t[-3])
+            if len(sol.t) > 2:
+                self.t_step = abs(sol.t[-2] - sol.t[-3])
+            elif len(sol.t) == 2:
+                self.t_step = abs(sol.t[-1] - sol.t[-2])
             self.set_trace(sol.t, sol.y.T)
 
             self.status = sol.status
