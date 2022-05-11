@@ -1,4 +1,5 @@
 import re
+from warnings import warn
 from functools import reduce
 import numpy as np
 import scipy.integrate as sint
@@ -100,7 +101,8 @@ class TracerBunch():
                                        termvar=self.terminate_var,
                                        termval=self.terminate_val,
                                        data_getter=self.get_data,
-                                       max_step=self.max_step))
+                                       max_step=self.max_step,
+                                       save_path=self.save_path))
         if self.verbose:
             print(f"loaded {len(self.tracers)} tracer")
         return max(tr.times[-1] for tr in self.tracers)
@@ -130,16 +132,25 @@ class TracerBunch():
             if i_end is None:
                 break
             t_start = self.times[self.i_start-self.off+1]
-            t_end = self.times[i_end+self.off]
+            t_end = self.times[i_end+self.off+1]
             it_start = self.its[self.i_start-self.off+1]
-            it_end = self.its[i_end+self.off]
+            it_end = self.its[i_end+self.off+1]
             if self.verbose:
                 print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})")
 
             for nn, tr in enumerate(self.tracers):
+                if tr.status in [-1, 1]:
+                    continue
                 if self.verbose:
                     print(f"integrating tracer {nn} ({tr.num})           ", end='\r')
-                tr.integrate(t_start, t_end)
+                try:
+                    tr.integrate(t_start, t_end)
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ee:
+                    warn(f"{tr.num} had exception in integration step {t_start, t_end}\n{type(ee).__name__}: {str(ee)}")
+                    tr.save()
+                    tr.status = -1
 
             n_not_started = sum(tr.status == -2 for tr in self.tracers)
             n_running = sum(tr.status == 0 for tr in self.tracers)
@@ -153,17 +164,13 @@ class TracerBunch():
         if self.verbose:
             print()
             print("Done")
-
-    def save_all(self):
-        for tr in self.tracers:
-            tr.save(self.save_path)
+        return np.array([tr.status for tr in self.tracers])
 
 
 class tracer():
     """
     A single Tracer object. Basically a wrapper around scipy.integrate.solve_ivp.
     """
-
     def __init__(self,
                  num,
                  position,
@@ -171,6 +178,7 @@ class tracer():
                  to_trace,
                  weight,
                  data_getter,
+                 save_path,
                  max_step=203.025,
                  termvar=None,
                  termval=None,
@@ -180,6 +188,7 @@ class tracer():
         self.max_step = max_step
         self.weight = weight
         self.get_data = data_getter
+        self.save_path = save_path
 
         self.termvar = termvar
         self.termval = termval
@@ -215,11 +224,12 @@ class tracer():
             return
         min_time, max_time = min(t_start, t_end), max(t_start, t_end)
         if min_time <= self.times[-1] <= max_time:
-            if self.t_step > (max_t_step := np.abs(self.times[-1] - t_end)):
-                self.t_step = max_t_step
-            if self.t_step <= 0:
-                print(self.num, self.t_step, self.times[-1])
-                self.t_step = None
+            if self.t_step is not None:
+                if self.t_step > (max_t_step := np.abs(self.times[-1] - t_end)):
+                     self.t_step = max_t_step
+                if self.t_step <= 0:
+                    self.t_step = None
+
             sol = sint.solve_ivp(self.get_rhs,
                                  (self.times[-1], t_end),
                                  self.pos[-1],
@@ -240,9 +250,10 @@ class tracer():
                 term = self.trace[self.termvar]
                 if any(term >= self.termval) and any(term <= self.termval):
                     self.status = 1
+                    self.save()
         return self.status
 
-    def save(self, path):
+    def save(self):
         self.times = self.times[1:]
         self.pos = self.pos[1:]
         self.times, inds = np.unique(self.times, return_index=True)
@@ -253,7 +264,7 @@ class tracer():
         for kk in self.trace:
             fmt += "%15.7e "
             header += f"{kk:>15s} "
-        np.savetxt(f"{path}/tracer_{self.num:07d}.dat", out.T, fmt=fmt, header=header)
+        np.savetxt(f"{self.save_path}/tracer_{self.num:07d}.dat", out.T, fmt=fmt, header=header)
 
 
 def load_tracer(file_path):
