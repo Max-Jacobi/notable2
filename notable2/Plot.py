@@ -10,7 +10,7 @@ from matplotlib.colorbar import ColorbarBase  # type: ignore
 from mpl_toolkits.axes_grid1 import make_axes_locatable  # type: ignore
 
 from .Utils import Units, func_dict, Plot2D, IterationError, BackupException, VariableError
-from .Variable import PostProcVariable, PPTimeSeriesVariable
+from .Variable import PostProcVariable, PPTimeSeriesVariable, GravitationalWaveVariable
 if TYPE_CHECKING:
     from .Utils import Simulation, RLArgument
     from numpy.typing import NDArray
@@ -381,10 +381,27 @@ def plotTS(sim: "Simulation",
     # -------------data handling-------------------------------------------
     av_its = var.available_its(**PPkwargs)
     its = av_its[::every]
+
+    mask = np.ones(len(its), dtype=bool)
+    if not isinstance(var, GravitationalWaveVariable):
+        # GW data is defined on retarded time so the iteration's don't match
+        # simulation times
+        times = sim.get_time(it=its)
+        if sim.t_merg is not None:
+            times -= sim.t_merg
+        if not code_units:
+            times *= Units['Time']
+        if min_time is not None:
+            mask = mask & (times >= min_time)
+        if max_time is not None:
+            mask = mask & (times <= max_time)
+
     if min_it is not None:
-        its = its[its >= min_it]
+        mask = mask & (its >= min_it)
     if max_it is not None:
-        its = its[its <= max_it]
+        mask = mask & (its <= max_it)
+    its = its[mask]
+
     ts_data = var.get_data(it=its, **PPkwargs)
 
     its = ts_data.its

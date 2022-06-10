@@ -5,8 +5,8 @@ from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING, Dict
 from collections.abc import Iterable
 import numpy as np
 from scipy.signal import find_peaks  # type: ignore
-from scipy.interpolate import interp2d  # type: ignore
-from scipy.optimize import minimize  # type: ignore
+from scipy.interpolate import interp1d, interp2d  # type: ignore
+from scipy.optimize import minimize, bisect  # type: ignore
 from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
@@ -80,14 +80,9 @@ class Simulation():
         self.finest_rl = {it: rls.max() for it, rls in self.rls.items()}
 
         self.pp_grid_func_variables = {}
-        for ufile in rcParams.PPGridFuncVariable_files:
-            self.pp_grid_func_variables.update(get_pp_variables(ufile, self.eos))
         self.pp_time_series_variables = {}
-        for ufile in rcParams.PPTimeSeries_files:
-            self.pp_time_series_variables.update(get_pp_variables(ufile, self.eos))
         self.pp_gw_variables = {}
-        for ufile in rcParams.PPGW_files:
-            self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
+        self.read_PPVariables()
 
         self.pp_hdf5_path = f"{self.sim_path}/PPVars"
         if not os.path.isdir(self.pp_hdf5_path):
@@ -101,6 +96,14 @@ class Simulation():
 
     def __str__(self):
         return self.sim_name
+
+    def read_PPVariables(self):
+        for ufile in rcParams.PPGridFuncVariable_files:
+            self.pp_grid_func_variables.update(get_pp_variables(ufile, self.eos))
+        for ufile in rcParams.PPTimeSeries_files:
+            self.pp_time_series_variables.update(get_pp_variables(ufile, self.eos))
+        for ufile in rcParams.PPGW_files:
+            self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
 
     def expand_rl(self, rls: RLArgument, it: int) -> 'NDArray[np.int_]':
         """Expand the "rl" argument to a valid array of refinementlevels"""
@@ -142,7 +145,7 @@ class Simulation():
         # python 3.10 match(it)
         if isinstance(it, np.ndarray):
             if any(ii not in self._its for ii in it):
-                it_er = self._its[np.array([ii not in self._its for ii in it])]
+                it_er = np.array([ii for ii in it if ii not in self._its])
                 raise IterationError(f"Iterations {it_er} not all in {self.sim_name}")
             return self._times[self._its.searchsorted(it)]
         if it not in self._its:
@@ -181,21 +184,24 @@ class Simulation():
         return self._its[self._times.searchsorted(time)]
 
     def get_t_merg(self) -> Optional[float]:
+
         try:
             habs = self.get_data("h-abs")
             ind = find_peaks(habs.data, height=.15)[0][0]
             # ind = np.argmax(habs.data)
             return habs.times[ind]
-        except VariableError:
+        except (VariableError, IndexError):
             if self.verbose:
-                print(f"{self.name} using minumum of alpha to determine merger time")
-            data = self.get_data('alpha-min')
-            times = data.times
-            peaks = find_peaks(-data.data)[0]
-            diffs = np.diff(data.data[peaks])
-            if np.any(big_diffs := diffs < -.05):
-                min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
-                return float(times[min_ind])
+                print(f"{self.name} using bns separation to determine merger time")
+            data = self.get_data('bns-sep-tot')
+            return bisect(interp1d(data.times, data.data - 8), 0, data.times[-1])
+            # data = self.get_data('alpha-min')
+            # times = data.times
+            # peaks = find_peaks(-data.data)[0]
+            # diffs = np.diff(data.data[peaks])
+            # if np.any(big_diffs := diffs < -.05):
+            # min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
+            # return float(times[min_ind])
 
     def get_ADM_MJ(self):
         pattern = r"ADM mass of the system : ([0-9]\.[0-9]+) M_sol\n"

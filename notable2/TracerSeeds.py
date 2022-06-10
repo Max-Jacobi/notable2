@@ -15,6 +15,10 @@ if TYPE_CHECKING:
 qq = np.array([-.5, 0, .5])*np.sqrt(3/5)
 ww = np.array([5, 8, 5])/18
 
+ww = np.array([0.5688888888888889, 0.4786286704993665, 0.4786286704993665, 0.2369268850561891, 0.2369268850561891])/2
+qq = np.array([0, -0.5384693101056831, 0.5384693101056831, -0.9061798459386640, 0.9061798459386640])/2
+
+
 qx, qy = map(np.ndarray.flatten, np.meshgrid(qq, qq))
 ww = np.tensordot(ww, ww, axes=0).ravel()
 
@@ -71,7 +75,8 @@ def FluxSeeds(sim: "Simulation",
         raise ValueError("Cartoon tracers not yet implemented")
     else:
         gr = GridRefine((n_phi, n_theta), fluxes, get_surf_flux_3D(radius, dt))
-        grids, masses = gr.get_mthresh(mthresh_est, n_tracers, n_tracers//100)
+        # grids, dxs, masses = gr.get_mthresh(mthresh_est, n_tracers, n_tracers//100)
+        _, grids, dxs, masses = gr.refine_grid(mthresh_est, 2*n_tracers)
 
     it_seeds = np.concatenate([it*np.ones_like(mm) for it, mm in zip(its, masses)])
     t_seeds = np.concatenate([tt*np.ones_like(mm) for tt, mm in zip(times, masses)])
@@ -85,9 +90,12 @@ def FluxSeeds(sim: "Simulation",
         coords = [radius * np.sin(thetas), radius * np.cos(thetas)]
 
     else:
-        phis, thetas = np.concatenate([np.pi*np.array([2, .5]) * grid for grid in grids]).T
-        thetas = thetas[isort]
+        grids = [(np.random.rand(*dx.shape)-.5)*dx + grid for grid, dx in zip(grids, dxs)]
+        phis = np.concatenate([2*np.pi*grid[:, 0] for grid in grids])
+        thetas = np.concatenate([np.arccos(grid[:, 1]) for grid in grids])
+
         phis = phis[isort]
+        thetas = thetas[isort]
 
         coords = [radius * np.sin(thetas)*np.cos(phis),
                   radius * np.sin(thetas)*np.sin(phis),
@@ -154,9 +162,10 @@ class GridRefine:
         dxs = []
         masses = []
         for dens in self.dens:
-            dx = np.stack(np.meshgrid(*(np.ones(nn)/nn for nn in self.grid_shape), indexing='ij'), axis=-1)
+            dx = np.stack(np.meshgrid(*(np.ones(nn)/nn
+                                        for nn in self.grid_shape), indexing='ij'), axis=-1)
             grid = np.stack(np.meshgrid(*((np.arange(nn)+.5)/nn
-                            for nn in self.grid_shape), indexing='ij'), axis=-1)
+                                          for nn in self.grid_shape), indexing='ij'), axis=-1)
             mass = self.mass_getter(grid, dx, dens)
 
             mask = np.isfinite(mass) & (mass > 0.)
@@ -196,24 +205,26 @@ class GridRefine:
             n_tracer = sum(len(mm) for mm in masses)
             if max_n_tracer is not None and n_tracer >= max_n_tracer:
                 break
-        return ref_step, grids, masses
+        return ref_step, grids, dxs, masses
 
     def get_mthresh(self, mthres_estimate, n_tracers, tol):
         class func:
             def __init__(self, refine_func):
                 self.mass = []
                 self.grid = []
+                self.dx = []
                 self.diffs = []
                 self.refine_grid = refine_func
 
             def __call__(self, mm):
                 if mm == 0.:
                     return np.inf
-                steps, grids, masses = self.refine_grid(mm, n_tracers-tol)
+                steps, grids, dxs, masses = self.refine_grid(mm, n_tracers-tol)
                 n_cur = sum(len(mass) for mass in masses)
                 diff = n_cur - n_tracers
 
                 self.grid.append(grids)
+                self.dx.append(dxs)
                 self.mass.append(masses)
                 self.diffs.append(diff)
 
@@ -232,7 +243,7 @@ class GridRefine:
         ii = np.argmin(np.abs(ff.diffs))
 
         # print(f'aimed for {n_tracers} got {len(ff.mass[ii])}')
-        return ff.grid[ii], ff.mass[ii]
+        return ff.grid[ii], ff.dx[ii], ff.mass[ii]
 
 
 def get_dens_3D(grid_shape):
@@ -261,9 +272,9 @@ def get_surf_flux_3D(radius, dt):
         dx, dy = dx.T
 
         dphi = dx*np.pi*2
-        dtheta = dy*np.pi/2
+        dtheta = (1-yy**2)**-.5*dy
         phis = xx*np.pi*2
-        thetas = yy*np.pi/2
+        thetas = np.arccos(yy)
 
         area = np.sin(thetas)*radius**2*dtheta*dphi
 

@@ -868,6 +868,17 @@ pp_variables = {
         ),
         reduction=maximum,
     ),
+    'Omega-max': dict(
+        dependencies=("Omega-excised",),
+        func=lambda Gamma, *_, **kw: Gamma,
+        reduction=maximum,
+        plot_name_kwargs=dict(
+            name="$\Omega$",
+            unit="rad ms$^{-1}$",
+            code_unit="rad $M_\\odot^{-1}$",
+        ),
+        scale_factor=RUnits['Time']
+    ),
     '_press-weight': dict(
         dependencies=("press-th/cold-eos", "rho"),
         func=lambda pratio, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: _nan_mask(rho >= rho_cont)*pratio,

@@ -332,4 +332,6 @@ class GWData(TimeSeries):
         self.var = var
         self.kwargs = kwargs
 
-        self.its, self.times, self.data, self.restarts = self.var.func(self.var, **kwargs)
+        self.times, self.data = self.var.func(self.var, **kwargs)
+        self.its = var.sim.get_it(time=self.times)
+        self.restarts = var.sim.get_restart(it=self.its)

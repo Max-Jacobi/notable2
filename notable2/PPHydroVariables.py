@@ -40,6 +40,13 @@ def _Omega(vx, vy, x=0, y=0, z=0, **_):
     return (x*vy - y*vx)/r**2
 
 
+def _Omega_excised(vx, vy, x=0, y=0, z=0, **_):
+    x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
+    r = (x**2 + y**2)**.5
+    r[r <= 2] = np.inf
+    return (x*vy - y*vx)/r**2
+
+
 pp_variables = {
     "dens-pp": dict(
         dependencies=('rho', 'W', 'phi'),
@@ -137,6 +144,18 @@ pp_variables = {
             symetric_around=0,
         ),
     ),
+    "radial-flow": dict(
+        dependencies=('V^r', 'dens'),
+        func=lambda vv, dd, *_, **kw: vv*dd,
+        plot_name_kwargs=dict(
+            name="$radial mass flow$",
+            unit='$M_\\odot ^{-2}$',
+        ),
+        kwargs=dict(
+            cmap='cubehelix',
+        ),
+        save=False,
+    ),
     "ejb-flow": dict(
         dependencies=('V^r', 'dens', 'h', 'u_t'),
         func=lambda vv, dd, hh, ut, *_, **kw: vv*dd*(hh*ut < -1),
@@ -148,7 +167,7 @@ pp_variables = {
             cmap='cubehelix',
         )
     ),
-    "ejb-flow": dict(
+    "ejg-flow": dict(
         dependencies=('V^r', 'dens', 'u_t'),
         func=lambda vv, dd, ut, *_, **kw: vv*dd*(ut < -1),
         plot_name_kwargs=dict(
@@ -188,6 +207,19 @@ pp_variables = {
     "Omega": dict(
         dependencies=("V^x", "V^y"),
         func=_Omega,
+        plot_name_kwargs=dict(
+            name="$\Omega$",
+            unit="rad ms$^{-1}$",
+            code_unit="rad $M_\\odot^{-1}$",
+        ),
+        kwargs=dict(
+            cmap="viridis",
+        ),
+        scale_factor=RUnits['Time']
+    ),
+    "Omega-excised": dict(
+        dependencies=("V^x", "V^y"),
+        func=_Omega_excised,
         plot_name_kwargs=dict(
             name="$\Omega$",
             unit="rad ms$^{-1}$",

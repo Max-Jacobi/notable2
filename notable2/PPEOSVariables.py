@@ -30,6 +30,13 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             plot_name_kwargs=dict(name="specific internal energy"),
             kwargs=dict(cmap='inferno'),
         ),
+        'eps-eos-baryonic': dict(
+            dependencies=['ye', 'temp', 'rho'],
+            func=eos.get_caller(['only_E'],
+                                func=lambda eps, *_, **kw: eps),
+            plot_name_kwargs=dict(name="specific internal energy (baryonic only)"),
+            kwargs=dict(cmap='inferno'),
+        ),
         'entr-eos': dict(
             dependencies=['ye', 'temp', 'rho'],
             func=eos.get_caller(['entropy'],
@@ -52,12 +59,36 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             kwargs=dict(cmap='plasma'),
             scale_factor="Press"
         ),
+        'press-eos-baryonic': dict(
+            dependencies=['ye', 'temp', 'rho'],
+            func=eos.get_caller(['only_P'],
+                                func=lambda pres, *_, **kw: pres),
+            plot_name_kwargs=dict(
+                name=r"pressure (baryonic only)",
+                code_unit="$M_\\odot^{-2}$",
+                unit="g cm$^{-1}$ s$^{-2}$",
+            ),
+            kwargs=dict(cmap='plasma'),
+            scale_factor="Press"
+        ),
         'press-cold-eos': dict(
             dependencies=['ye', 'rho'],
             func=eos.get_cold_caller(['pressure'],
                                      func=lambda pres, *_, **kw: pres),
             plot_name_kwargs=dict(
                 name=r"pressure ($T=0$)",
+                code_unit="$M_\\odot^{-2}$",
+                unit="g cm$^{-1}$ s$^{-2}$",
+            ),
+            kwargs=dict(cmap='plasma'),
+            scale_factor="Press"
+        ),
+        'press-cold-eos-baryonic': dict(
+            dependencies=['ye', 'rho'],
+            func=eos.get_cold_caller(['only_P'],
+                                     func=lambda pres, *_, **kw: pres),
+            plot_name_kwargs=dict(
+                name=r"pressure ($T=0$) (baryonic only)",
                 code_unit="$M_\\odot^{-2}$",
                 unit="g cm$^{-1}$ s$^{-2}$",
             ),
@@ -71,8 +102,15 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             plot_name_kwargs=dict(name="specific internal energy ($T=0$)"),
             kwargs=dict(cmap='inferno'),
         ),
+        'eps-cold-eos-baryonic': dict(
+            dependencies=['ye', 'rho'],
+            func=eos.get_cold_caller(['only_E'],
+                                     func=lambda eps, *_, **kw: eps),
+            plot_name_kwargs=dict(name="specific internal energy ($T=0$) (baryonic only)"),
+            kwargs=dict(cmap='inferno'),
+        ),
         'press-th-eos': dict(
-            dependencies=['press', 'press-cold-eos'],
+            dependencies=['press-eos', 'press-cold-eos'],
             func=lambda press, pressc, *_, **kw: press-pressc,
             save=False,
             plot_name_kwargs=dict(
@@ -83,8 +121,29 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             kwargs=dict(cmap='plasma'),
             scale_factor="Press"
         ),
+        'press-th-eos-baryonic': dict(
+            dependencies=['press-eos-baryonic', 'press-cold-eos-baryonic'],
+            func=lambda press, pressc, *_, **kw: press-pressc,
+            save=False,
+            plot_name_kwargs=dict(
+                name=r"thermal pressure (baryonic only)",
+                code_unit="$M_\\odot^{-2}$",
+                unit="g cm$^{-1}$ s$^{-2}$",
+            ),
+            kwargs=dict(cmap='plasma'),
+            scale_factor="Press"
+        ),
+        'press-th/tot-eos': dict(
+            dependencies=['press-eos', 'press-cold-eos'],
+            func=lambda press, pressc, *_, **kw: (press-pressc)/press,
+            save=False,
+            plot_name_kwargs=dict(
+                name=r"$P_{\rm th}/P_{\rm tot}$",
+            ),
+            kwargs=dict(cmap='plasma', func='log'),
+        ),
         'press-th/cold-eos': dict(
-            dependencies=['press', 'press-cold-eos'],
+            dependencies=['press-eos', 'press-cold-eos'],
             func=lambda press, pressc, *_, **kw: (press-pressc)/pressc,
             save=False,
             plot_name_kwargs=dict(
@@ -93,10 +152,17 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             kwargs=dict(cmap='plasma', func='log'),
         ),
         'eps-th-eos': dict(
-            dependencies=['eps', 'eps-cold-eos'],
+            dependencies=['eps-eos', 'eps-cold-eos'],
             save=False,
             func=lambda eps, epsc, *_, **kw: eps-epsc,
             plot_name_kwargs=dict(name=r"$\epsilon_{\rm th}$"),
+            kwargs=dict(cmap='inferno'),
+        ),
+        'eps-th-eos-baryonic': dict(
+            dependencies=['eps-eos-baryonic', 'eps-cold-eos-baryonic'],
+            save=False,
+            func=lambda eps, epsc, *_, **kw: eps-epsc,
+            plot_name_kwargs=dict(name=r"$\epsilon_{\rm th}$ (baryonic only)"),
             kwargs=dict(cmap='inferno'),
         ),
         'e-th-eos': dict(
@@ -114,11 +180,11 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$"),
             kwargs=dict(cmap='cubehelix'),
         ),
-        'Gamma-th-eos': dict(
-            dependencies=['ye', 'temp', 'rho'],
-            func=eos.get_caller(['gamma'],
-                                func=lambda gamma, *_, **kw: gamma),
-            plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$"),
+        'Gamma-th-baryonic': dict(
+            dependencies=['rho', 'eps-th-eos-baryonic', 'press-th-eos-baryonic'],
+            save=False,
+            func=_Gamma,
+            plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$ (baryonic only)"),
             kwargs=dict(cmap='cubehelix'),
         ),
     }

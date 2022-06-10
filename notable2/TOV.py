@@ -20,6 +20,7 @@ class TOV:
     def __init__(self,
                  eos: "TabulatedEOS",
                  verbose: bool = False,
+                 correct_press: bool = True,
                  save: bool = True):
 
         self.parameters = {}
@@ -32,7 +33,8 @@ class TOV:
         self.verbose = verbose
         self.save = save
         self._get_table()
-        self._correct_press()
+        if correct_press:
+            self._correct_press()
 
     def _get_table(self):
         self.table = {}

@@ -171,6 +171,7 @@ class tracer():
     """
     A single Tracer object. Basically a wrapper around scipy.integrate.solve_ivp.
     """
+
     def __init__(self,
                  num,
                  position,
@@ -226,7 +227,7 @@ class tracer():
         if min_time <= self.times[-1] <= max_time:
             if self.t_step is not None:
                 if self.t_step > (max_t_step := np.abs(self.times[-1] - t_end)):
-                     self.t_step = max_t_step
+                    self.t_step = max_t_step
                 if self.t_step <= 0:
                     self.t_step = None
 
@@ -284,4 +285,6 @@ def load_tracer(file_path):
     data = dict(zip(keys, np.loadtxt(file_path, unpack=True)))
     data['mass'] = float(mass)
     data['status'] = int(status)
+    if len(nums := re.findall(r'\d+', file_path)) > 0:
+        data['num'] = nums[-1]
     return data

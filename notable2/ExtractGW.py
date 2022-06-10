@@ -163,7 +163,7 @@ def extract_strain(var, ll=2, mm=2, power=1, u_junk=200., n_points=3000):
             key += f":{kk}={item}"
         with File(f"{sim.pp_hdf5_path}/time_series.h5", 'a') as hdf5:
             if key in hdf5:
-                return hdf5[key].attrs['its'][:], hdf5[key].attrs['times'][:], hdf5[key][:], hdf5[key].attrs['restarts'][:]
+                return hdf5[key].attrs['times'][:], hdf5[key][:]
 
     if sim.ADM_J is None or sim.ADM_M is None:
         raise ValueError("Could not determine ADM mass and/or ADM J")
@@ -241,8 +241,6 @@ def extract_strain(var, ll=2, mm=2, power=1, u_junk=200., n_points=3000):
     hp = HH.real
     hx = -HH.imag
 
-    its = np.arange(len(uu)).astype(float)
-    rsts = np.zeros(len(uu)).astype(float)
     if var.save:
         with File(f"{sim.pp_hdf5_path}/time_series.h5", 'a') as hf:
             for pol, hh in zip("+ x".split(), (hp, hx)):
@@ -259,9 +257,7 @@ def extract_strain(var, ll=2, mm=2, power=1, u_junk=200., n_points=3000):
                     compression_opts=9,
                 )
                 dset.attrs['times'] = uu
-                dset.attrs['its'] = its
-                dset.attrs['restarts'] = rsts
 
     if 'h+' in var.key:
-        return its, uu, hp, rsts
-    return its, uu, hx, rsts
+        return uu, hp
+    return uu, hx

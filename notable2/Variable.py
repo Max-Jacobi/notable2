@@ -450,16 +450,7 @@ class GravitationalWaveVariable(PostProcVariable, TimeSeriesBaseVariable):
         super().__init__(dependencies=[], **kwargs)
 
     def get_data(self, it=None, **kwargs):
-        av_its = self.available_its(**kwargs)
-        if it is None:
-            it = av_its
-        if len(uni := np.setdiff1d(it, av_its)) != 0:
-            raise IterationError(f"Iteration(s) {uni} not found for self")
-        if isinstance(it, (int, np.integer)):
-            return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
-        return GWData(self, its=it, **kwargs)
+        return GWData(self, its=None, **kwargs)
 
     def available_its(self, **kwargs) -> 'NDArray[np.int_]':
-        if "n_points" in kwargs:
-            return np.arange(kwargs["n_points"])
-        return np.arange(3000)
+        return self.get_data().its

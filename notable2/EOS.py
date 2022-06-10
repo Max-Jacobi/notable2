@@ -136,7 +136,7 @@ class TabulatedEOS(EOS):
             islog = np.array([np.all(dd > 0) for dd in data])
             data[islog] = np.log10(data[islog])
 
-            res = ui.linterp2D(*args, *self.table_cold, list(data))
+            res = ui.linterp2D(*args, *self.table_cold, data)
 
             data = [np.zeros(fshape)*np.nan for _ in keys]
             for dd, rr, log in zip(data, res, islog):
@@ -171,7 +171,7 @@ class TabulatedEOS(EOS):
             islog = np.array([np.all(dd > 0) for dd in data])
             data[islog] = np.log10(data[islog])
 
-            res = ui.linterp2D(*args, *self.table_cold, list(data))
+            res = ui.linterp2D(*args, *self.table_cold, data)
 
             data = [np.zeros(fshape)*np.nan for _ in keys]
             for dd, rr, log in zip(data, res, islog):
@@ -207,7 +207,7 @@ class TabulatedEOS(EOS):
             islog = np.array([np.all(dd > 0) for dd in data])
             data[islog] = np.log10(data[islog])
 
-            res = ui.linterp3D(*args, *self.table, list(data))
+            res = ui.linterp3D(*args, *self.table, data)
 
             data = [np.zeros(fshape)*np.nan for _ in keys]
             for dd, rr, log in zip(data, res, islog):
@@ -226,7 +226,9 @@ class TabulatedEOS(EOS):
 
         _scale = dict(
             pressure=RUnits["Press"],
+            only_P=RUnits["Press"],
             internalEnergy=RUnits["Eps"],
+            only_E=RUnits["Eps"],
             density=RUnits["Rho"],
         )
 
