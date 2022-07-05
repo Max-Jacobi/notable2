@@ -4,6 +4,7 @@ from functools import reduce
 import numpy as np
 import scipy.integrate as sint
 from scipy.interpolate import interp1d
+from .Utils import Units
 
 
 class TracerBunch():
@@ -130,6 +131,9 @@ class TracerBunch():
         while True:
             i_end = self.load_chunk(self.i_start)
             if i_end is None:
+                for tr in self.tracers:
+                    if tr.status == 0:
+                        tr.save()
                 break
             t_start = self.times[self.i_start-self.off+1]
             t_end = self.times[i_end+self.off+1]
@@ -213,12 +217,12 @@ class tracer():
             raise
 
     def set_trace(self, time, pos):
-        self.times = np.concatenate((self.times, time))
-        self.pos = np.concatenate((self.pos, pos))
+        self.times = np.concatenate((self.times, time[1:]))
+        self.pos = np.concatenate((self.pos, pos[1:]))
         trace = np.array([self.get_data(tt, yy, self.trace.keys())
                           for tt, yy in zip(time, pos)])
         for kk, tt in zip(self.trace, trace.T):
-            self.trace[kk] = np.concatenate((self.trace[kk], tt))
+            self.trace[kk] = np.concatenate((self.trace[kk], tt[1:]))
 
     def integrate(self, t_start, t_end):
         if self.status == 1 or self.status == -1:
@@ -257,16 +261,29 @@ class tracer():
     def save(self):
         self.times = self.times[1:]
         self.pos = self.pos[1:]
-        self.times, inds = np.unique(self.times, return_index=True)
-        out = np.stack((self.times, *self.pos[inds].T, *[val[inds] for val in self.trace.values()]))
-        header = f"status={self.status}, mass={self.weight}\n"
+        _, uinds = np.unique(np.round(self.times, 7), return_index=True)
+        utimes = self.times[uinds]
+
+        t0 = utimes.min()
+        utimes -= t0
+
+        utimes *= Units['Time']
+        t0 *= Units['Time']
+        self.pos *= Units['Length']
+        if 'rho' in self.trace:
+            self.trace['rho'] *= Units['Rho']
+        if 'temp' in self.trace:
+            self.trace['temp'] *= 11.604518121745585
+
+
+        out = np.stack((utimes, *self.pos[uinds].T, *[val[uinds] for val in self.trace.values()]))
+        header = f"status={self.status}, mass={self.weight}, t0={t0}\n"
         header += f"{'time':>13s} {'x':>15s} {'y':>15s} {'z':>15s} "
         fmt = "%15.7e "*4
         for kk in self.trace:
             fmt += "%15.7e "
             header += f"{kk:>15s} "
         np.savetxt(f"{self.save_path}/tracer_{self.num:07d}.dat", out.T, fmt=fmt, header=header)
-
 
 def load_tracer(file_path):
     regex = "status=(.*), mass=(.*)"
