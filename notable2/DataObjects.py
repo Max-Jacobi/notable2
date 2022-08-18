@@ -52,7 +52,8 @@ class GridFunc(Mapping):
             return self.mem_data[rl]
 
         try:
-            data = self.var.sim.data_handler.get_grid_func(self.var.key, rl, self.it, self.region)
+            data = self.var.sim.data_handler.get_grid_func(
+                self.var.key, rl, self.it, self.region)
         except VariableError:
             if rl > 0:
                 return self.__getitem__(rl-1)
@@ -75,7 +76,8 @@ class GridFunc(Mapping):
 
         if len(int_coords) == 0:
             raise ValueError("No interpolation points give")
-        if len(missing := [ax for ax in int_coords if ax not in self.region]) != 0:
+        if len(missing := [ax for ax in int_coords
+                           if ax not in self.region]) != 0:
             raise ValueError(f"Axes {missing} not in GridFunc {self}")
 
         for ax, cc in int_coords.items():
@@ -87,12 +89,17 @@ class GridFunc(Mapping):
         result = 666.*np.ones_like(int_coords[ax])
 
         if kind == 'linear':
-            interpolate = {1: linterp1D, 2: linterp2D, 3: linterp3D}[self.dim]
+            match self.dim:
+                case 1: interpolate = linterp1D
+                case 2: interpolate = linterp2D
+                case 3: interpolate = linterp3D
             loff, roff = 0, -1
         elif kind == 'cubic':
-            interpolate = {1: chinterp1D, 2: chinterp2D, 3: chinterp3D}[self.dim]
+            match self.dim:
+                case 1: interpolate = chinterp1D
+                case 2: interpolate = chinterp2D
+                case 3: interpolate = chinterp3D
             loff, roff = 1, -2
-
         else:
             raise ValueError(f"{kind} kind interpolation not supported")
 
@@ -113,12 +120,13 @@ class GridFunc(Mapping):
                                   orig, ih, np.array([self[rl]]))
 
             result[mask] = interp
-            assert not np.any(interp == 666.), (f"interpolation error on rl {rl}\n"
-                                                f"{{ax: cc[mask][np.isnan(interp) for ax, cc in int_coords.items()]}}")
+            assert not np.any(interp == 666.), (
+                f"interpolation error on rl {rl}\n"
+                f"{{ax: cc[mask][np.isnan(interp) "
+                f"for ax, cc in int_coords.items()]}}"
+            )
         missing_mask = result == 666.
         if np.any(missing_mask):
-            #missing_cc = {ax: cc[missing_mask] for ax, cc in int_coords.items()}
-            #raise RuntimeWarning(f"Some interpolation coordinates not in {self}: {missing_cc}")
             result[missing_mask] = np.nan
         return result
 
@@ -212,11 +220,13 @@ class TimeSeries():
                  its: Optional['NDArray[np.int_]'] = None,
                  **kwargs):
         self.var = var
-        self.its, self.times, self.data, self.restarts = self.var.sim.data_handler.get_time_series(self.var.key)
+        self.its, self.times, self.data, self.restarts = self.var.sim.data_handler.get_time_series(
+            self.var.key)
         self.its = self.its.astype(int)
         self.restarts = self.restarts.astype(int)
         if its is not None:
-            self.its, inds, _ = np.intersect1d(self.its, its, return_indices=True)
+            self.its, inds, _ = np.intersect1d(
+                self.its, its, return_indices=True)
             self.times = self.times[inds]
             self.data = self.data[inds]
             self.restarts = self.restarts[inds]
@@ -274,7 +284,8 @@ class PPTimeSeries(TimeSeries):
                                       var=self.var,
                                       **kwargs)
             if all(dvar.vtype == 'time' for dvar in self.var.dependencies):
-                times = (dat := self.var.dependencies[0].get_data(it=its, **kwargs)).times
+                times = (dat := self.var.dependencies[0].get_data(
+                    it=its, **kwargs)).times
                 restarts = dat.restarts
             else:
                 times = self.var.sim.get_time(its)
@@ -286,7 +297,8 @@ class PPTimeSeries(TimeSeries):
 
             times = dep_data[0].times
             restarts = dep_data[0].restarts
-            data = self.var.func(*[dd.data for dd in dep_data], times, **self.kwargs)
+            data = self.var.func(
+                *[dd.data for dd in dep_data], times, **self.kwargs)
 
         with HDF5(f'{self.var.sim.pp_hdf5_path}/time_series.h5', 'a') as hdf5:
             if self.var.save and key in hdf5:

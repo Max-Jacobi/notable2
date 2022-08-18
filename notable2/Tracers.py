@@ -43,7 +43,8 @@ class TracerBunch():
             self.off = 2
             self.t_int_kind = 'cubic'
         else:
-            raise ValueError(f"Time interpolation with order {t_int_order} not supported")
+            raise ValueError(
+                f"Time interpolation with order {t_int_order} not supported")
 
         self.vars = {var: self.sim.get_variable(var)
                      for var in self.to_trace+('V^x', 'V^y', 'V^z')}
@@ -51,7 +52,8 @@ class TracerBunch():
                           (var.available_its(self.region)
                            for var in self.vars.values()))
         self.times = self.sim.get_time(self.its)
-        self.max_step = self.times[1]-self.times[0] if max_step is None else max_step
+        self.max_step = self.times[1] - \
+            self.times[0] if max_step is None else max_step
 
         max_t = self.init_tracers()
 
@@ -69,7 +71,8 @@ class TracerBunch():
                 del dat
             else:
                 for dd in dat.values():
-                    cur_size += sum(md.size*md.itemsize for md in dd.mem_data.values())
+                    cur_size += sum(md.size *
+                                    md.itemsize for md in dd.mem_data.values())
         self.dats = {}
         ii = i_start
         for it in self.its[i_start::-1]:
@@ -140,19 +143,22 @@ class TracerBunch():
             it_start = self.its[self.i_start-self.off+1]
             it_end = self.its[i_end+self.off+1]
             if self.verbose:
-                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})")
+                print(
+                    f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})")
 
             for nn, tr in enumerate(self.tracers):
                 if tr.status in [-1, 1]:
                     continue
                 if self.verbose:
-                    print(f"integrating tracer {nn} ({tr.num})           ", end='\r')
+                    print(
+                        f"integrating tracer {nn} ({tr.num})           ", end='\r')
                 try:
                     tr.integrate(t_start, t_end)
                 except KeyboardInterrupt:
                     raise
                 except Exception as ee:
-                    warn(f"{tr.num} had exception in integration step {t_start, t_end}\n{type(ee).__name__}: {str(ee)}")
+                    warn(
+                        f"{tr.num} had exception in integration step {t_start, t_end}\n{type(ee).__name__}: {str(ee)}")
                     tr.save()
                     tr.status = -1
 
@@ -163,7 +169,8 @@ class TracerBunch():
             if n_running+n_not_started == 0:
                 break
             if self.verbose:
-                print(f"{n_not_started} not started, {n_running} running, {n_failed} failed, {n_done} done")
+                print(
+                    f"{n_not_started} not started, {n_running} running, {n_failed} failed, {n_done} done")
             self.i_start = i_end + self.off*2
         if self.verbose:
             print()
@@ -173,7 +180,8 @@ class TracerBunch():
 
 class tracer():
     """
-    A single Tracer object. Basically a wrapper around scipy.integrate.solve_ivp.
+    A single Tracer object.
+    Basically a wrapper around scipy.integrate.solve_ivp.
     """
 
     def __init__(self,
@@ -275,14 +283,16 @@ class tracer():
         if 'temp' in self.trace:
             self.trace['temp'] *= 11.604518121745585
 
-        out = np.stack((utimes, *self.pos[uinds].T, *[val[uinds] for val in self.trace.values()]))
+        out = np.stack((utimes, *self.pos[uinds].T,
+                        *[val[uinds] for val in self.trace.values()]))
         header = f"status={self.status}, mass={self.weight}, t0={t0}\n"
         header += f"{'time':>13s} {'x':>15s} {'y':>15s} {'z':>15s} "
         fmt = "%15.7e "*4
         for kk in self.trace:
             fmt += "%15.7e "
             header += f"{kk:>15s} "
-        np.savetxt(f"{self.save_path}/tracer_{self.num:07d}.dat", out.T, fmt=fmt, header=header)
+        np.savetxt(f"{self.save_path}/tracer_{self.num:07d}.dat",
+                   out.T, fmt=fmt, header=header)
 
 
 class Trajectory:
