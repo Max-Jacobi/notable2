@@ -204,7 +204,7 @@ class PostProcVariable(Variable):
                     continue
 
         self.kwargs = kwargs if kwargs is not None else {}
-        self.PPkeys = PPkeys if PPkeys is not None else []
+        self.PPkeys = PPkeys if PPkeys is not None else {}
         self.func = func
         self.scale_factor = scale_factor
         self.save = save
@@ -397,6 +397,7 @@ class PPGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
                  **kwargs) -> PPGridFunc:
 
         coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
+        kwargs = {**self.PPkeys, **kwargs}
         return PPGridFunc(var=self,
                           region=region,
                           it=it,
@@ -421,6 +422,7 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
                                  f"for GridFuncVariables in {self.dependencies}")
 
     def get_data(self, it=None, **kwargs):
+        kwargs = {**self.PPkeys, **kwargs}
         try:
             av_its = self.available_its(**kwargs)
             if it is None:
@@ -453,4 +455,4 @@ class GravitationalWaveVariable(PostProcVariable, TimeSeriesBaseVariable):
         return GWData(self, its=None, **kwargs)
 
     def available_its(self, **kwargs) -> 'NDArray[np.int_]':
-        return self.get_data().its
+        return self.get_data(**kwargs).its

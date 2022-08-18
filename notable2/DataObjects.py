@@ -335,3 +335,7 @@ class GWData(TimeSeries):
         self.times, self.data = self.var.func(self.var, **kwargs)
         self.its = var.sim.get_it(time=self.times)
         self.restarts = var.sim.get_restart(it=self.its)
+        if np.any(np.diff(self.its) == 0):
+            # if iereations are the same everything goes to shit
+            self.its = np.arange(len(self.times))
+            self.restarts = np.arange(len(self.times))

@@ -47,6 +47,21 @@ def _Omega_excised(vx, vy, x=0, y=0, z=0, **_):
     return (x*vy - y*vx)/r**2
 
 
+def _J_phi(dd, hh, ww,
+           vx, vy, vz,
+           gxx, gxy, gxz,
+           gyy, gyz,
+           x=0, y=0, z=0, **_):
+    x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
+    # r = (gxx*x**2 + gyy*y**2 +
+    #      2*gxy*x*y + gxz*x*z + gyz*y*z)**.5
+    r = (x**2 + y**2)**.5
+    r[r == 0] = np.inf
+    v_y = gxy*vx + gyy*vy + gyz*vz
+    v_x = gxx*vx + gxy*vx + gxz*vz
+    return dd*hh*ww*(x*v_y - y*v_x)
+
+
 pp_variables = {
     "dens-pp": dict(
         dependencies=('rho', 'W', 'phi'),
@@ -88,6 +103,20 @@ pp_variables = {
         plot_name_kwargs=dict(
             name="radial velocity",
             unit='$c$',
+        ),
+        kwargs=dict(
+            cmap='seismic',
+            symetric_around=0,
+        )
+    ),
+    "J_phi": dict(
+        dependencies=('dens', 'h', 'W',
+                      'vel^x', 'vel^y', 'vel^z',
+                      'g_xx', 'g_xy', 'g_xz',
+                      'g_yy', 'g_yz'),
+        func=_J_phi,
+        plot_name_kwargs=dict(
+            name="anular momentum density",
         ),
         kwargs=dict(
             cmap='seismic',

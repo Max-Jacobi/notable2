@@ -111,14 +111,13 @@ class TOV:
         r3 = r2**1.5
         rr = r2**.5
         rminus2m = rr - 2*mass
-
         denum = (En+press)*(mass + fourpi*r3*press)
         if denum <= 0.:
             denum = 1e-20
 
         dr2 = -2*r2*(rr - 2*mass) / denum
 
-        dm = -fourpi * r2**(1.5) * En * (rr - 2*mass) / denum
+        dm = -fourpi * r3 * En * rminus2m / denum
 
         F = rr - fourpi * r3 * (En - press)
         F /= rminus2m
@@ -139,7 +138,7 @@ class TOV:
         if terminal_pressure is None:
             terminal_pressure = self.table["press"][0]
         p_span = central_press, terminal_pressure
-        p_eval = np.linspace(*p_span, N_points)
+        p_eval = np.linspace(central_press, terminal_pressure, N_points)
 
         y0 = np.array([1e-10, 1e-10, 2.])
 
@@ -257,10 +256,8 @@ class TOV:
 
         def _get_mass(p_cent):
             sol = self.Psolve(p_cent,)
-            if sol < 0:
-                raise RuntimeError(f"solver did not converge for central pressure {p_cent}")
-            if sol == 0:
-                raise RuntimeError(f"solver reached r=50M for central pressure {p_cent}")
+            if sol > 0:
+                return m_target
             if verbose:
                 print(f"{p_cent:16.6e} {self.parameters['M']:11.8f} {self.parameters['R']:11.8f}")
             return self.parameters["M"] - m_target

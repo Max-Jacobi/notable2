@@ -54,7 +54,8 @@ class Simulation():
                  offset: Optional[Dict[str, float]] = None,
                  is_cartoon: bool = False
                  ):
-        cactus_base = (os.environ['CACTUS_BASEDIR'] if "CACTUS_BASEDIR" in os.environ else None)
+        cactus_base = (os.environ['CACTUS_BASEDIR']
+                       if "CACTUS_BASEDIR" in os.environ else None)
         self.sim_path = (f"{cactus_base}/{sim_path}"
                          if sim_path[0] != '/' and cactus_base is not None else sim_path)
         self.sim_name = basename(sim_path)
@@ -76,7 +77,8 @@ class Simulation():
 
         (self._its, self._times, self._restarts), self._structure, self.its_lookup \
             = self.data_handler.get_structure()
-        self.rls = {it: np.arange(max(struc.keys())+1) for it, struc in self._structure.items()}
+        self.rls = {it: np.arange(max(struc.keys())+1)
+                    for it, struc in self._structure.items()}
         self.finest_rl = {it: rls.max() for it, rls in self.rls.items()}
 
         self.pp_grid_func_variables = {}
@@ -99,9 +101,11 @@ class Simulation():
 
     def read_PPVariables(self):
         for ufile in rcParams.PPGridFuncVariable_files:
-            self.pp_grid_func_variables.update(get_pp_variables(ufile, self.eos))
+            self.pp_grid_func_variables.update(
+                get_pp_variables(ufile, self.eos))
         for ufile in rcParams.PPTimeSeries_files:
-            self.pp_time_series_variables.update(get_pp_variables(ufile, self.eos))
+            self.pp_time_series_variables.update(
+                get_pp_variables(ufile, self.eos))
         for ufile in rcParams.PPGW_files:
             self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
 
@@ -146,7 +150,8 @@ class Simulation():
         if isinstance(it, np.ndarray):
             if any(ii not in self._its for ii in it):
                 it_er = np.array([ii for ii in it if ii not in self._its])
-                raise IterationError(f"Iterations {it_er} not all in {self.sim_name}")
+                raise IterationError(
+                    f"Iterations {it_er} not all in {self.sim_name}")
             return self._times[self._its.searchsorted(it)]
         if it not in self._its:
             raise IterationError(f"Iteration {it} not all in {self.sim_name}")
@@ -165,7 +170,8 @@ class Simulation():
         if isinstance(it, np.ndarray):
             if any(ii not in self._its for ii in it):
                 it_er = self._its[np.array([ii not in self._its for ii in it])]
-                raise IterationError(f"Iterations {it_er} not all in {self.sim_name}")
+                raise IterationError(
+                    f"Iterations {it_er} not all in {self.sim_name}")
             return self._times[self._its.searchsorted(it)]
         if it not in self._its:
             raise IterationError(f"Iteration {it} not all in {self.sim_name}")
@@ -187,12 +193,12 @@ class Simulation():
 
         try:
             habs = self.get_data("h-abs")
-            ind = find_peaks(habs.data, height=.15)[0][0]
-            # ind = np.argmax(habs.data)
-            return habs.times[ind]
+            ind, prop = find_peaks(habs.data, height=.1)
+            return habs.times[ind[np.argmax(prop['peak_heights'])]]
         except (VariableError, IndexError):
             if self.verbose:
-                print(f"{self.name} using bns separation to determine merger time")
+                print(
+                    f"{self.sim_name} using bns separation to determine merger time")
             data = self.get_data('bns-sep-tot')
             return bisect(interp1d(data.times, data.data - 8), 0, data.times[-1])
             # data = self.get_data('alpha-min')
@@ -223,7 +229,8 @@ class Simulation():
         alp_dat = self.get_data('alpha', region='xy', it=it)[frl]
 
         return minimize(
-            lambda xy: interp2d(coords['x'], coords['y'], alp_dat.T, kind='quintic')(*xy)[0],
+            lambda xy: interp2d(
+                coords['x'], coords['y'], alp_dat.T, kind='quintic')(*xy)[0],
             np.array([0., 0.]))['x']
 
     def get_variable(self, key: str) -> Variable:
@@ -238,16 +245,32 @@ class Simulation():
                 last_exc = exc
                 continue
         else:
-            if key in self.pp_grid_func_variables:
-                return PPGridFuncVariable(key=key, sim=self, **self.pp_grid_func_variables[key])
-            if key in self.pp_time_series_variables:
-                return PPTimeSeriesVariable(key=key, sim=self, **self.pp_time_series_variables[key])
-            if key in self.pp_gw_variables:
-                return GravitationalWaveVariable(key=key, sim=self, **self.pp_gw_variables[key])
-            raise VariableError(f"Could not find key {key} in {self}.") from last_exc
+            for var, var_list in (
+                (PPGridFuncVariable, self.pp_grid_func_variables),
+                (PPTimeSeriesVariable, self.pp_time_series_variables),
+                (GravitationalWaveVariable, self.pp_gw_variables)
+            ):
+                if key in var_list:
+                    return var(key=key, sim=self, **var_list[key])
 
-    def get_data(self, key: str, **kwargs):
-        return self.get_variable(key).get_data(**kwargs)
+            raise VariableError(
+                f"Could not find key {key} in {self}.") from last_exc
+
+    def get_data(self, key: str,
+                 min_time: Optional[float] = None,
+                 max_time: Optional[float] = None,
+                 **kwargs):
+        var = self.get_variable(key)
+        if min_time is not None or max_time is not None:
+            its = var.available_its(**kwargs)
+            if min_time is not None:
+                min_it = var.get_it(min_time, **kwargs)
+                its = its[its >= min_it]
+            if max_time is not None:
+                max_it = var.get_it(max_time, **kwargs)
+                its = its[its <= max_it]
+            return var.get_data(it=its, **kwargs)
+        return var.get_data(**kwargs)
 
     def get_coords(self,
                    region: str,
@@ -256,22 +279,27 @@ class Simulation():
                    ) -> Dict[int, Dict[str, 'NDArray[np.float_]']]:
 
         if len(region) > 1:
-            ret: Dict[int, Dict[str, 'NDArray[np.float_]']] = {rl: {} for rl in self._structure[it].keys()}
+            ret: Dict[int, Dict[str, 'NDArray[np.float_]']] = {
+                rl: {} for rl in self._structure[it].keys()}
             for rl in ret.keys():
                 if region not in self._structure[it][rl]:
                     for ax in region:
                         ret[rl][ax] = np.array([])
                 else:
-                    for ax, ori, dx, nn, of in zip(region,
-                                                   *self._structure[it][rl][region],
-                                                   [self._offset[ax] for ax in region]):
-                        ret[rl][ax] = of + ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)
+                    for ax, ori, dx, nn, of in zip(
+                        region,
+                        *self._structure[it][rl][region],
+                        [self._offset[ax] for ax in region]
+                    ):
+                        ret[rl][ax] = of + ori + dx * \
+                            np.arange(exclude_ghosts, nn-exclude_ghosts)
             return ret
 
         ret = {}
         for rl in self._structure[it].keys():
             ori, dx, nn = self._structure[it][rl][region]
-            ret[rl] = {region: ori + dx * np.arange(exclude_ghosts, nn-exclude_ghosts)}
+            ret[rl] = {region: ori + dx *
+                       np.arange(exclude_ghosts, nn-exclude_ghosts)}
         return ret
 
     def delete_saved_pp_time_series(self, key: str):

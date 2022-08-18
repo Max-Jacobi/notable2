@@ -1,6 +1,8 @@
 from inspect import signature
+
 from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING, Dict, Tuple
 from collections.abc import Iterable
+from functools import reduce
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.animation import FuncAnimation  # type: ignore
@@ -46,7 +48,7 @@ def _handle_PPkwargs(kwargs, var):
     if isinstance(var, PostProcVariable):
         for dvar in var.dependencies:
             kwargs, new_PPkwargs = _handle_PPkwargs(kwargs, dvar)
-            PPkwargs = {**PPkwargs, **new_PPkwargs}
+            PPkwargs = {**new_PPkwargs, **PPkwargs}
     return kwargs, PPkwargs
 
 
@@ -161,9 +163,7 @@ def plotGD(sim: "Simulation",
         func_str = "{}"
 
     if callable(func):
-        if isinstance(func, np.ufunc):
-            data = {rl: func(dd) for rl, dd in data.items()}
-        elif len(signature(func).parameters) == 1:
+        if isinstance(func, np.ufunc) or len(signature(func).parameters) == 1:
             data = {rl: func(dd) for rl, dd in data.items()}
         else:
             data = {rl: func(dd, **coords[rl]) for rl, dd in data.items()}
@@ -188,6 +188,8 @@ def plotGD(sim: "Simulation",
         # ----------------Tidy up kwargs-----------------------------------
         for kw in ['cmap']:
             kwargs.pop(kw)
+        if 'c' not in kwargs and 'color' not in kwargs and hasattr(sim, 'color'):
+            kwargs["color"] = sim.color
 
         # ----------------Plotting-----------------------------------------
 
@@ -378,12 +380,18 @@ def plotTS(sim: "Simulation",
     kwargs = {**var_kwargs, **kwargs}
 
     kwargs, PPkwargs = _handle_PPkwargs(kwargs, var)
+    if 'c' not in kwargs and 'color' not in kwargs and hasattr(sim, 'color'):
+        kwargs["color"] = sim.color
+
     # -------------data handling-------------------------------------------
     av_its = var.available_its(**PPkwargs)
     its = av_its[::every]
 
     mask = np.ones(len(its), dtype=bool)
-    if not isinstance(var, GravitationalWaveVariable):
+    if not (isinstance(var, GravitationalWaveVariable) or
+            (isinstance(var, PPTimeSeriesVariable) and
+             any(isinstance(dep, GravitationalWaveVariable)
+                 for dep in var.dependencies))):
         # GW data is defined on retarded time so the iteration's don't match
         # simulation times
         times = sim.get_time(it=its)
@@ -467,6 +475,67 @@ def plotTS(sim: "Simulation",
         li.set_label(label)
 
     return li
+
+
+def getHist(sim: "Simulation",
+            keys: list[str],
+            it: Optional[int] = None,
+            time: Optional[float] = None,
+            rls: "RLArgument" = None,
+            **kwargs):
+
+    res = {}
+    for key in ['dens', 'reduce-weights']:
+        if key not in keys:
+            keys = keys + [key]
+    vars = {key: sim.get_variable(key) for key in keys}
+    region = 'xz' if sim.is_cartoon else 'xyz'
+    its = reduce(np.intersect1d, (var.available_its(region) for var in vars.values()))
+    if it is None and time is None:
+        it = its[0]
+    elif isinstance(it, (int, np.integer)):
+        if it not in its:
+            raise IterationError(f"Iteration {it} for Variables {vars} not in {sim}")
+    elif isinstance(time, (int, float, np.number)):
+        times = sim.get_time(its)
+        if sim.t_merg is not None:
+            times -= sim.t_merg
+        it = its[times.searchsorted(time)]
+    else:
+        raise ValueError
+
+    grid_funcs = {key: var.get_data(region=region, it=it, **kwargs) for key, var in vars.items()}
+
+    coords = grid_funcs['dens'].coords
+
+    actual_rls = sim.expand_rl(rls, it)
+
+    datas = {key: {rl: gf[rl] for rl in actual_rls} for key, gf in grid_funcs.items()}
+    dats = {key: np.concatenate([dat.ravel() for dat in data.values()])
+            for key, data in datas.items()}
+
+    vols = []
+    # ccs = {'x': [], 'y': [], 'z': []}
+    for rl in actual_rls:
+        coord = coords[rl]
+        dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
+        coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
+        # ccs['x'].append(coord['x'])
+        # ccs['z'].append(coord['z'])
+        if sim.is_cartoon:
+            vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
+        # ccs['y'].append(np.zeros_like(coord['x']))
+        else:
+            vol = dx['x']*dx['y']*dx['z']*np.ones_like(coord['x'])
+            # ccs['y'].append(coord['y'])
+        vols.append(vol.ravel())
+    vols = np.concatenate(vols)
+    # for ax, cc in ccs.items():
+    #     dats[ax] = np.concatenate(cc)
+
+    mdat = vols*dats['dens']*dats['reduce-weights']
+
+    return dats, mdat
 
 
 def plotHist(sim: "Simulation",

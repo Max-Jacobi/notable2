@@ -337,7 +337,18 @@ pp_variables = {
     ),
     'mass-bulk': dict(
         dependencies=("dens", "rho", "rho-bulk"),
-        func=lambda dens, rho, rho_ns, *_, **kw: 2*dens*(rho >= rho_ns).astype(int),
+        func=lambda dens, rho, rho_ns, *_, **kw: 2 *
+        dens*(rho >= rho_ns).astype(int),
+        plot_name_kwargs=dict(
+            name="bulk mass",
+            unit=r"$M_\odot$"
+        ),
+        reduction=integral,
+    ),
+    'mass-NS-bulk': dict(
+        dependencies=("dens", "rho", "rho-bulk"),
+        func=lambda dens, rho, rho_ns, *_, **kw: 2 *
+        dens*(rho >= rho_ns/15).astype(int),
         plot_name_kwargs=dict(
             name="bulk mass",
             unit=r"$M_\odot$"
@@ -346,7 +357,8 @@ pp_variables = {
     ),
     'volume-bulk': dict(
         dependencies=("reduce-weights", "rho", "rho-bulk"),
-        func=lambda rw, rho, rho_ns, *_, **kw: 2*rw*(rho >= rho_ns).astype(int),
+        func=lambda rw, rho, rho_ns, *_, **kw: 2 *
+        rw*(rho >= rho_ns).astype(int),
         plot_name_kwargs=dict(
             name="bulk volume",
             unit="km$^3$",
@@ -365,7 +377,8 @@ pp_variables = {
     ),
     'mass-in-rho-cont': dict(
         dependencies=("dens", "rho"),
-        func=lambda dens, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*dens*(rho >= rho_cont),
+        func=lambda dens, rho, *_, rho_cont=1e13 *
+        RUnits['Rho'], **kw: 2*dens*(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mass ($\rho \geq rho_cont)",
             unit=r"$M_\odot$",
@@ -376,9 +389,58 @@ pp_variables = {
         reduction=integral,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
+    'J-in-rho-cont': dict(
+        dependencies=("J_phi", "rho"),
+        func=lambda jj, rho, *_, rho_cont=1e13 *
+        RUnits['Rho'], **kw: 2*jj*(rho >= rho_cont),
+        plot_name_kwargs=dict(
+            name=r"J ($\rho > rho_cont)",
+            format_opt=dict(
+                rho_cont=_rho_cont_format_func
+            ),
+        ),
+        reduction=integral,
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
+    'J-out-rho-cont': dict(
+        dependencies=("J_phi", "rho"),
+        func=lambda jj, rho, *_, rho_cont=1e13 *
+        RUnits['Rho'], **kw: 2*jj*(rho < rho_cont),
+        plot_name_kwargs=dict(
+            name=r"J ($\rho < rho_cont)",
+            format_opt=dict(
+                rho_cont=_rho_cont_format_func
+            ),
+        ),
+        reduction=integral,
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
+    'J/M-out-rho-cont': dict(
+        dependencies=("J-out-rho-cont", "mass-out-rho-cont"),
+        func=lambda jj, mm, *_, **kw: jj/mm,
+        plot_name_kwargs=dict(
+            name=r"J/M ($\rho < rho_cont)",
+            format_opt=dict(
+                rho_cont=_rho_cont_format_func
+            ),
+        ),
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
+    'J/M-in-rho-cont': dict(
+        dependencies=("J-in-rho-cont", "mass-in-rho-cont"),
+        func=lambda jj, mm, *_, **kw: jj/mm,
+        plot_name_kwargs=dict(
+            name=r"J/M ($\rho > rho_cont)",
+            format_opt=dict(
+                rho_cont=_rho_cont_format_func
+            ),
+        ),
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
     'E-th-out-rho-cont': dict(
         dependencies=("e-th-eos", "rho"),
-        func=lambda eth, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*eth*(rho < rho_cont).astype(int),
+        func=lambda eth, rho, *_, rho_cont=1e13 *
+        RUnits['Rho'], **kw: 2*eth*(rho < rho_cont).astype(int),
         plot_name_kwargs=dict(
             name=r"thermal energy ($\rho < rho_cont)",
             unit=r"$M_\odot$",
@@ -391,7 +453,8 @@ pp_variables = {
     ),
     'E-th-in-rho-cont': dict(
         dependencies=("e-th-eos", "rho"),
-        func=lambda eth, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*eth*(rho >= rho_cont).astype(int),
+        func=lambda eth, rho, *_, rho_cont=1e13 *
+        RUnits['Rho'], **kw: 2*eth*(rho >= rho_cont).astype(int),
         plot_name_kwargs=dict(
             name=r"thermal energy ($\rho \geq rho_cont)",
             unit=r"$M_\odot$",
@@ -417,7 +480,8 @@ pp_variables = {
     ),
     'volume-in-rho-cont': dict(
         dependencies=("reduce-weights", "rho"),
-        func=lambda rw, rho, *_, rho_cont=1e13*RUnits['Rho'], **kw: 2*rw*(rho >= rho_cont).astype(int),
+        func=lambda rw, rho, *_, rho_cont=1e13 *
+        RUnits['Rho'], **kw: 2*rw*(rho >= rho_cont).astype(int),
         plot_name_kwargs=dict(
             name=r"volume ($\rho \geq rho_cont)",
             unit="km $^3$",
@@ -428,6 +492,18 @@ pp_variables = {
         ),
         reduction=integral,
         scale_factor=Units['Length']**3,
+        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
+    'av-dens-in-rho-cont': dict(
+        dependencies=("mass-in-rho-cont", "volume-in-rho-cont"),
+        func=lambda mass, vol, *_, **kw: mass/vol,
+        plot_name_kwargs=dict(
+            name=r"average rest-mass density ($\rho \geq rho_cont)",
+            format_opt=dict(
+                rho_cont=_rho_cont_format_func
+            ),
+        ),
+        save=False,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'compactness-rho-cont': dict(
@@ -455,8 +531,8 @@ pp_variables = {
         save=False,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
-    'mass-disk': dict(
-        dependencies=("baryon-mass", "mass-bulk"),
+    'mass-disk-bulk': dict(
+        dependencies=("baryon-mass", "mass-NS-bulk"),
         func=lambda mtot, mns, *_, **kw: mtot-mns,
         plot_name_kwargs=dict(
             name="disk mass",
@@ -479,7 +555,7 @@ pp_variables = {
         ),
         reduction=sphere_surface_integral,
         scale_factor=RUnits['Time'],
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ej-esc': dict(
         dependencies=("M-ej-esc-dot",),
@@ -494,7 +570,7 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ej-in': dict(
         dependencies=("dens", "u_t"),
@@ -509,7 +585,7 @@ pp_variables = {
             ),
         ),
         reduction=integral,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ej-tot': dict(
         dependencies=("M-ej-esc", "M-ej-in"),
@@ -524,11 +600,12 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ejb-esc-dot': dict(
         dependencies=("V^r", "dens", "u_t", 'h'),
-        func=lambda vr, dens, u_t, h, *_, **kw: _mass_flow(vr, dens) * (h*u_t < -1),
+        func=lambda vr, dens, u_t, h, *
+        _, **kw: _mass_flow(vr, dens) * (h*u_t < -1),
         plot_name_kwargs=dict(
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -541,7 +618,7 @@ pp_variables = {
         ),
         reduction=sphere_surface_integral,
         scale_factor=RUnits['Time'],
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ejb-esc': dict(
         dependencies=("M-ejb-esc-dot",),
@@ -556,11 +633,12 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'Mp-ejb-esc-dot': dict(
         dependencies=("V^r", "dens", "ye", "u_t", 'h'),
-        func=lambda vr, dens, ye, u_t, h, *_, **kw: _mass_flow(vr, dens*ye) * (h*u_t < -1),
+        func=lambda vr, dens, ye, u_t, h, *
+        _, **kw: _mass_flow(vr, dens*ye) * (h*u_t < -1),
         plot_name_kwargs=dict(
             name=r"$\dot{M_p}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -573,7 +651,7 @@ pp_variables = {
         ),
         reduction=sphere_surface_integral,
         scale_factor=RUnits['Time'],
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'Mp-ejb-esc': dict(
         dependencies=("Mp-ejb-esc-dot",),
@@ -588,7 +666,7 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'ye-ejb-esc-tot': dict(
         dependencies=("Mp-ejb-esc", "M-ejb-esc",),
@@ -602,7 +680,7 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'ye-ejb-esc': dict(
         dependencies=("Mp-ejb-esc-dot", "M-ejb-esc-dot",),
@@ -616,7 +694,7 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ejb-in': dict(
         dependencies=("dens", "u_t", 'h'),
@@ -631,7 +709,7 @@ pp_variables = {
             ),
         ),
         reduction=integral,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'M-ejb-tot': dict(
         dependencies=("M-ejb-esc", "M-ejb-in"),
@@ -646,7 +724,7 @@ pp_variables = {
             ),
         ),
         save=False,
-        PPkeys=['radius'],
+        PPkeys=dict(radius=1000),
     ),
     'temp-bulk-mean': dict(
         dependencies=("temp", "rho", "rho-bulk"),
@@ -724,7 +802,8 @@ pp_variables = {
     ),
     'temp-in-rho-cont-mean': dict(
         dependencies=("temp", "rho",),
-        func=lambda temp, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: temp*_nan_mask(rho >= rho_cont),
+        func=lambda temp, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: temp*_nan_mask(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho \geq rho_cont)",
             unit="MeV",
@@ -737,7 +816,8 @@ pp_variables = {
     ),
     'ye-in-rho-cont-mean': dict(
         dependencies=("ye", "rho",),
-        func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*_nan_mask(rho >= rho_cont),
+        func=lambda ye, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: ye*_nan_mask(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $Y_e$ ($\rho \geq rho_cont)",
             format_opt=dict(
@@ -749,7 +829,8 @@ pp_variables = {
     ),
     'entr-in-rho-cont-mean': dict(
         dependencies=("entr", "rho",),
-        func=lambda entr, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: entr*_nan_mask(rho >= rho_cont),
+        func=lambda entr, rho, rho_cont=1e13 *
+        RUnits["Rho"], *_, **kw: entr*_nan_mask(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean entropy ($\rho \geq rho_cont)",
             unit=r"$k_{\rm B}$/nuc.",
@@ -762,7 +843,8 @@ pp_variables = {
     ),
     'press-in-rho-cont-mean': dict(
         dependencies=("press", "rho",),
-        func=lambda press, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: press*_nan_mask(rho >= rho_cont),
+        func=lambda press, rho, rho_cont=1e13 *
+        RUnits["Rho"], *_, **kw: press*_nan_mask(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean pressure ($\rho \geq rho_cont)",
             code_unit="$M_\\odot^{-2}$",
@@ -794,7 +876,8 @@ pp_variables = {
     ),
     'ye-out-rho-cont-mean': dict(
         dependencies=("ye", "rho",),
-        func=lambda ye, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: ye*_nan_mask(rho < rho_cont),
+        func=lambda ye, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: ye*_nan_mask(rho < rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $Y_e$ ($\rho < rho_cont)",
             format_opt=dict(
@@ -806,7 +889,8 @@ pp_variables = {
     ),
     'entr-out-rho-cont-mean': dict(
         dependencies=("entr", "rho",),
-        func=lambda entr, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: entr*_nan_mask(rho < rho_cont),
+        func=lambda entr, rho, rho_cont=1e13 *
+        RUnits["Rho"], *_, **kw: entr*_nan_mask(rho < rho_cont),
         plot_name_kwargs=dict(
             name=r"mean entropy ($\rho < rho_cont)",
             unit=r"$k_{\rm B}$/nuc.",
@@ -819,7 +903,8 @@ pp_variables = {
     ),
     'press-out-rho-cont-mean': dict(
         dependencies=("press", "rho",),
-        func=lambda press, rho, rho_cont=1e13*RUnits["Rho"], *_, **kw: press*_nan_mask(rho < rho_cont),
+        func=lambda press, rho, rho_cont=1e13 *
+        RUnits["Rho"], *_, **kw: press*_nan_mask(rho < rho_cont),
         plot_name_kwargs=dict(
             name=r"mean pressure ($\rho < rho_cont)",
             code_unit="$M_\\odot^{-2}$",
@@ -879,9 +964,19 @@ pp_variables = {
         ),
         scale_factor=RUnits['Time']
     ),
+    'temp-max-pp': dict(
+        dependencies=("temp",),
+        func=lambda temp, *_, **kw: temp,
+        reduction=maximum,
+        plot_name_kwargs=dict(
+            name="$T$",
+            unit="MeV",
+        ),
+    ),
     '_press-weight': dict(
         dependencies=("press-th/cold-eos", "rho"),
-        func=lambda pratio, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: _nan_mask(rho >= rho_cont)*pratio,
+        func=lambda pratio, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: _nan_mask(rho >= rho_cont)*pratio,
         plot_name_kwargs=dict(
             name=r"aux. thermal pressure weight",
             format_opt=dict(
@@ -892,7 +987,8 @@ pp_variables = {
     ),
     'Gamma-th-out-rho-cont-mean': dict(
         dependencies=("Gamma-th", "rho", ),
-        func=lambda Gamma, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho < rho_cont),
+        func=lambda Gamma, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho < rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $\Gamma_{\rm th}$ ($\rho < rho_cont)",
             format_opt=dict(
@@ -904,7 +1000,8 @@ pp_variables = {
     ),
     'Gamma-th-in-rho-cont-mean': dict(
         dependencies=("Gamma-th", "rho"),
-        func=lambda Gamma, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho >= rho_cont),
+        func=lambda Gamma, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: Gamma*_nan_mask(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean $\Gamma_{\rm th}$ ($\rho > rho_cont)",
             format_opt=dict(
@@ -929,7 +1026,8 @@ pp_variables = {
     ),
     'temp-in-rho-cont-mean': dict(
         dependencies=("temp", "rho",),
-        func=lambda temp, rho, rho_cont=1e13*RUnits['Rho'], *_, **kw: temp*_nan_mask(rho >= rho_cont),
+        func=lambda temp, rho, rho_cont=1e13 *
+        RUnits['Rho'], *_, **kw: temp*_nan_mask(rho >= rho_cont),
         plot_name_kwargs=dict(
             name=r"mean temperature ($\rho \geq rho_cont)",
             unit="MeV",

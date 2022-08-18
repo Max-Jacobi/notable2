@@ -275,7 +275,6 @@ class tracer():
         if 'temp' in self.trace:
             self.trace['temp'] *= 11.604518121745585
 
-
         out = np.stack((utimes, *self.pos[uinds].T, *[val[uinds] for val in self.trace.values()]))
         header = f"status={self.status}, mass={self.weight}, t0={t0}\n"
         header += f"{'time':>13s} {'x':>15s} {'y':>15s} {'z':>15s} "
@@ -285,23 +284,29 @@ class tracer():
             header += f"{kk:>15s} "
         np.savetxt(f"{self.save_path}/tracer_{self.num:07d}.dat", out.T, fmt=fmt, header=header)
 
-def load_tracer(file_path):
-    regex = "status=(.*), mass=(.*)"
-    with open(file_path, 'r') as ff:
-        header = ff.readline()
-        header = header.replace('# ', '')
-        ma = re.match(regex, header)
-        if ma is not None:
-            status, mass = ma.groups()
-        else:
-            status, mass = 0, 0
-        header = ff.readline()
-    header = header.replace('# ', '')
-    keys = header.split()
 
-    data = dict(zip(keys, np.loadtxt(file_path, unpack=True)))
-    data['mass'] = float(mass)
-    data['status'] = int(status)
-    if len(nums := re.findall(r'\d+', file_path)) > 0:
-        data['num'] = nums[-1]
-    return data
+class Trajectory:
+    def __init__(self, file_path):
+        regex = "status=(.*), mass=([0-9\.e+-]+)(, t0=)?(.*)?"
+        with open(file_path, 'r') as ff:
+            header = ff.readline()
+            header = header.replace('# ', '')
+            ma = re.match(regex, header)
+            if ma is not None:
+                status, mass, _, t0 = ma.groups()
+                if t0 == '':
+                    t0 = 0
+            else:
+                raise RuntimeError("Could not read header:\n"+header)
+            header = ff.readline()
+        header = header.replace('# ', '')
+        keys = header.split()
+
+        for key, data in zip(keys, np.loadtxt(file_path, unpack=True)):
+            setattr(self, key, data)
+            # = dict(zip(keys, np.loadtxt(file_path, unpack=True)))
+        self.mass = float(mass)
+        self.status = int(status)
+        self.t0 = float(t0)
+        if len(nums := re.findall(r'\d+', file_path)) > 0:
+            self.num = int(nums[-1])
