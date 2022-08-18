@@ -94,7 +94,8 @@ def plotGD(sim: "Simulation",
         it = its[0]
     elif isinstance(it, (int, np.integer)):
         if it not in its:
-            raise IterationError(f"Iteration {it} for Variable {var} not in {sim}")
+            raise IterationError(
+                f"Iteration {it} for Variable {var} not in {sim}")
     elif isinstance(time, (int, float, np.number)):
         times = sim.get_time(its)
         if sim.t_merg is not None:
@@ -113,11 +114,14 @@ def plotGD(sim: "Simulation",
         ax = plt.gca()
 
     var_kwargs, popped = _handle_kwargs(var.kwargs, dict(func=(func, None),
-                                                         slice_ax=(slice_ax, None),
-                                                         interp_ax=(interp_ax, None),
+                                                         slice_ax=(
+                                                             slice_ax, None),
+                                                         interp_ax=(
+                                                             interp_ax, None),
                                                          vmax=(vmax, None),
                                                          vmin=(vmin, None),
-                                                         symetric_around=(symetric_around, None),
+                                                         symetric_around=(
+                                                             symetric_around, None),
                                                          norm=(norm, Normalize(vmin, vmax))))
     func = popped["func"]
     slice_ax = popped["slice_ax"]
@@ -225,16 +229,19 @@ def plotGD(sim: "Simulation",
         if isinstance(label, str):
             label = label.replace('TIME', t_str)
             label = label.replace('IT', f'{it}')
-            label = label.replace('PLOTNAME', func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs)))
+            label = label.replace('PLOTNAME', func_str.format(
+                var.plot_name.print(code_units=code_units, **PPkwargs)))
             label = label.replace('SIM', sim.nice_name)
             li.set_label(label)
         if title is True:
-            title = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
+            title = func_str.format(var.plot_name.print(
+                code_units=code_units, **PPkwargs))
             title = f"{title}\n{t_str}"
         if isinstance(title, str):
             title = title.replace('TIME', t_str)
             title = title.replace('IT', f'{it}')
-            title = title.replace('PLOTNAME', func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs)))
+            title = title.replace('PLOTNAME', func_str.format(
+                var.plot_name.print(code_units=code_units, **PPkwargs)))
             title = title.replace('SIM', sim.nice_name)
             ax.set_title(title)
 
@@ -242,7 +249,8 @@ def plotGD(sim: "Simulation",
             ax.set_xlabel(xlabel)
 
         if ylabel is True:
-            ylabel = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
+            ylabel = func_str.format(var.plot_name.print(
+                code_units=code_units, **PPkwargs))
         if isinstance(ylabel, str):
             ax.set_ylabel(ylabel)
 
@@ -254,11 +262,14 @@ def plotGD(sim: "Simulation",
         if norm is None:
             norm = Normalize(vmax, vmin)
         if norm.vmax is None:
-            norm.vmax = max((dat[nan_mask].max() if np.any(nan_mask := np.isfinite(dat)) else 1) for dat in data.values())
+            norm.vmax = max((dat[nan_mask].max() if np.any(
+                nan_mask := np.isfinite(dat)) else 1) for dat in data.values())
         if norm.vmin is None:
-            norm.vmin = min((dat[nan_mask].min() if np.any(nan_mask := np.isfinite(dat)) else 0) for dat in data.values())
+            norm.vmin = min((dat[nan_mask].min() if np.any(
+                nan_mask := np.isfinite(dat)) else 0) for dat in data.values())
         if symetric_around is not None:
-            dv = max(np.abs(norm.vmin - symetric_around), np.abs(norm.vmax - symetric_around))
+            dv = max(np.abs(norm.vmin - symetric_around),
+                     np.abs(norm.vmax - symetric_around))
             norm.vmin = symetric_around - dv
             norm.vmax = symetric_around + dv
 
@@ -286,9 +297,11 @@ def plotGD(sim: "Simulation",
                     dat[:] = dat[:, ::-1]
 
             if contour:
-                im[rl] = ax.contour(xx, yy, dat.T, norm=norm, levels=levels, zorder=.99+.0001*rl, **kwargs)
+                im[rl] = ax.contour(xx, yy, dat.T, norm=norm,
+                                    levels=levels, zorder=.99+.0001*rl, **kwargs)
             else:
-                im[rl] = ax.imshow(dat.T, origin='lower', extent=extent, norm=norm, zorder=.9+.001*rl, **kwargs)
+                im[rl] = ax.imshow(
+                    dat.T, origin='lower', extent=extent, norm=norm, zorder=.9+.001*rl, **kwargs)
         plot_2d = Plot2D(im, norm, **kwargs)
 
         # ----------------Plot Finish--------------------------------------
@@ -307,22 +320,26 @@ def plotGD(sim: "Simulation",
         # ax.set_aspect(1)
 
         if label is True:
-            label = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
+            label = func_str.format(var.plot_name.print(
+                code_units=code_units, **PPkwargs))
             label = f"{label}\n{t_str}"
         if isinstance(label, str):
             label = label.replace('TIME', t_str)
             label = label.replace('IT', f'{it}')
-            label = label.replace('PLOTNAME', func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs)))
+            label = label.replace('PLOTNAME', func_str.format(
+                var.plot_name.print(code_units=code_units, **PPkwargs)))
             label = label.replace('SIM', sim.nice_name)
             ax.set_label(label)
 
         if title is True:
-            title = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
+            title = func_str.format(var.plot_name.print(
+                code_units=code_units, **PPkwargs))
             title = f"{title}\n{t_str}"
         if isinstance(title, str):
             title = title.replace('TIME', t_str)
             title = title.replace('IT', f'{it}')
-            title = title.replace('PLOTNAME', func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs)))
+            title = title.replace('PLOTNAME', func_str.format(
+                var.plot_name.print(code_units=code_units, **PPkwargs)))
             title = title.replace('SIM', sim.nice_name)
             ax.set_title(title)
 
@@ -463,79 +480,49 @@ def plotTS(sim: "Simulation",
         ax.set_xlabel(xlabel)
 
     if ylabel is True:
-        ylabel = func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs))
+        ylabel = func_str.format(var.plot_name.print(
+            code_units=code_units, **PPkwargs))
     if isinstance(ylabel, str):
         ax.set_ylabel(ylabel)
 
     if label is True:
         label = "SIM"
     if isinstance(label, str):
-        label = label.replace('PLOTNAME', func_str.format(var.plot_name.print(code_units=code_units, **PPkwargs)))
+        label = label.replace('PLOTNAME', func_str.format(
+            var.plot_name.print(code_units=code_units, **PPkwargs)))
         label = label.replace('SIM', sim.nice_name)
         li.set_label(label)
 
     return li
 
 
-def getHist(sim: "Simulation",
-            keys: list[str],
-            it: Optional[int] = None,
-            time: Optional[float] = None,
-            rls: "RLArgument" = None,
-            **kwargs):
+def animateGD(sim: "Simulation",
+              *args,
+              fig: Optional[plt.Figure] = None,
+              ax: Optional[plt.Axes] = None,
+              min_it: Optional[int] = None,
+              max_it: Optional[int] = None,
+              min_time: Optional[float] = None,
+              max_time: Optional[float] = None,
+              every: int = 1,
+              **kwargs):
 
-    res = {}
-    for key in ['dens', 'reduce-weights']:
-        if key not in keys:
-            keys = keys + [key]
-    vars = {key: sim.get_variable(key) for key in keys}
-    region = 'xz' if sim.is_cartoon else 'xyz'
-    its = reduce(np.intersect1d, (var.available_its(region) for var in vars.values()))
-    if it is None and time is None:
-        it = its[0]
-    elif isinstance(it, (int, np.integer)):
-        if it not in its:
-            raise IterationError(f"Iteration {it} for Variables {vars} not in {sim}")
-    elif isinstance(time, (int, float, np.number)):
-        times = sim.get_time(its)
-        if sim.t_merg is not None:
-            times -= sim.t_merg
-        it = its[times.searchsorted(time)]
-    else:
-        raise ValueError
+    from .Animations import Animation
 
-    grid_funcs = {key: var.get_data(region=region, it=it, **kwargs) for key, var in vars.items()}
-
-    coords = grid_funcs['dens'].coords
-
-    actual_rls = sim.expand_rl(rls, it)
-
-    datas = {key: {rl: gf[rl] for rl in actual_rls} for key, gf in grid_funcs.items()}
-    dats = {key: np.concatenate([dat.ravel() for dat in data.values()])
-            for key, data in datas.items()}
-
-    vols = []
-    # ccs = {'x': [], 'y': [], 'z': []}
-    for rl in actual_rls:
-        coord = coords[rl]
-        dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
-        coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
-        # ccs['x'].append(coord['x'])
-        # ccs['z'].append(coord['z'])
-        if sim.is_cartoon:
-            vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
-        # ccs['y'].append(np.zeros_like(coord['x']))
+    if fig is None:
+        if ax is None:
+            fig, ax = plt.subplots(1)
         else:
-            vol = dx['x']*dx['y']*dx['z']*np.ones_like(coord['x'])
-            # ccs['y'].append(coord['y'])
-        vols.append(vol.ravel())
-    vols = np.concatenate(vols)
-    # for ax, cc in ccs.items():
-    #     dats[ax] = np.concatenate(cc)
+            fig = ax.figure
+    elif ax is None:
+        ax = fig.gca()
 
-    mdat = vols*dats['dens']*dats['reduce-weights']
+    ani = Animation(min_time=min_time,
+                    max_time=max_time,
+                    every=every)
+    ani.add_animation(sim.GDAniFunc(*args, ax=ax, **kwargs))
 
-    return dats, mdat
+    return ani.animate(fig)
 
 
 def plotHist(sim: "Simulation",
@@ -568,13 +555,15 @@ def plotHist(sim: "Simulation",
 
     region = 'xz' if sim.is_cartoon else 'xyz'
 
-    its = np.intersect1d(xvar.available_its(region), yvar.available_its(region))
+    its = np.intersect1d(xvar.available_its(
+        region), yvar.available_its(region))
 
     if it is None and time is None:
         it = its[0]
     elif isinstance(it, (int, np.integer)):
         if it not in its:
-            raise IterationError(f"Iteration {it} for Variables {xvar} and {yvar} not in {sim}")
+            raise IterationError(
+                f"Iteration {it} for Variables {xvar} and {yvar} not in {sim}")
     elif isinstance(time, (int, float, np.number)):
         times = sim.get_time(its)
         if sim.t_merg is not None:
@@ -650,7 +639,8 @@ def plotHist(sim: "Simulation",
         elif len(signature(xfunc).parameters) == 1:
             xdata = {rl: xfunc(dd) for rl, dd in xdata.items()}
         else:
-            coords, xdata = {rl: xfunc(dd, **coords[rl]) for rl, dd in xdata.items()}
+            coords, xdata = {
+                rl: xfunc(dd, **coords[rl]) for rl, dd in xdata.items()}
 
     if callable(yfunc):
         if isinstance(yfunc, np.ufunc):
@@ -658,7 +648,8 @@ def plotHist(sim: "Simulation",
         elif len(signature(yfunc).parameters) == 1:
             ydata = {rl: yfunc(dd) for rl, dd in ydata.items()}
         else:
-            coords, ydata = {rl: yfunc(dd, **coords[rl]) for rl, dd in ydata.items()}
+            coords, ydata = {
+                rl: yfunc(dd, **coords[rl]) for rl, dd in ydata.items()}
 
     xdat = np.concatenate([xd.ravel() for xd in xdata.values()])
     ydat = np.concatenate([yd.ravel() for yd in ydata.values()])
@@ -689,11 +680,13 @@ def plotHist(sim: "Simulation",
             pass
 
     if xlabel is True:
-        xlabel = xfunc_str.format(xvar.plot_name.print(code_units=code_units, **xPPkwargs))
+        xlabel = xfunc_str.format(xvar.plot_name.print(
+            code_units=code_units, **xPPkwargs))
     if isinstance(xlabel, str):
         ax.set_xlabel(xlabel)
     if ylabel is True:
-        ylabel = yfunc_str.format(yvar.plot_name.print(code_units=code_units, **yPPkwargs))
+        ylabel = yfunc_str.format(yvar.plot_name.print(
+            code_units=code_units, **yPPkwargs))
     if isinstance(ylabel, str):
         ax.set_ylabel(ylabel)
 
@@ -713,32 +706,3 @@ def plotHist(sim: "Simulation",
         title = title.replace('SIM', sim.nice_name)
         ax.set_title(title)
     return im
-
-
-def animateGD(sim: "Simulation",
-              *args,
-              fig: Optional[plt.Figure] = None,
-              ax: Optional[plt.Axes] = None,
-              min_it: Optional[int] = None,
-              max_it: Optional[int] = None,
-              min_time: Optional[float] = None,
-              max_time: Optional[float] = None,
-              every: int = 1,
-              **kwargs):
-
-    from .Animations import Animation
-
-    if fig is None:
-        if ax is None:
-            fig, ax = plt.subplots(1)
-        else:
-            fig = ax.figure
-    elif ax is None:
-        ax = fig.gca()
-
-    ani = Animation(min_time=min_time,
-                    max_time=max_time,
-                    every=every)
-    ani.add_animation(sim.GDAniFunc(*args, ax=ax, **kwargs))
-
-    return ani.animate(fig)

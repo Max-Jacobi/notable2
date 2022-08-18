@@ -15,8 +15,10 @@ if TYPE_CHECKING:
 qq = np.array([-.5, 0, .5])*np.sqrt(3/5)
 ww = np.array([5, 8, 5])/18
 
-ww = np.array([0.5688888888888889, 0.4786286704993665, 0.4786286704993665, 0.2369268850561891, 0.2369268850561891])/2
-qq = np.array([0, -0.5384693101056831, 0.5384693101056831, -0.9061798459386640, 0.9061798459386640])/2
+ww = np.array([0.5688888888888889, 0.4786286704993665,
+              0.4786286704993665, 0.2369268850561891, 0.2369268850561891])/2
+qq = np.array([0, -0.5384693101056831, 0.5384693101056831, -
+              0.9061798459386640, 0.9061798459386640])/2
 
 
 qx, qy = map(np.ndarray.flatten, np.meshgrid(qq, qq))
@@ -48,11 +50,9 @@ def FluxSeeds(sim: "Simulation",
 
     if (unbound is None) or (unbound == "bernulli"):
         bg = 'b'
-        u_t = 'h-u_t'
         print('using Bernulli criterion')
     elif unbound == "geodesic":
         bg = ''
-        u_t = 'u_t'
         print('using geodesic criterion')
     else:
         raise ValueError(f'Unbound criterion "{unbound}" not supported')
@@ -78,8 +78,10 @@ def FluxSeeds(sim: "Simulation",
         # grids, dxs, masses = gr.get_mthresh(mthresh_est, n_tracers, n_tracers//100)
         _, grids, dxs, masses = gr.refine_grid(mthresh_est, 2*n_tracers)
 
-    it_seeds = np.concatenate([it*np.ones_like(mm) for it, mm in zip(its, masses)])
-    t_seeds = np.concatenate([tt*np.ones_like(mm) for tt, mm in zip(times, masses)])
+    it_seeds = np.concatenate([it*np.ones_like(mm)
+                              for it, mm in zip(its, masses)])
+    t_seeds = np.concatenate([tt*np.ones_like(mm)
+                             for tt, mm in zip(times, masses)])
     m_seeds = np.concatenate(masses)
 
     isort = np.argsort(it_seeds)
@@ -90,7 +92,8 @@ def FluxSeeds(sim: "Simulation",
         coords = [radius * np.sin(thetas), radius * np.cos(thetas)]
 
     else:
-        grids = [(np.random.rand(*dx.shape)-.5)*dx + grid for grid, dx in zip(grids, dxs)]
+        grids = [(np.random.rand(*dx.shape)-.5)*dx +
+                 grid for grid, dx in zip(grids, dxs)]
         phis = np.concatenate([2*np.pi*grid[:, 0] for grid in grids])
         thetas = np.concatenate([np.arccos(grid[:, 1]) for grid in grids])
 
@@ -228,7 +231,8 @@ class GridRefine:
                 self.mass.append(masses)
                 self.diffs.append(diff)
 
-                print(f"{n_cur:.2e} tracers with m_thresh = {mm:.5e}, {steps} refinement steps")
+                print(
+                    f"{n_cur:.2e} tracers with m_thresh = {mm:.5e}, {steps} refinement steps")
 
                 if abs(diff) < tol:
                     print()

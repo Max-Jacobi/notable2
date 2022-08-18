@@ -1,6 +1,5 @@
 import numpy as np
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
-from scipy.integrate import simps  # type: ignore
 
 from .RCParams import rcParams
 from .Variable import TimeSeriesBaseVariable, GridFuncBaseVariable
@@ -45,7 +44,8 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
                 dx = {ax: abs(cc[1] - cc[0]) for ax, cc in coord.items()}
             except IndexError:
                 dx = {ax: np.nan for ax in coord}
-            coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
+            coord = dict(zip(coord, np.meshgrid(
+                *coord.values(), indexing='ij')))
 
             if var.sim.is_cartoon:
                 vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
@@ -205,7 +205,8 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
         for rl in var.sim.expand_rl(rls, it=it):
             coord = dep_data[0].coords[rl]
             dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
-            coord = dict(zip(coord, np.meshgrid(*coord.values(), indexing='ij')))
+            coord = dict(zip(coord, np.meshgrid(
+                *coord.values(), indexing='ij')))
 
             if var.sim.is_cartoon:
                 vol = 2*np.pi*dx['x']*dx['z']*np.abs(coord['x'])
