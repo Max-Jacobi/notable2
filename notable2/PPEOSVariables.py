@@ -25,9 +25,9 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
         ),
         'h-inf': dict(
             dependencies=['ye'],
-            func=eos.get_inf_caller(['internalEnergy', 'mass_factor'],
+            func=eos.get_inf_caller(['internalEnergy'],
                                     func=lambda eps, mfac, *_, **__:
-                                    (1 + eps)*mfac/930.49410242),
+                                    1 + eps),
             plot_name_kwargs=dict(name=r"$h_\infty$"),
             kwargs=dict(cmap='cubehelix'),
         ),

@@ -38,6 +38,18 @@ class EOS(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_inf_caller(self,
+                       keys: List[str],
+                       func: Callable = lambda *args: args[0]
+                       ) -> Callable:
+        """
+        Returns a callable for creation of post processed data.
+        func is called with the signature (*data, ye),
+        where data are the arrays generated from keys
+        """
+        ...
+
 
 class TabulatedEOS(EOS):
     """Realistic Tabluated EOS """
