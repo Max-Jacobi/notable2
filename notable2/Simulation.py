@@ -11,7 +11,7 @@ from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
 from .EOS import EOS, TabulatedEOS
-from .RCParams import rcParams
+from .Config import config
 from .Variable import Variable, GridFuncVariable, TimeSeriesVariable
 from .Variable import PPGridFuncVariable, PPTimeSeriesVariable, GravitationalWaveVariable
 from .PostProcVariables import get_pp_variables
@@ -63,9 +63,9 @@ class Simulation():
         self.is_cartoon = is_cartoon
 
         self.data_handler = data_handler(self) if data_handler is not None \
-            else rcParams.default_data_handler(self)
+            else config.default_data_handler(self)
         if eos_path is None:
-            self.eos = TabulatedEOS(rcParams.default_eos_path)
+            self.eos = TabulatedEOS(config.default_eos_path)
         elif eos_path == 'ideal':
             ...
         else:
@@ -100,13 +100,13 @@ class Simulation():
         return self.sim_name
 
     def read_PPVariables(self):
-        for ufile in rcParams.PPGridFuncVariable_files:
+        for ufile in config.PPGridFuncVariable_files:
             self.pp_grid_func_variables.update(
                 get_pp_variables(ufile, self.eos))
-        for ufile in rcParams.PPTimeSeries_files:
+        for ufile in config.PPTimeSeries_files:
             self.pp_time_series_variables.update(
                 get_pp_variables(ufile, self.eos))
-        for ufile in rcParams.PPGW_files:
+        for ufile in config.PPGW_files:
             self.pp_gw_variables.update(get_pp_variables(ufile, self.eos))
 
     def expand_rl(self, rls: RLArgument, it: int) -> 'NDArray[np.int_]':

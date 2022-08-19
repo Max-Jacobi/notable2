@@ -6,7 +6,7 @@ import numpy as np
 import alpyne.uniform_interpolation as ui  # type: ignore
 
 from .Utils import IterationError
-from .RCParams import rcParams
+from .Config import config
 
 if TYPE_CHECKING:
     from .Utils import RLArgument, Simulation
@@ -106,13 +106,13 @@ def getEjectaHist(sim: "Simulation",
         its = its[(its <= max_it)]
     its = its[::every]
 
-    dth = np.pi/2/rcParams.surf_int_n_theta
-    thetas = (np.arange(rcParams.surf_int_n_theta)+.5)*dth
+    dth = np.pi/2/config.surf_int_n_theta
+    thetas = (np.arange(config.surf_int_n_theta)+.5)*dth
     if sim.is_cartoon:
         phis = np.array([0])
     else:
-        dph = np.pi*2/rcParams.surf_int_n_phi
-        phis = (np.arange(rcParams.surf_int_n_phi) + .5)*dph
+        dph = np.pi*2/config.surf_int_n_phi
+        phis = (np.arange(config.surf_int_n_phi) + .5)*dph
 
     thetas, phis = np.meshgrid(thetas, phis, indexing='ij')
 
@@ -138,12 +138,24 @@ def getEjectaHist(sim: "Simulation",
     interp_data = ui.getInterpPoints3D(
         sphere['x'], sphere['y'], sphere['z'], origin, i_dx)
 
-    result: dict[str, dict[int, NDArray[np.float_]]] = {kk: {} for kk in keys}
-    for it in tqdm(its, disable=sim.verbose):
-        data = np.array([var.get_data(region=region, it=it)[rl]
-                         for var in vars.values()])
+    n_points = len(sphere['x'])
+    n_its = len(its)
+
+    result = {
+        kk: np.empty(n_points*n_its) for kk in keys
+    }
+
+    result['iterations'] = np.concatenate(
+        [it*np.ones(n_points) for it in its]
+    )
+
+    for ii, it in tqdm(enumerate(its), disable=not sim.verbose):
+        data = np.array(
+            [var.get_data(region=region, it=it)[rl] for var in vars.values()]
+        )
 
         interp_values = ui.applyPoints3D(*interp_data, data)
+        sli = slice(ii*n_points, (ii+1)*n_points)
         for kk, res in zip(keys, interp_values):
-            result[kk][it] = res
+            result[kk][sli] = res
     return result

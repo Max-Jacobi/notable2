@@ -19,7 +19,7 @@ import re
 import json
 import numpy as np
 
-from .RCParams import rcParams
+from .Config import config
 from .DataObjects import GridFunc, TimeSeries, PPGridFunc, PPTimeSeries, GWData
 from .Utils import PlotName, Units, VariableError, BackupException, IterationError
 
@@ -148,19 +148,23 @@ class NativeVariable(Variable):
                                 key_dict['format_opt'] = {}
                             key_dict['format_opt'][f'key{ii}'] = val
                         if self.sim.verbose > 1:
-                            print(f"{self.sim.sim_name}: Using regex key {kk} for {key}")
+                            print(
+                                f"{self.sim.sim_name}: Using regex key {kk} for {key}")
                         break
                     if 'alias' in dic and key in dic['alias']:
                         if self.sim.verbose > 1:
-                            print(f"{self.sim.sim_name}: Using aliased key {kk} for {key}")
+                            print(
+                                f"{self.sim.sim_name}: Using aliased key {kk} for {key}")
                         key_dict = dic
                         break
                 else:
-                    raise VariableError(f"Key {key} not found in {json_path}") from exc
+                    raise VariableError(
+                        f"Key {key} not found in {json_path}") from exc
 
         self.file_key = key_dict.pop('file_key')
         self.file_name = key_dict.pop('file_name')
-        self.scale_factor = key_dict.pop('scale_factor') if 'scale_factor' in key_dict else 1
+        self.scale_factor = key_dict.pop(
+            'scale_factor') if 'scale_factor' in key_dict else 1
         if isinstance(self.scale_factor, str):
             self.scale_factor = Units[self.scale_factor]
         self.kwargs = key_dict.pop('kwargs') if 'kwargs' in key_dict else {}
@@ -239,7 +243,8 @@ class PostProcVariable(Variable):
                     else:
                         its = bvar.available_its(**kwargs)
                     if self.sim.verbose > 1:
-                        print(f"{self.sim.sim_name}: Using {bvar.key} instead of {dep.key}")
+                        print(
+                            f"{self.sim.sim_name}: Using {bvar.key} instead of {dep.key}")
                     return its
                 except (VariableError, IterationError):
                     continue
@@ -250,7 +255,7 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
     """Variable for native grid functions"""
 
     def __init__(self, key: str, sim: "Simulation", ):
-        super().__init__(key, sim, rcParams.GridFuncVariable_json)
+        super().__init__(key, sim, config.GridFuncVariable_json)
 
     def get_data(self,
                  region: str,
@@ -258,7 +263,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
                  exclude_ghosts: int = 0,
                  **kwargs) -> GridFunc:
 
-        coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
+        coords = self.sim.get_coords(
+            region=region, it=it, exclude_ghosts=exclude_ghosts)
         it_dict = self.sim.its_lookup
 
         if (self.key in it_dict) and (region in it_dict[self.key]):
@@ -270,7 +276,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
         for ali in self.alias:
             if (ali in self.sim.its_lookup) and (region in self.sim.its_lookup[ali]):
                 if self.sim.verbose > 1:
-                    print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
+                    print(
+                        f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                 self.key = ali
                 return GridFunc(var=self,
                                 region=region,
@@ -285,7 +292,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
                                    exclude_ghosts=exclude_ghosts,
                                    **kwargs)
                 if self.sim.verbose > 1:
-                    print(f"{self.sim.sim_name}: trying {bvar.key} instead of {self.key}")
+                    print(
+                        f"{self.sim.sim_name}: trying {bvar.key} instead of {self.key}")
                 return bu
             except (VariableError, IterationError):
                 continue
@@ -297,7 +305,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
         for ali in self.alias:
             if (ali in self.sim.its_lookup) and (region in self.sim.its_lookup[ali]):
                 if self.sim.verbose > 1:
-                    print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
+                    print(
+                        f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                 self.key = ali
                 return self.sim.its_lookup[ali][region]
 
@@ -305,7 +314,8 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
             try:
                 ret = bvar.available_its(region, **kwargs)
                 if self.sim.verbose > 1:
-                    print(f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
+                    print(
+                        f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
                 return ret
             except (VariableError, IterationError):
                 continue
@@ -316,7 +326,7 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
     """Variable for native time series functions"""
 
     def __init__(self, key: str, sim: "Simulation", ):
-        super().__init__(key, sim, rcParams.TimeSeriesVariables_json)
+        super().__init__(key, sim, config.TimeSeriesVariables_json)
 
     def get_data(self, it=None, **kwargs):
 
@@ -325,20 +335,23 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
             if it is None:
                 it = av_its
             if len(uni := np.setdiff1d(it, av_its)) != 0:
-                raise IterationError(f"Iteration(s) {uni} not found for {self.key}")
+                raise IterationError(
+                    f"Iteration(s) {uni} not found for {self.key}")
             if isinstance(it, (int, np.integer)):
                 return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
             return TimeSeries(self, its=it, **kwargs)
         except (VariableError, IterationError):
             for ali in self.alias:
                 if self.sim.verbose > 1:
-                    print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
+                    print(
+                        f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                 self.key = ali
                 av_its = self.available_its(**kwargs)
                 if it is None:
                     it = av_its
                 if len(uni := np.setdiff1d(it, av_its)) != 0:
-                    raise IterationError(f"Iteration(s) {uni} not found for {self.key}")
+                    raise IterationError(
+                        f"Iteration(s) {uni} not found for {self.key}")
                 try:
                     if isinstance(it, (int, np.integer)):
                         return TimeSeries(self, its=np.array([it]), **kwargs).data[0]
@@ -352,7 +365,8 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                     if it is None:
                         it = av_its
                     if len(uni := np.setdiff1d(it, av_its)) != 0:
-                        raise IterationError(f"Iteration(s) {uni} not found for {bvar.key}")
+                        raise IterationError(
+                            f"Iteration(s) {uni} not found for {bvar.key}")
                     if isinstance(it, (int, np.integer)):
                         it = np.array([it])
                     if isinstance(bvar, PostProcVariable):
@@ -371,7 +385,8 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                 try:
                     its = self.sim.data_handler.get_time_series(ali)[0]
                     if self.sim.verbose > 1:
-                        print(f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
+                        print(
+                            f"{self.sim.sim_name}: Found alias key {ali} for {self.key}")
                     self.key = ali
                     return its
                 except VariableError:
@@ -380,7 +395,8 @@ class TimeSeriesVariable(NativeVariable, TimeSeriesBaseVariable):
                 try:
                     ret = bvar.available_its(**kwargs)
                     if self.sim.verbose > 1:
-                        print(f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
+                        print(
+                            f"{self.sim.sim_name}: Using available its for {bvar.key} instead of {self.key}")
                     return ret
                 except (VariableError, IterationError):
                     continue
@@ -396,7 +412,8 @@ class PPGridFuncVariable(PostProcVariable, GridFuncBaseVariable):
                  exclude_ghosts: int = 0,
                  **kwargs) -> PPGridFunc:
 
-        coords = self.sim.get_coords(region=region, it=it, exclude_ghosts=exclude_ghosts)
+        coords = self.sim.get_coords(
+            region=region, it=it, exclude_ghosts=exclude_ghosts)
         kwargs = {**self.PPkeys, **kwargs}
         return PPGridFunc(var=self,
                           region=region,

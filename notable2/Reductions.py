@@ -1,7 +1,7 @@
 import numpy as np
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
 
-from .RCParams import rcParams
+from .Config import config
 from .Variable import TimeSeriesBaseVariable, GridFuncBaseVariable
 
 if TYPE_CHECKING:
@@ -72,13 +72,13 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
 
     region = 'xz' if var.sim.is_cartoon else 'xyz'
 
-    dth = np.pi/2/rcParams.surf_int_n_theta
-    thetas = (np.arange(rcParams.surf_int_n_theta)+.5)*dth
+    dth = np.pi/2/config.surf_int_n_theta
+    thetas = (np.arange(config.surf_int_n_theta)+.5)*dth
     if var.sim.is_cartoon:
         phis = np.array([0])
     else:
-        dph = np.pi*2/rcParams.surf_int_n_phi
-        phis = (np.arange(rcParams.surf_int_n_phi) + .5)*dph
+        dph = np.pi*2/config.surf_int_n_phi
+        phis = (np.arange(config.surf_int_n_phi) + .5)*dph
 
     thetas, phis = np.meshgrid(thetas, phis, indexing='ij')
 
