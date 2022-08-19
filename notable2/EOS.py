@@ -96,56 +96,55 @@ class TabulatedEOS(EOS):
                                np.array([iye, iltemp, ilrho])]
         return self._table
 
-    @property
-    def table_cold(self) -> List['NDArray[np.float_]']:
-        if self._table_cold is None:
-            with File(self.hydro_path, 'r') as hfile:
-                Ye = np.array(hfile['ye'])
-                lrho = np.log10(hfile['density']) + np.log10(RUnits['Rho'])
-                iye = 1/(Ye[1]-Ye[0])
-                ilrho = 1/(lrho[1]-lrho[0])
-            self._table_cold = [np.array([Ye[0], lrho[0]]),
-                                np.array([iye, ilrho])]
-        return self._table_cold
-
     def get_key(self, key):
         self._get_keys([key])
         return self.data[key]
 
-    def get_min_caller(self,
+    def get_inf_caller(self,
                        keys: List[str],
                        func: Callable = lambda *args: args[0]
                        ) -> Callable:
-        def eos_caller_min(ye: 'NDArray[np.float_]',
-                           rho: 'NDArray[np.float_]',
+        def eos_caller_inf(ye: 'NDArray[np.float_]',
                            *_, **kw) -> 'NDArray[np.float_]':
 
             nonlocal keys
             nonlocal func
 
             self._get_keys(keys)
+            scalars = [kk for kk in keys if np.isscalar(self.data[kk])]
 
             shape = ye.shape
             fshape = (np.prod(shape), )
 
-            args = [ye.flatten(), np.log10(rho).flatten()]
-            mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
-            args = [arg[mask] for arg in args]
+            ye = ye.flatten()
+            mask = np.isfinite(ye)
+            ye = ye[mask]
 
-            data = np.array([np.min(self.data[kk], axis=1) for kk in keys])
+            data = np.array([self.data[kk][:, 0, 0] for kk in keys
+                             if kk not in scalars])
             islog = np.array([np.all(dd > 0) for dd in data])
             data[islog] = np.log10(data[islog])
 
-            res = ui.linterp2D(*args, *self.table_cold, data)
+            res = ui.linterp1D(ye,
+                               self.table[0][0],
+                               self.table[1][0],
+                               data)
 
-            data = [np.zeros(fshape)*np.nan for _ in keys]
-            for dd, rr, log in zip(data, res, islog):
-                dd[mask] = 10**rr if log else rr
-            data = [np.reshape(dd, shape) for dd in data]
+            args = []
+            for kk in keys:
+                i_int = 0
+                if kk in scalars:
+                    tmp = self.data[kk]
+                else:
+                    tmp = np.zeros(fshape)*np.nan
+                    tmp[mask] = 10**res[i_int] if islog[i_int] else res[i_int]
+                    tmp = np.reshape(tmp, shape)
+                    i_int += 1
+                args.append(tmp)
 
-            return func(*data, rho, ye, **kw)
+            return func(*args, ye, **kw)
 
-        return eos_caller_min
+        return eos_caller_inf
 
     def get_cold_caller(self,
                         keys: List[str],
@@ -159,6 +158,7 @@ class TabulatedEOS(EOS):
             nonlocal func
 
             self._get_keys(keys)
+            scalars = [kk for kk in keys if np.isscalar(self.data[kk])]
 
             shape = ye.shape
             fshape = (np.prod(shape), )
@@ -167,18 +167,29 @@ class TabulatedEOS(EOS):
             mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
             args = [arg[mask] for arg in args]
 
-            data = np.array([self.data[kk][:, 0] for kk in keys])
+            data = np.array([self.data[kk][:, 0] for kk in keys
+                             if kk not in scalars])
             islog = np.array([np.all(dd > 0) for dd in data])
             data[islog] = np.log10(data[islog])
 
-            res = ui.linterp2D(*args, *self.table_cold, data)
+            res = ui.linterp2D(*args,
+                               self.table[0][[0, 2]],
+                               self.table[1][[0, 2]],
+                               data)
 
-            data = [np.zeros(fshape)*np.nan for _ in keys]
-            for dd, rr, log in zip(data, res, islog):
-                dd[mask] = 10**rr if log else rr
-            data = [np.reshape(dd, shape) for dd in data]
+            args = []
+            for kk in keys:
+                i_int = 0
+                if kk in scalars:
+                    tmp = self.data[kk]
+                else:
+                    tmp = np.zeros(fshape)*np.nan
+                    tmp[mask] = 10**res[i_int] if islog[i_int] else res[i_int]
+                    tmp = np.reshape(tmp, shape)
+                    i_int += 1
+                args.append(tmp)
 
-            return func(*data, rho, ye, **kw)
+            return func(*args, ye, **kw)
 
         return eos_caller_cold
 
@@ -199,7 +210,8 @@ class TabulatedEOS(EOS):
             shape = ye.shape
             fshape = (np.prod(shape), )
 
-            args = [ye.flatten(), np.log10(temp).flatten(), np.log10(rho).flatten()]
+            args = [ye.flatten(), np.log10(temp).flatten(),
+                    np.log10(rho).flatten()]
             mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
             args = [arg[mask] for arg in args]
 
@@ -209,18 +221,27 @@ class TabulatedEOS(EOS):
 
             res = ui.linterp3D(*args, *self.table, data)
 
-            data = [np.zeros(fshape)*np.nan for _ in keys]
-            for dd, rr, log in zip(data, res, islog):
-                dd[mask] = 10**rr if log else rr
-            data = [np.reshape(dd, shape) for dd in data]
+            args = []
+            for kk in keys:
+                i_int = 0
+                if kk in scalars:
+                    tmp = self.data[kk]
+                else:
+                    tmp = np.zeros(fshape)*np.nan
+                    tmp[mask] = 10**res[i_int] if islog[i_int] else res[i_int]
+                    tmp = np.reshape(tmp, shape)
+                    i_int += 1
+                args.append(tmp)
 
-            return func(*data, rho, temp, ye, **kw)
+            return func(*args, ye, **kw)
 
         return eos_caller
 
     def _get_keys(self, keys: List[str]):
         if self.hydro_path is None:
-            raise OSError("Path to EOS file not given. Run Simulation.eos.set_path('path/to/eos/'")
+            raise OSError(
+                "Path to EOS file not given. "
+                "Run Simulation.eos.set_path('path/to/eos/')")
 
         new_keys = [kk for kk in keys if kk not in self.data]
 

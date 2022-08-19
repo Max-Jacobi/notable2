@@ -23,6 +23,14 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             plot_name_kwargs=dict(name="specific relativistic enthalpy"),
             kwargs=dict(cmap='hot'),
         ),
+        'h-inf': dict(
+            dependencies=['ye'],
+            func=eos.get_inf_caller(['internalEnergy', 'mass_factor'],
+                                    func=lambda eps, mfac, *_, **__:
+                                    (1 + eps)*mfac/930.49410242),
+            plot_name_kwargs=dict(name=r"$h_\infty$"),
+            kwargs=dict(cmap='cubehelix'),
+        ),
         'eps-eos': dict(
             dependencies=['ye', 'temp', 'rho'],
             func=eos.get_caller(['internalEnergy'],
@@ -34,7 +42,8 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             dependencies=['ye', 'temp', 'rho'],
             func=eos.get_caller(['only_E'],
                                 func=lambda eps, *_, **kw: eps),
-            plot_name_kwargs=dict(name="specific internal energy (baryonic only)"),
+            plot_name_kwargs=dict(
+                name="specific internal energy (baryonic only)"),
             kwargs=dict(cmap='inferno'),
         ),
         'entr-eos': dict(
@@ -106,7 +115,8 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             dependencies=['ye', 'rho'],
             func=eos.get_cold_caller(['only_E'],
                                      func=lambda eps, *_, **kw: eps),
-            plot_name_kwargs=dict(name="specific internal energy ($T=0$) (baryonic only)"),
+            plot_name_kwargs=dict(
+                name="specific internal energy ($T=0$) (baryonic only)"),
             kwargs=dict(cmap='inferno'),
         ),
         'press-th-eos': dict(
@@ -168,7 +178,8 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
         'e-th-eos': dict(
             dependencies=['eps-th-eos', 'press-th-eos', 'W', 'rho', 'psi'],
             save=False,
-            func=lambda eps, press, Wl, rho, psi, *_, **kw: psi**6 * (Wl**2 * (eps*rho + press) - press),
+            func=lambda eps, press, Wl, rho, psi, *
+            _, **kw: psi**6 * (Wl**2 * (eps*rho + press) - press),
             plot_name_kwargs=dict(name=r"$e_{\rm th}$"),
             kwargs=dict(cmap='inferno'),
             scale_factor="Rho"
@@ -181,7 +192,8 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
             kwargs=dict(cmap='cubehelix'),
         ),
         'Gamma-th-baryonic': dict(
-            dependencies=['rho', 'eps-th-eos-baryonic', 'press-th-eos-baryonic'],
+            dependencies=['rho', 'eps-th-eos-baryonic',
+                          'press-th-eos-baryonic'],
             save=False,
             func=_Gamma,
             plot_name_kwargs=dict(name=r"$\Gamma_{\rm th}$ (baryonic only)"),
