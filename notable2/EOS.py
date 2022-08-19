@@ -206,6 +206,7 @@ class TabulatedEOS(EOS):
             nonlocal func
 
             self._get_keys(keys)
+            scalars = [kk for kk in keys if np.isscalar(self.data[kk])]
 
             shape = ye.shape
             fshape = (np.prod(shape), )
