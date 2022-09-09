@@ -16,7 +16,7 @@ if (xdg_config_home := os.environ["XDG_CONFIG_HOME"]) == "":
 class Config():
     """Holds default parameters"""
     default_data_handler: Type[DataHandler] = PackET2Handler
-    default_eos_path: str = f"{home}/desert/simulations/EOS/LS220/hydro.h5"
+    default_eos_path: str = f"{home}/desert/simulations/EOS/LS220"
     GridFuncVariable_json: str = f"{notable_dir}/GridFuncVariables.json"
     TimeSeriesVariables_json: str = f"{notable_dir}/TimeSeriesVariables.json"
     PPGridFuncVariable_files: List[str] = [f"{notable_dir}/PPHydroVariables.py",

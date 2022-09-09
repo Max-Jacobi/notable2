@@ -55,7 +55,7 @@ class TOV:
         )
         mu_nu = getter(ye, rho)
 
-        for ii, mn in enumerate(mu_nu):
+        for ii, (dd, mn) in enumerate(zip(rho, mu_nu)):
             f = interp1d(ye_0, mn, kind="cubic", bounds_error=True)
             try:
                 self.table["ye"][ii] = toms748(
@@ -63,7 +63,7 @@ class TOV:
                     xtol=1e-6, rtol=1e-3, maxiter=100
                 )
             except ValueError:
-                self.table["ye"][ii] = ye_0.min()
+                self.table["ye"][ii] = ye_0[0]
 
         self.table["mu_nu"] = getter(self.table["ye"], self.table["rho"])
         getter = self.eos.get_cold_caller(["pressure"])
@@ -99,12 +99,13 @@ class TOV:
             i_s = np.where(mon_mask)[0][0]
             pickup = self.table["press"][i_s:] > self.table["press"][i_s]
             i_e = np.where(pickup)[0][0] + i_s
-            print(
-                "correcting for non monotonic pressure "
-                f'at rho={self.table["rho"][i_s]:.2e} - '
-                f'{self.table["rho"][i_e]:.2e} '
-                f"({i_e - i_s} points)"
-            )
+            if self.verbose:
+                print(
+                    "correcting for non monotonic pressure "
+                    f'at rho={self.table["rho"][i_s]:.2e} - '
+                    f'{self.table["rho"][i_e]:.2e} '
+                    f"({i_e - i_s} points)"
+                )
             for key, table in self.table.items():
                 self.table[key] = np.concatenate(
                     (table[: i_s + 1], table[i_e:]))
@@ -119,6 +120,8 @@ class TOV:
 
     def _get_Psources(self, press, r2my):
         r2, mass, yy = r2my
+        if any(map(lambda dd: not np.all(np.isfinite(dd)), r2my)):
+            return np.array([np.nan, np.nan, np.nan])
 
         En = self._call_eos(press, "En")
         cs2 = self._call_eos(press, "cs2")
@@ -305,7 +308,7 @@ class TOV:
                 [self._call_eos(pp, key) for pp in self.data["p"]]
             )
 
-    def get_central_p(self, m_target, a=5e-5, b=1e-3):
+    def get_central_p(self, m_target, a=5e-5, b=1e-3, **kwargs):
         verbose = self.verbose
         save = self.save
         self.save = False
@@ -315,8 +318,8 @@ class TOV:
             self.verbose = False
 
         def _get_mass(p_cent):
-            sol = self.Psolve(p_cent,)
-            if sol > 0:
+            sol = self.Psolve(p_cent, **kwargs)
+            if sol != 0:
                 return m_target
             if verbose:
                 print(

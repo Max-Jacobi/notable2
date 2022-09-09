@@ -1,8 +1,39 @@
 import numpy as np
 from scipy.integrate import cumtrapz  # type: ignore
-from notable2.Reductions import integral, sphere_surface_integral
+from notable2.Reductions import integral, integral_2D, sphere_surface_integral
 from notable2.Reductions import mean, minimum, maximum
 from notable2.Utils import Units, RUnits
+
+
+def _ye_eq(Le, La, Lne, Lna, *_, **__):
+    mm = (Lne > 0) * (Lna > 0)
+    Ee = (Le[mm]/Lne[mm])
+    Ea = (La[mm]/Lna[mm])
+    ee = Ee*1.2
+    ea = Ea*1.2
+    We = 1 + 1.01*Ee
+    Wa = 1 - 7.22*Ea
+    DD = 2.067e-6
+    # from Rosswog & Korobkin 2022 (eq 1)
+    ye = La[mm] * Wa * (ea - 2*DD + 1.2*DD**2/ea)
+    ye /= Le[mm] * We * (ee - 2*DD + 1.2*DD**2/ee)
+    res = np.zeros_like(Le)
+    res[mm] = (1 + ye)**-1
+    return res
+
+
+def _ident(xx, *_, **__):
+    return xx
+
+
+def _m_decomp_r(dd, mm, x, y, *_, **__):
+    phi = np.arctan2(y, x)
+    return dd*np.cos(mm*phi)
+
+
+def _m_decomp_i(dd, mm, x, y, *_, **__):
+    phi = np.arctan2(y, x)
+    return -dd*np.sin(mm*phi)
 
 
 def _mass_flow(Vr, dens, *_, **kw):
@@ -82,6 +113,13 @@ def _rho_cont_format_func(rho_cont=1e13*RUnits['Rho'], code_units=False):
         return f"{rho_cont:.0f} " + r'M_\odot^{-2}$'
     else:
         return f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$"
+
+
+def _radius_format_func(radius, code_units=False):
+    if code_units:
+        return f"{radius:.0f} " + r'M_\odot$'
+    else:
+        return f"{radius*Units['Length']:.0e}"+r"\,$km"
 
 
 pp_variables = {
@@ -375,6 +413,34 @@ pp_variables = {
         ),
         save=False,
     ),
+    'M-ejb-in-radius': dict(
+        dependencies=("ejb-dens",),
+        func=_ident,
+        plot_name_kwargs=dict(
+            name=r"ejected mass ($inner_ \leq r \leq outer_r)",
+            unit=r"$M_\odot$",
+            format_opt=dict(
+                inner_r=_radius_format_func,
+                outer_r=_radius_format_func
+            ),
+        ),
+        reduction=integral,
+        PPkeys=dict(inner_r=300, outer_r=1000),
+    ),
+    'M-ejg-in-radius': dict(
+        dependencies=("ejg-dens",),
+        func=_ident,
+        plot_name_kwargs=dict(
+            name=r"ejected mass ($inner_ \leq r \leq outer_r)",
+            unit=r"$M_\odot$",
+            format_opt=dict(
+                inner_r=_radius_format_func,
+                outer_r=_radius_format_func
+            ),
+        ),
+        reduction=integral,
+        PPkeys=dict(inner_r=300, outer_r=1000),
+    ),
     'mass-in-rho-cont': dict(
         dependencies=("dens", "rho"),
         func=lambda dens, rho, *_, rho_cont=1e13 *
@@ -603,9 +669,9 @@ pp_variables = {
         PPkeys=dict(radius=1000),
     ),
     'M-ejb-esc-dot': dict(
-        dependencies=("V^r", "dens", "u_t", 'h'),
-        func=lambda vr, dens, u_t, h, *
-        _, **kw: _mass_flow(vr, dens) * (h*u_t < -1),
+        dependencies=("V^r", "dens", "h-u_t"),
+        func=lambda vr, dens, hu_t, *_, **__:
+        _mass_flow(vr, dens) * (hu_t < -1),
         plot_name_kwargs=dict(
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -636,9 +702,9 @@ pp_variables = {
         PPkeys=dict(radius=1000),
     ),
     'Mp-ejb-esc-dot': dict(
-        dependencies=("V^r", "dens", "ye", "u_t", 'h'),
-        func=lambda vr, dens, ye, u_t, h, *
-        _, **kw: _mass_flow(vr, dens*ye) * (h*u_t < -1),
+        dependencies=("V^r", "dens", "ye", "h-u_t"),
+        func=lambda vr, dens, ye, hu_t, *_, **__:
+        _mass_flow(vr, dens*ye) * (hu_t < -1),
         plot_name_kwargs=dict(
             name=r"$\dot{M_p}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -1058,5 +1124,53 @@ pp_variables = {
             )
         ),
         PPkeys=dict(ll=2, mm=2, power=1, n_points=3000, u_junk=200.)
+    ),
+    'm-decomp-r': dict(
+        dependencies=("dens", ),
+        func=_m_decomp_r,
+        plot_name_kwargs=dict(
+            name=r"Re $C_mm$",
+            format_opt=dict(
+                mm=lambda mm, *_, **__: str(mm)),
+            unit=r"$M_\odot$"
+        ),
+        reduction=integral_2D,
+        PPkeys=dict(mm=2),
+    ),
+    'm-decomp-i': dict(
+        dependencies=("dens", ),
+        func=_m_decomp_i,
+        plot_name_kwargs=dict(
+            name=r"Im $C_mm$",
+            format_opt=dict(
+                mm=lambda mm, *_, **__: str(mm)),
+            unit=r"$M_\odot$"
+        ),
+        reduction=integral_2D,
+        PPkeys=dict(mm=2),
+    ),
+    'm-decomp-abs': dict(
+        dependencies=("m-decomp-r", "m-decomp-i"),
+        func=lambda rr, ii, *_, **__: np.abs(rr + 1j*ii),
+        plot_name_kwargs=dict(
+            name=r"$|C_mm|$",
+            format_opt=dict(
+                mm=lambda mm, *_, **__: str(mm)),
+            unit=r"$M_\odot$",
+        ),
+        kwargs=dict(
+            func='log'
+        ),
+        PPkeys=dict(mm=2),
+        save=False,
+    ),
+    'ye-nu-eq': dict(
+        dependencies=("L-e-ene-M0", "L-a-ene-M0",
+                      "L-e-num-M0", "L-a-num-M0", ),
+        func=_ye_eq,
+        plot_name_kwargs=dict(
+            name=r"$Y_{e, {\rm eq}}$"
+        ),
+        save=False,
     ),
 }

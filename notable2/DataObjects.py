@@ -122,8 +122,7 @@ class GridFunc(Mapping):
             result[mask] = interp
             assert not np.any(interp == 666.), (
                 f"interpolation error on rl {rl}\n"
-                f"{{ax: cc[mask][np.isnan(interp) "
-                f"for ax, cc in int_coords.items()]}}"
+                f"{{ax: cc[mask][np.isnan(interp) for ax, cc in int_coords.items()]}}"
             )
         missing_mask = result == 666.
         if np.any(missing_mask):

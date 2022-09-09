@@ -3,6 +3,7 @@ from typing import Callable, Optional, TYPE_CHECKING, List, Tuple
 import numpy as np
 from scipy.optimize import bisect
 
+
 from notable2.DataObjects import GridFunc
 
 if TYPE_CHECKING:
@@ -16,16 +17,98 @@ qq = np.array([-.5, 0, .5])*np.sqrt(3/5)
 ww = np.array([5, 8, 5])/18
 
 ww = np.array([0.5688888888888889, 0.4786286704993665,
-              0.4786286704993665, 0.2369268850561891, 0.2369268850561891])/2
+               0.4786286704993665, 0.2369268850561891, 0.2369268850561891])/2
 qq = np.array([0, -0.5384693101056831, 0.5384693101056831, -
-              0.9061798459386640, 0.9061798459386640])/2
+               0.9061798459386640, 0.9061798459386640])/2
 
 
-qx, qy = map(np.ndarray.flatten, np.meshgrid(qq, qq))
-ww = np.tensordot(ww, ww, axes=0).ravel()
+qx, qy, qz = map(np.ndarray.flatten, np.meshgrid(qq, qq, qq))
+ww = np.tensordot(
+    np.tensordot(ww, ww, axes=0),
+    ww, axes=0
+).ravel()
 
 
-def FluxSeeds(sim: "Simulation",
+def densSeeds(sim: "Simulation",
+              n_tracers: int,
+              it: int,
+              inner_r: float,
+              outer_r: float,
+              base_shape: tuple[int, int, int] = (10, 10, 5),
+              unbound: Optional[str] = None):
+
+    time = sim.get_time(it)
+    region = 'xz' if sim.is_cartoon else 'xyz'
+
+    if (unbound is None) or (unbound == "bernulli"):
+        bg = 'b'
+        print('using Bernulli criterion')
+    elif unbound == "geodesic":
+        bg = ''
+        print('using geodesic criterion')
+    else:
+        raise ValueError(f'Unbound criterion "{unbound}" not supported')
+
+    mtot = sim.get_data("M-ejb-in-radius", inner_r=inner_r,
+                        outer_r=outer_r, it=it)
+    mthresh_est = mtot/n_tracers*2
+
+    print(f"aiming for {n_tracers:.2e} tracers")
+
+    dens = sim.get_data(f'ej{bg}-dens', it=it,
+                        region=region, inner_r=inner_r, outer_r=outer_r)
+
+    if sim.is_cartoon:
+        raise ValueError("Cartoon tracers not yet implemented")
+    else:
+        gr = GridRefine(base_shape,
+                        [dens],
+                        get_dens_3D(inner_r, outer_r),
+                        )
+
+    grids, dxs, masses = gr.get_mthresh(mthresh_est,
+                                        n_tracers,
+                                        n_tracers//500,)
+    # steps, grids, dxs, masses = gr.refine_grid(mthresh_est)
+
+    m_seeds = masses[0]
+    grid = grids[0]
+    dx = dxs[0]
+
+    if sim.is_cartoon:
+        coords = []
+    else:
+        grid = (np.random.rand(*dx.shape)-.5)*dx + grid
+        xx = 2*outer_r*grid[..., 0] - outer_r
+        yy = 2*outer_r*grid[..., 1] - outer_r
+        zz = outer_r*grid[..., 2]
+
+    rr = np.sqrt(xx**2 + yy**2 + zz**2)
+    out_mask = rr > outer_r
+    out_fac = rr[out_mask]/outer_r
+    xx[out_mask] /= out_fac
+    yy[out_mask] /= out_fac
+    zz[out_mask] /= out_fac
+    in_mask = rr < inner_r
+    print(f"{np.sum(in_mask)} inside")
+    in_fac = rr[in_mask]/inner_r
+    xx[in_mask] /= in_fac
+    yy[in_mask] /= in_fac
+    zz[in_mask] /= in_fac
+
+    num_seeds = np.arange(len(m_seeds))
+    it_seeds = np.ones(len(m_seeds), dtype=int)*it
+    t_seeds = np.ones(len(m_seeds))*time
+
+    seeds = np.stack([num_seeds, xx, yy, zz, it_seeds, t_seeds, m_seeds])
+
+    print(f"ejected mass: {mtot:.4e}M")
+    print(f"ejected tracer mass: {np.sum(seeds[-1]):.4e}M")
+
+    return seeds
+
+
+def fluxSeeds(sim: "Simulation",
               n_tracers: int,
               radius: float,
               every: int = 1,
@@ -117,7 +200,7 @@ def FluxSeeds(sim: "Simulation",
     return seeds
 
 
-def SaveSeeds(path, seeds, sim, n_files):
+def saveSeeds(path, seeds, sim, n_files):
     n_tracers = len(seeds[0])
 
     # output tracers in n_files files
@@ -165,10 +248,17 @@ class GridRefine:
         dxs = []
         masses = []
         for dens in self.dens:
-            dx = np.stack(np.meshgrid(*(np.ones(nn)/nn
-                                        for nn in self.grid_shape), indexing='ij'), axis=-1)
-            grid = np.stack(np.meshgrid(*((np.arange(nn)+.5)/nn
-                                          for nn in self.grid_shape), indexing='ij'), axis=-1)
+            dx = np.stack(np.meshgrid(
+                *(np.ones(nn)/nn for nn in self.grid_shape),
+                indexing='ij'),
+                axis=-1)
+            grid = np.stack(np.meshgrid(
+                *((np.arange(nn)+.5)/nn for nn in self.grid_shape),
+                indexing='ij'),
+                axis=-1)
+            dx = np.array([dd.flatten() for dd in dx.T]).T
+            grid = np.array([gg.flatten() for gg in grid.T]).T
+
             mass = self.mass_getter(grid, dx, dens)
 
             mask = np.isfinite(mass) & (mass > 0.)
@@ -177,13 +267,22 @@ class GridRefine:
             grids.append(grid[mask])
             masses.append(mass[mask])
 
-        ref_mask = [mm > thresh_mass for mm in masses]
         n_tracer = sum(len(mm) for mm in masses)
 
-        while any(np.any(rfm) for rfm in ref_mask) and ref_step <= max_ref_steps:
-            for ii, (grid, dx, mass, rfm, dens) in enumerate(zip(grids, dxs, masses, ref_mask, self.dens)):
+        ref_mask = [mm > thresh_mass for mm in masses]
+
+        while (any(np.any(rfm) for rfm in ref_mask)
+               and ref_step <= max_ref_steps):
+            print(f"step: {ref_step}")
+            for ii, (grid, dx, mass, rfm, dens) in enumerate(zip(grids,
+                                                                 dxs,
+                                                                 masses,
+                                                                 ref_mask,
+                                                                 self.dens)):
+
                 if all(~rfm):
                     continue
+
                 new_grid = [grid[~rfm]]
                 new_dx = [dx[~rfm]]
 
@@ -204,13 +303,15 @@ class GridRefine:
                 dxs[ii] = dx[mask]
 
             ref_mask = [mm > thresh_mass for mm in masses]
+            nref = sum(sum(rfm) for rfm in ref_mask)
+
             ref_step += 1
             n_tracer = sum(len(mm) for mm in masses)
             if max_n_tracer is not None and n_tracer >= max_n_tracer:
                 break
         return ref_step, grids, dxs, masses
 
-    def get_mthresh(self, mthres_estimate, n_tracers, tol):
+    def get_mthresh(self, mthres_estimate, n_tracers, tol, **kwargs):
         class func:
             def __init__(self, refine_func):
                 self.mass = []
@@ -222,7 +323,8 @@ class GridRefine:
             def __call__(self, mm):
                 if mm == 0.:
                     return np.inf
-                steps, grids, dxs, masses = self.refine_grid(mm, n_tracers-tol)
+                steps, grids, dxs, masses = self.refine_grid(
+                    mm, **kwargs)
                 n_cur = sum(len(mass) for mass in masses)
                 diff = n_cur - n_tracers
 
@@ -250,23 +352,24 @@ class GridRefine:
         return ff.grid[ii], ff.dx[ii], ff.mass[ii]
 
 
-def get_dens_3D(grid_shape):
+def get_dens_3D(inner_r, outer_r):
     def dens(grid, dx, rho):
-        xx, yy, zz = grid.T
-        dx, dy, dz = dx.T
-        (xmin, xmax), (ymin, ymax), (zmin, zmax) = grid_shape
+        xx, yy, zz = grid[..., 0], grid[..., 1], grid[..., 2]
+        dx, dy, dz = dx[..., 0], dx[..., 1], dx[..., 2]
 
-        points = {'x': xx*(xmax-xmin) - xmin,
-                  'y': yy*(ymax-ymin) - ymin,
-                  'z': zz*(zmax-zmin) - zmin}
+        vol = dx*dy*dz * 4 * outer_r**3
 
-        dx *= (xmax-xmin)
-        dy *= (ymax-ymin)
-        dz *= (zmax-zmin)
+        xx = np.array([pp + dd*qx for pp, dd in zip(xx, dx)])
+        yy = np.array([pp + dd*qy for pp, dd in zip(yy, dy)])
+        zz = np.array([pp + dd*qz for pp, dd in zip(zz, dz)])
 
-        vol = dx*dy*dz
+        xx = xx*2*outer_r - outer_r
+        yy = yy*2*outer_r - outer_r
+        zz = zz*outer_r
 
-        return (vol*rho(**points)).T
+        res = (rho(x=xx, y=yy, z=zz)*ww).sum(axis=-1)
+
+        return (vol*res)
     return dens
 
 

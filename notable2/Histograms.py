@@ -1,7 +1,6 @@
 from functools import reduce
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Sequence
 from tqdm import tqdm
-from numpy.typing import NDArray
 import numpy as np
 import alpyne.uniform_interpolation as ui  # type: ignore
 
@@ -70,16 +69,19 @@ def getHist(sim: "Simulation",
 
 
 def getEjectaHist(sim: "Simulation",
-                  keys: list[str],
+                  keys: Sequence[str],
                   radius: float,
                   min_it: Optional[int] = None,
                   max_it: Optional[int] = None,
                   min_time: Optional[float] = None,
                   max_time: Optional[float] = None,
+                  n_theta: Optional[int] = None,
+                  n_phi: Optional[int] = None,
                   every: int = 1,
                   rls: "RLArgument" = None,
                   unbound: str = 'bernulli',
                   ):
+    keys = list(keys)
 
     if (unbound is None) or (unbound == "bernulli"):
         bg = 'b'
@@ -98,33 +100,52 @@ def getEjectaHist(sim: "Simulation",
 
     its = reduce(np.intersect1d, (var.available_its(region)
                  for var in vars.values()))
+    if min_it is not None:
+        its = its[its >= min_it]
+    if max_it is not None:
+        its = its[its <= max_it]
     if min_time is not None:
         min_it = vars[keys[0]].get_it(min_time, region=region, t_merg=True)
-        its = its[(its >= min_it)]
+        its = its[its >= min_it]
     if max_time is not None:
         max_it = vars[keys[0]].get_it(max_time, region=region, t_merg=True)
-        its = its[(its <= max_it)]
+        its = its[its <= max_it]
     its = its[::every]
+    times = sim.get_time(its)
 
-    dth = np.pi/2/config.surf_int_n_theta
-    thetas = (np.arange(config.surf_int_n_theta)+.5)*dth
+    if n_theta is None:
+        n_theta = config.surf_int_n_theta
+    if n_phi is None:
+        n_phi = config.surf_int_n_phi
+
+    dth = np.pi/2/n_theta
+    thetas = (np.arange(n_theta)+.5)*dth
     if sim.is_cartoon:
         phis = np.array([0])
     else:
-        dph = np.pi*2/config.surf_int_n_phi
-        phis = (np.arange(config.surf_int_n_phi) + .5)*dph
+        dph = np.pi*2/n_phi
+        phis = (np.arange(n_phi) + .5)*dph
 
     thetas, phis = np.meshgrid(thetas, phis, indexing='ij')
 
     if sim.is_cartoon:
         sphere = {'x': radius * np.sin(thetas),
                   'z': radius * np.cos(thetas)}
+        area = 2*np.pi * dth * radius**2 * np.sin(thetas)
+
     else:
         sphere = {
             'x': np.ravel(radius * np.sin(thetas)*np.cos(phis)),
             'y': np.ravel(radius * np.sin(thetas)*np.sin(phis)),
             'z': np.ravel(radius * np.cos(thetas))
         }
+        area = dth * dph * radius**2 * np.ravel(np.sin(thetas))
+
+    dts = np.zeros_like(times)
+    difft = np.diff(times)
+    dts[1:-1] = difft[1:]/2 + difft[:-1]/2
+    dts[0] = difft[0]
+    dts[-1] = difft[-1]
 
     coords = sim.get_coords(region=region, it=its[-1])
     for rl, coord in list(coords.items())[::-1]:
@@ -143,13 +164,21 @@ def getEjectaHist(sim: "Simulation",
 
     result = {
         kk: np.empty(n_points*n_its) for kk in keys
+        if kk != f'ej{bg}-flow'
     }
 
-    result['iterations'] = np.concatenate(
-        [it*np.ones(n_points) for it in its]
-    )
+    result['iteration'] = np.repeat(its, n_points)
+    result['time'] = np.repeat(times, n_points)
+    result['theta'] = np.tile(thetas.ravel(), n_its)
+    result['phi'] = np.tile(phis.ravel(), n_its)
 
-    for ii, it in tqdm(enumerate(its), disable=not sim.verbose):
+    result['mass'] = np.empty(n_points*n_its)
+
+    for ii, (it, dt) in tqdm(enumerate(zip(its, dts)),
+                             disable=not sim.verbose,
+                             ncols=0,
+                             total=n_its,
+                             desc=sim.sim_name):
         data = np.array(
             [var.get_data(region=region, it=it)[rl] for var in vars.values()]
         )
@@ -157,5 +186,12 @@ def getEjectaHist(sim: "Simulation",
         interp_values = ui.applyPoints3D(*interp_data, data)
         sli = slice(ii*n_points, (ii+1)*n_points)
         for kk, res in zip(keys, interp_values):
-            result[kk][sli] = res
+            if kk == f'ej{bg}-flow':
+                res *= area*dt
+                result['mass'][sli] = res
+            else:
+                result[kk][sli] = res
+
+    result['mass'][result['mass'] < 0] = 0
+    result['mass'][np.isnan(result['mass'])] = 0
     return result

@@ -406,9 +406,11 @@ def plotTS(sim: "Simulation",
 
     mask = np.ones(len(its), dtype=bool)
     if not (isinstance(var, GravitationalWaveVariable) or
+            "psi4" in var.key or
             (isinstance(var, PPTimeSeriesVariable) and
              any(isinstance(dep, GravitationalWaveVariable)
                  for dep in var.dependencies))):
+
         # GW data is defined on retarded time so the iteration's don't match
         # simulation times
         times = sim.get_time(it=its)

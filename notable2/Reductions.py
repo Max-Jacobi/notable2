@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
 
 from .Config import config
@@ -7,7 +8,7 @@ from .Variable import TimeSeriesBaseVariable, GridFuncBaseVariable
 if TYPE_CHECKING:
     from .Utils import (
         GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable,
-        PPTimeSeriesVariable, Simulation, PostProcVariable
+        PPTimeSeriesVariable, PostProcVariable
     )
     from numpy.typing import NDArray
 
@@ -26,10 +27,12 @@ def integral(dependencies: Sequence[Union["GridFuncVariable",
 
     result = np.zeros_like(its, dtype=float)
 
-    for ii, it in enumerate(its):
-        if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
+    for ii, it in tqdm(enumerate(its),
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       ncols=0,
+                       disable=not var.sim.verbose,
+                       total=len(its),
+                       ):
 
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep_data = []
@@ -92,10 +95,12 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
                   'z': radius * np.cos(thetas)}
 
     result = np.zeros_like(its, dtype=float)
-    for ii, it in enumerate(its):
-        if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: Integrating iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
+    for ii, it in tqdm(enumerate(its),
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       ncols=0,
+                       total=len(its),
+                       ):
         dep_data = [dep.get_data(region=region, it=it, **kwargs)
                     for dep in dependencies]
         int_vals = [dat(**sphere) for dat in dep_data]
@@ -104,8 +109,10 @@ def sphere_surface_integral(dependencies: Sequence[Union["GridFuncVariable", "PP
             vol = 2*np.pi * dth * radius**2 * np.sin(thetas)
         else:
             vol = dth * dph * radius**2 * np.sin(thetas)
+
         integ = func(*int_vals, **sphere, **kwargs)
-        result[ii] += np.sum(integ[(mask := np.isfinite(integ))] * vol[mask])
+        res = integ[(mask := np.isfinite(integ))] * vol[mask]
+        result[ii] += np.sum(res)
     return result
 
 
@@ -123,11 +130,14 @@ def minimum(dependencies: Sequence[Union["GridFuncVariable",
 
     result = np.zeros_like(its, dtype=float)
 
-    for ii, it in enumerate(its):
+    for ii, it in tqdm(enumerate(its),
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       ncols=0,
+                       total=len(its),
+                       ):
+
         acutal_rls = var.sim.expand_rl(rls, it=it)
-        if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: getting min at iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
 
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep = dependencies[0].get_data(region=region, it=it)
@@ -155,10 +165,12 @@ def maximum(dependencies: Sequence[Union["GridFuncVariable",
 
     result = np.zeros_like(its, dtype=float)*np.nan
 
-    for ii, it in enumerate(its):
-        if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: getting max at iteration {it} ({ii/len(its)*100:.1f}%)",
-                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
+    for ii, it in tqdm(enumerate(its),
+                       ncols=0,
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       total=len(its),
+                       ):
 
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dep = dependencies[0].get_data(region=region, it=it)
@@ -189,12 +201,15 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
     result = np.zeros_like(its, dtype=float)
 
     ts_data = {dep.key: dep.get_data(it=its).data
-               for dep in dependencies if isinstance(dep, TimeSeriesBaseVariable)}
+               for dep in dependencies
+               if isinstance(dep, TimeSeriesBaseVariable)}
 
-    for ii, it in enumerate(its):
-        if var.sim.verbose:
-            print(f"{var.sim.sim_name} - {var.key}: getting mean at iteration {it} ({(ii+1)/len(its)*100:.1f}%)",
-                  end=(20*' '+'\r' if var.sim.verbose == 1 else '\n'))
+    for ii, it in tqdm(enumerate(its),
+                       ncols=0,
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       total=len(its),
+                       ):
         weights = var.sim.get_data('reduce-weights', region=region, it=it)
         dens = var.sim.get_data('dens', region=region, it=it)
         dep_data = [dep.get_data(region=region, it=it)
@@ -214,11 +229,66 @@ def mean(dependencies: Sequence[Union["GridFuncVariable",
                 vol = dx['x']*dx['y']*dx['z']
 
             mass = vol*dens[rl]*weights[rl]
-            dat = func(*[data if isinstance(data, (float, np.floating)) else data[rl]
+            dat = func(*[data
+                         if isinstance(data, (float, np.floating))
+                         else data[rl]
                          for data in dep_data], **coord, **kwargs) * mass
 
             mask = np.isfinite(dat) & (dat != 0.)
             result[ii] += np.sum(dat[mask])
             tot_mass += np.sum(mass[mask])
         result[ii] /= tot_mass
+    return result
+
+
+def integral_2D(dependencies: Sequence[Union["GridFuncVariable",
+                                             "PPGridFuncVariable",
+                                             "TimeSeriesVariable",
+                                             "PPTimeSeriesVariable"]],
+                func: Callable,
+                its: 'NDArray[np.int_]',
+                var: "PostProcVariable",
+                rls: Optional['NDArray[np.int_]'] = None,
+                **kwargs) -> 'NDArray[np.float_]':
+
+    region = 'x' if var.sim.is_cartoon else 'xy'
+
+    result = np.zeros_like(its, dtype=float)
+
+    for ii, it in tqdm(enumerate(its),
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       ncols=0,
+                       disable=not var.sim.verbose,
+                       total=len(its),
+                       ):
+
+        weights = var.sim.get_data('reduce-weights', region=region, it=it)
+        dep_data = []
+        for dep in dependencies:
+            if dep.vtype == 'grid':
+                dep_data.append(dep.get_data(region=region, it=it, **kwargs))
+            else:
+                dep_data.append(dep.get_data(it=it, **kwargs))
+        for rl in var.sim.expand_rl(rls, it=it):
+            coord = dep_data[0].coords[rl]
+            try:
+                dx = {ax: abs(cc[1] - cc[0]) for ax, cc in coord.items()}
+            except IndexError:
+                dx = {ax: np.nan for ax in coord}
+            coord = dict(zip(coord, np.meshgrid(
+                *coord.values(), indexing='ij')))
+
+            if var.sim.is_cartoon:
+                vol = 2*np.pi*dx['x']*np.abs(coord['x'])
+            else:
+                vol = dx['x']*dx['y']
+
+            integ = func(*[data if isinstance(data, (float, np.floating)) else data[rl]
+                           for data in dep_data], **coord, **kwargs) * weights[rl]
+
+            integ[~np.isfinite(integ)] = 0
+
+            integ *= vol
+            result[ii] += np.sum(integ)
+
     return result

@@ -143,8 +143,8 @@ class TabulatedEOS(EOS):
                                data)
 
             args = []
+            i_int = 0
             for kk in keys:
-                i_int = 0
                 if kk in scalars:
                     tmp = self.data[kk]
                 else:
@@ -188,10 +188,9 @@ class TabulatedEOS(EOS):
                                self.table[0][[0, 2]],
                                self.table[1][[0, 2]],
                                data)
-
             args = []
+            i_int = 0
             for kk in keys:
-                i_int = 0
                 if kk in scalars:
                     tmp = self.data[kk]
                 else:
@@ -201,9 +200,53 @@ class TabulatedEOS(EOS):
                     i_int += 1
                 args.append(tmp)
 
-            return func(*args, ye, **kw)
+            return func(*args, rho, ye, **kw)
 
         return eos_caller_cold
+
+    def get_weak_eq_caller(self,
+                           keys: List[str],
+                           func: Callable = lambda *args: args[0]
+                           ) -> Callable:
+        def eos_caller(temp: 'NDArray[np.float_]',
+                       rho: 'NDArray[np.float_]',
+                       *_, **kw) -> 'NDArray[np.float_]':
+
+            nonlocal keys
+            nonlocal func
+
+            self._get_keys(keys)
+            scalars = [kk for kk in keys if np.isscalar(self.data[kk])]
+
+            shape = rho.shape
+            fshape = (np.prod(shape), )
+
+            args = [np.log10(temp).flatten(),
+                    np.log10(rho).flatten()]
+            mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
+            args = [arg[mask] for arg in args]
+
+            data = np.array([self.data[kk] for kk in keys])
+            islog = np.array([np.all(dd > 0) for dd in data])
+            data[islog] = np.log10(data[islog])
+
+            res = ui.linterp3D(*args, *self.table, data)
+
+            func_args = []
+            i_int = 0
+            for kk in keys:
+                if kk in scalars:
+                    tmp = self.data[kk]
+                else:
+                    tmp = np.zeros(fshape)*np.nan
+                    tmp[mask] = 10**res[i_int] if islog[i_int] else res[i_int]
+                    tmp = np.reshape(tmp, shape)
+                    i_int += 1
+                func_args.append(tmp)
+
+            return func(*func_args, rho, temp, **kw)
+
+        return eos_caller
 
     def get_caller(self,
                    keys: List[str],
@@ -235,8 +278,8 @@ class TabulatedEOS(EOS):
             res = ui.linterp3D(*args, *self.table, data)
 
             args = []
+            i_int = 0
             for kk in keys:
-                i_int = 0
                 if kk in scalars:
                     tmp = self.data[kk]
                 else:
@@ -246,7 +289,7 @@ class TabulatedEOS(EOS):
                     i_int += 1
                 args.append(tmp)
 
-            return func(*args, ye, **kw)
+            return func(*args, rho, ye, temp, **kw)
 
         return eos_caller
 

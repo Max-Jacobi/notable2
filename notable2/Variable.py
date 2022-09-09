@@ -76,7 +76,7 @@ class TimeSeriesBaseVariable(Variable, ABC):
         """Returns Array of available iterations"""
         ...
 
-    def get_it(self, time: float, t_merg=False, **kwargs):
+    def get_it(self, time: float, t_merg: bool = True, **kwargs):
         its = self.available_its(**kwargs)
 
         times = self.sim.get_time(its)
@@ -110,7 +110,7 @@ class GridFuncBaseVariable(Variable, ABC):
         """Returns Array of available iterations"""
         ...
 
-    def get_it(self, time: float, region: str, t_merg: bool = False, **kwargs):
+    def get_it(self, time: float, region: str, t_merg: bool = True, **kwargs):
         its = self.available_its(region, **kwargs)
 
         times = self.sim.get_time(its)

@@ -189,25 +189,28 @@ class Simulation():
         """Get the smallest itteration(s) with time < the given time"""
         return self._its[self._times.searchsorted(time)]
 
-    def get_t_merg(self) -> Optional[float]:
+    def get_t_merg(self, use_GW: bool = True) -> Optional[float]:
 
-        try:
-            habs = self.get_data("h-abs")
-            ind, prop = find_peaks(habs.data, height=.1)
-            return habs.times[ind[np.argmax(prop['peak_heights'])]]
-        except (VariableError, IndexError):
-            if self.verbose:
-                print(
-                    f"{self.sim_name} using bns separation to determine merger time")
-            data = self.get_data('bns-sep-tot')
-            return bisect(interp1d(data.times, data.data - 8), 0, data.times[-1])
-            # data = self.get_data('alpha-min')
-            # times = data.times
-            # peaks = find_peaks(-data.data)[0]
-            # diffs = np.diff(data.data[peaks])
-            # if np.any(big_diffs := diffs < -.05):
-            # min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
-            # return float(times[min_ind])
+        if use_GW:
+            try:
+                habs = self.get_data("h-abs")
+                ind, prop = find_peaks(habs.data, height=.1)
+                return habs.times[ind[np.argmax(prop['peak_heights'])]]
+            except (VariableError, IndexError):
+                pass
+        if self.verbose:
+            print(f"{self.sim_name} using "
+                  "peaks in the lapse minimum to determine merger time")
+            # "bns separation to determine merger time")
+        # data = self.get_data('bns-sep-tot')
+        # return bisect(interp1d(data.times, data.data - 8), 0, data.times[-1])
+        data = self.get_data('alpha-min')
+        times = data.times
+        peaks = find_peaks(-data.data)[0]
+        diffs = np.diff(data.data[peaks])
+        if np.any(big_diffs := diffs < -.05):
+            min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
+        return float(times[min_ind])
 
     def get_ADM_MJ(self):
         pattern = r"ADM mass of the system : ([0-9]\.[0-9]+) M_sol\n"
