@@ -118,8 +118,8 @@ class TracerBunch():
                                        data_getter=self.get_data,
                                        max_step=self.max_step,
                                        save_path=self.save_path))
-        # if self.verbose:
-        print(f"loaded {len(self.tracers)} tracer", flush=True)
+        if self.verbose:
+            print(f"loaded {len(self.tracers)} tracer", flush=True)
         return max(tr.times[-1] for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
