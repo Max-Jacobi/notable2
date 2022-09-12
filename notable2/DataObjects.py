@@ -89,16 +89,20 @@ class GridFunc(Mapping):
         result = 666.*np.ones_like(int_coords[ax])
 
         if kind == 'linear':
-            match self.dim:
-                case 1: interpolate = linterp1D
-                case 2: interpolate = linterp2D
-                case 3: interpolate = linterp3D
+            if self.dim == 1:
+                interpolate = linterp1D
+            elif self.dim == 2:
+                interpolate = linterp2D
+            elif self.dim == 3:
+                interpolate = linterp3D
             loff, roff = 0, -1
         elif kind == 'cubic':
-            match self.dim:
-                case 1: interpolate = chinterp1D
-                case 2: interpolate = chinterp2D
-                case 3: interpolate = chinterp3D
+            if self.dim == 1:
+                interpolate = chinterp1D
+            elif self.dim == 2:
+                interpolate = chinterp2D
+            elif self.dim == 3:
+                interpolate = chinterp3D
             loff, roff = 1, -2
         else:
             raise ValueError(f"{kind} kind interpolation not supported")

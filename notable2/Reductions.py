@@ -1,5 +1,9 @@
 import numpy as np
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterator, *_, **__):
+        return iterator
 from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
 
 from .Config import config
