@@ -445,7 +445,8 @@ class PPTimeSeriesVariable(PostProcVariable, TimeSeriesBaseVariable):
             if it is None:
                 it = av_its
             if len(uni := np.setdiff1d(it, av_its)) != 0:
-                raise IterationError(f"Iteration(s) {uni} not found for self")
+                raise IterationError(
+                    f"Iteration(s) {uni} not found for {self}")
             if isinstance(it, (int, np.integer)):
                 return PPTimeSeries(self, its=np.array([it]), **kwargs).data[0]
             return PPTimeSeries(self, its=it, **kwargs)

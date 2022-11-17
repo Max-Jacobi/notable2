@@ -78,7 +78,8 @@ class Animation:
             for func in self.funcs:
                 func(time)
 
-        ani = FuncAnimation(fig=fig, frames=self.times, func=_animate, init_func=_init, **kwargs)
+        ani = FuncAnimation(fig=fig, frames=self.times,
+                            func=_animate, init_func=_init, **kwargs)
         plt.close(fig)
         return ani
 
@@ -142,7 +143,8 @@ class GDAniFunc(AniFunc):
         self.setup_at = float(setup_at)
 
         var_kwargs, popped = _handle_kwargs(self.var.kwargs, dict(func=(func, None),
-                                                                  slice_ax=(slice_ax, None),
+                                                                  slice_ax=(
+                                                                      slice_ax, None),
                                                                   interp_ax=(interp_ax, None)))
         self.slice_ax = popped["slice_ax"]
         self.interp_ax = popped["interp_ax"]
@@ -159,7 +161,8 @@ class GDAniFunc(AniFunc):
 
         _, self.PPkwargs = _handle_PPkwargs(self.kwargs, self.var)
 
-        pn_str = self.var.plot_name.print(code_units=code_units, **self.PPkwargs)
+        pn_str = self.var.plot_name.print(
+            code_units=code_units, **self.PPkwargs)
         if func_str is not None:
             pn_str = func_str.format(pn_str)
         if title is True:
@@ -246,7 +249,8 @@ class GDAniFunc(AniFunc):
             elif len(signature(self.func).parameters) == 1:
                 data = {rl: self.func(dd) for rl, dd in data.items()}
             else:
-                data = {rl: self.func(dd, **coords[rl]) for rl, dd in data.items()}
+                data = {rl: self.func(dd, **coords[rl])
+                        for rl, dd in data.items()}
         if len(self.region) == 1:
             dat = data[rls[-1]]
             xx = coords[rls[-1]][self.region]

@@ -15,6 +15,13 @@ def _Gamma(rho, eps, press, *_, **kw):
 
 def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
     ppvars = {
+        'ndens-eos': dict(
+            dependencies=['rho'],
+            func=lambda rho, *_, **__: rho/eos.get_mbary50(),
+            plot_name_kwargs=dict(name="number density [fm$^{-3}$]"),
+            kwargs=dict(cmap='viridis'),
+            scale_factor=1/Units['Length']**3/1e4
+        ),
         'h-eos': dict(
             dependencies=['ye', 'temp', 'rho'],
             func=eos.get_caller(['internalEnergy', 'pressure'],

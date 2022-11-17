@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, TYPE_CHECKING, List, Dict, Tuple
 from functools import reduce
+from warnings import warn
 import numpy as np
 from h5py import File  # type: ignore
 import alpyne.uniform_interpolation as ui  # type: ignore
@@ -50,6 +51,13 @@ class EOS(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_mbary50(self,) -> float:
+        """
+        Returns the mass of 10^50 baryons in solar masses
+        """
+        ...
+
 
 class TabulatedEOS(EOS):
     """Realistic Tabluated EOS """
@@ -59,6 +67,7 @@ class TabulatedEOS(EOS):
 
     def __init__(self, path: str):
         self._table: Optional[List['NDArray[np.float_]']] = None
+        self._mass_fac: Optional[float] = None
         self._table_cold: Optional[List['NDArray[np.float_]']] = None
         self._ye_r: Optional[Tuple[np.float_]] = None
         self._temp_r: Optional[Tuple[np.float_]] = None
@@ -266,6 +275,18 @@ class TabulatedEOS(EOS):
             shape = ye.shape
             fshape = (np.prod(shape), )
 
+            for aa, name, (rl, ru) in zip([ye, temp, rho],
+                                          'ye temp rho'.split(),
+                                          [self.ye_range, self.temp_range, self.rho_range]):
+
+                aa = aa.copy()
+                aa[lmask := aa < rl] = rl
+                aa[rmask := aa > ru] = ru
+                if np.any(lmask):
+                    warn(f"{name} below EOS range")
+                if np.any(rmask):
+                    warn(f"{name} above EOS range")
+
             args = [ye.flatten(), np.log10(temp).flatten(),
                     np.log10(rho).flatten()]
             mask = reduce(np.logical_and, [np.isfinite(arg) for arg in args])
@@ -292,6 +313,13 @@ class TabulatedEOS(EOS):
             return func(*args, rho, ye, temp, **kw)
 
         return eos_caller
+
+    def get_mbary50(self,) -> float:
+        if self._mass_fac is None:
+            with File(self.hydro_path, 'r') as hfile:
+                self._mass_fac = hfile['mass_factor'][()]
+        mev_50_msol = 8.962964431087716e-11
+        return self._mass_fac*mev_50_msol
 
     def _get_keys(self, keys: List[str]):
         if self.hydro_path is None:

@@ -11,7 +11,7 @@ from .Utils import RUnits
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from .EOS import TabulatedEOS
+    from .EOS import TabulatedEOS, EOS
 
 
 class TOV:
@@ -22,7 +22,7 @@ class TOV:
 
     def __init__(
         self,
-        eos: "TabulatedEOS",
+        eos: "EOS",
         verbose: bool = False,
         correct_press: bool = True,
         save: bool = True,

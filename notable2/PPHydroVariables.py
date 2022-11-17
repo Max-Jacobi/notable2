@@ -4,6 +4,17 @@ import numpy as np
 from notable2.Utils import RUnits, Units
 
 
+def _tau_exp(vr, x=0, y=0, z=0, **_):
+    ret = np.sqrt(_r2(x, y, z))/vr
+    ret[ret <= 0] = 1e10
+    return ret
+
+
+def _r2(x=0, y=0, z=0):
+    x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
+    return x**2 + y**2 + z**2
+
+
 def _ej_dens(dd, hut, inner_r=300, outer_r=1000, x=0, y=0, z=0):
     res = dd*(hut < -1)
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
@@ -113,11 +124,22 @@ pp_variables = {
             cmap='inferno',
         )
     ),
-    "E-rel": dict(
+    "E-con": dict(
         dependencies=('rho', 'h', 'W', 'press'),
         func=lambda rho, hh, ww, press, *_, **kw: rho*hh*ww**2 - press,
         plot_name_kwargs=dict(
             name="relativistic energy density",
+        ),
+        kwargs=dict(
+            cmap='inferno',
+        )
+    ),
+    "tau-con": dict(
+        dependencies=('rho', 'eps', 'W', 'press', 'phi'),
+        func=lambda rho, eps, ww, press, phi, *_, **kw:
+        phi**-3*(rho*ww*(eps*ww+ww-1) + press*(ww*ww-1)),
+        plot_name_kwargs=dict(
+            name="conserverd internal energy density",
         ),
         kwargs=dict(
             cmap='inferno',
@@ -293,6 +315,123 @@ pp_variables = {
         kwargs=dict(
             cmap="viridis",
             func="log"
+        ),
+    ),
+    "tau-exp": dict(
+        dependencies=("vel^r",),
+        func=_tau_exp,
+        save=False,
+        scale_factor='Time',
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\rm exp}$",
+            unit="ms",
+            code_unit="$M_\\odot$",
+        ),
+        kwargs=dict(
+            cmap="cubehelix_r",
+            func="log"
+        ),
+    ),
+    "tau-nu-em": dict(
+        dependencies=("ndens-eos", "R-nu-e", "R-nu-a",),
+        func=lambda nn, rnue, rnua, *_, **__: np.abs(nn/(rnue - rnua)),
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\nu{\rm ,em.}}$",
+            unit="ms",
+            code_unit="$M_\\odot$",
+        ),
+        scale_factor="Time",
+        kwargs=dict(
+            cmap="cubehelix_r",
+            func="log"
+        ),
+    ),
+    "tau-nu-em-en": dict(
+        dependencies=("rho", "eps", "Q-nu-e", "Q-nu-a", "Q-nu-x"),
+        func=lambda rho, eps, qe, qa, qx, *_, **__: rho*eps/(qe+qa+qx),
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\nu{\rm ,em., en.}}$",
+            unit="ms",
+            code_unit="$M_\\odot$",
+        ),
+        scale_factor="Time",
+        kwargs=dict(
+            cmap="cubehelix_r",
+            func="log"
+        ),
+    ),
+    "tau-nu-abs-en": dict(
+        dependencies=("rho", "eps", "nu-abs-en",),
+        func=lambda rho, eps, rnu, *_, **__: rho*eps/rnu,
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\nu{\rm ,abs., en.}}$",
+            unit="ms",
+            code_unit="$M_\\odot$",
+        ),
+        scale_factor="Time",
+        kwargs=dict(
+            cmap="cubehelix_r",
+            func="log"
+        ),
+    ),
+    "tau-nu-abs": dict(
+        dependencies=("rho", "nu-abs-num",),
+        func=lambda rho, rnu, *_, **__: np.abs(rho/rnu),
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\nu{\rm ,abs.}}$",
+            unit="ms",
+            code_unit="$M_\\odot$",
+        ),
+        scale_factor="Time",
+        kwargs=dict(
+            cmap="cubehelix_r",
+            func="log"
+        ),
+    ),
+    "Q-nu-tot": dict(
+        dependencies=("Q-nu-e", "Q-nu-a", "Q-nu-x",
+                      "nu-abs-en"),
+        func=lambda qe, qa, qx, qabs, *_, **__: qabs - qe - qa - qx,
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$q_{\nu}$",
+        ),
+        kwargs=dict(
+            cmap="seismic",
+            symetric_around=0,
+        ),
+    ),
+    "tau-nu-tot": dict(
+        dependencies=("Q-nu-tot", "tau-con", "W", "alpha", "phi"),
+        func=lambda qnu, tau, ww, alp, phi, *_, **__:
+        tau/(qnu*alp*phi**-3*ww),
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\nu}$",
+            unit="ms",
+            code_unit="$M_\odot$",
+        ),
+        scale_factor="Time",  # 1.1269044823088264e+41,
+        kwargs=dict(
+            cmap="seismic",
+            symetric_around=0,
+        ),
+    ),
+    "tau-nu-em/abs": dict(
+        dependencies=("tau-nu-em", "tau-nu-abs",),
+        func=lambda taue, taua, *_, **__: taue/taua,
+        save=False,
+        plot_name_kwargs=dict(
+            name=r"$\tau_{\nu{\rm ,em.}} / \tau_{\nu{\rm ,abs.}}$",
+        ),
+        kwargs=dict(
+            cmap="seismic",
+            func='log',
+            symetric_around=1,
         ),
     ),
     "Omega": dict(

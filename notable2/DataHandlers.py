@@ -30,7 +30,7 @@ class DataHandler(ABC):
         self.sim = sim
 
     @abstractmethod
-    def get_structure(self, ):
+    def get_structure(self, ) -> tuple:
         """
         Function to call at init.
 
@@ -59,7 +59,8 @@ class PackETHandler(DataHandler):
     def __init__(self, sim: "Simulation"):
         super().__init__(sim)
         self.data = File(f'{self.sim.sim_path}/{self.sim.sim_name}.hdf5', 'r')
-        self.structure = loads(decompress(self.data["structure"][()]), fix_imports=False)
+        self.structure = loads(decompress(
+            self.data["structure"][()]), fix_imports=False)
 
     def get_structure(self, ):
         sdict = {}
@@ -148,9 +149,11 @@ class PackET2Handler(DataHandler):
                 dat = hf[dset_path][:]
             return dat
         except FileNotFoundError as excp:
-            raise VariableError(f"{key} not found in simulation {self.sim}") from excp
+            raise VariableError(
+                f"{key} not found in simulation {self.sim}") from excp
         except OSError as excp:
-            raise VariableError(f"{key} data is corrupted in simulation {self.sim}") from excp
+            raise VariableError(
+                f"{key} data is corrupted in simulation {self.sim}") from excp
         except KeyError as excp:
             raise VariableError(
                 f"Data (it: {it}, rl: {rl}, region:{region}) "
@@ -163,4 +166,5 @@ class PackET2Handler(DataHandler):
                 dat = hf[key][:]
             return dat
         except KeyError as excp:
-            raise VariableError(f"{key} not found in simulation {self.sim}") from excp
+            raise VariableError(
+                f"{key} not found in simulation {self.sim}") from excp

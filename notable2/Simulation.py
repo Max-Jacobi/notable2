@@ -187,7 +187,7 @@ class Simulation():
 
     def get_it(self, time):
         """Get the smallest itteration(s) with time < the given time"""
-        return self._its[self._times.searchsorted(time)]
+        return self._its[self._times.searchsorted(time, side='left')]
 
     def get_t_merg(self, use_GW: bool = True) -> Optional[float]:
 

@@ -81,7 +81,7 @@ class TracerBunch():
                 for n_try in range(4):
                     try:
                         self.dats[it] = {kk: var.get_data(region=self.region, it=it)
-                                 for kk, var in self.vars.items()}
+                                         for kk, var in self.vars.items()}
                         break
                     except OSError as ex:
                         if "Resource temporarily unavailable" in ex:
@@ -89,7 +89,8 @@ class TracerBunch():
                             continue
                         raise
                 else:
-                    raise OSError(f"Could not open hdf5 file after {n_try} tries") from ex
+                    raise OSError(
+                        f"Could not open hdf5 file after {n_try} tries") from ex
                 for kk in self.dats[it]:
                     self.dats[it][kk].mem_load = True
                     cc = self.dats[it][kk].coords[0]
@@ -123,7 +124,7 @@ class TracerBunch():
         return max(tr.times[-1] for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
-        if tt < self.times.min(): 
+        if tt < self.times.min():
             raise RuntimeError(f"Interpolation time {tt} not in loaded times")
 
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
@@ -139,7 +140,8 @@ class TracerBunch():
         data = {kk: np.array([self.dats[it][kk](**coords)[0] for it in self.its[inds]])
                 for kk in keys}
 
-        result = np.array([interp1d(self.times[inds], data[kk], kind=self.t_int_kind)(tt) for kk in keys])
+        result = np.array(
+            [interp1d(self.times[inds], data[kk], kind=self.t_int_kind)(tt) for kk in keys])
         return result
 
     def integrate_all(self):
@@ -155,19 +157,22 @@ class TracerBunch():
             it_start = self.its[self.i_start-self.off+1]
             it_end = self.its[i_end+self.off+1]
             if self.verbose:
-                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})", flush=True)
+                print(
+                    f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})", flush=True)
 
             for nn, tr in enumerate(self.tracers):
                 if tr.status in [-1, 1]:
                     continue
                 if self.verbose:
-                    print(f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
+                    print(
+                        f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
                 try:
                     tr.integrate(t_start, t_end)
                 except KeyboardInterrupt:
                     raise
                 except Exception as ee:
-                    warn(f"{tr.num} had exception in integration step {t_start, t_end}\n{type(ee).__name__}: {str(ee)}")
+                    warn(
+                        f"{tr.num} had exception in integration step {t_start, t_end}\n{type(ee).__name__}: {str(ee)}")
                     tr.status = -1
                     tr.save()
 
@@ -178,7 +183,19 @@ class TracerBunch():
             if n_running+n_not_started == 0:
                 break
             if self.verbose:
-                print(f"{n_not_started} not started, {n_running} running, {n_failed} failed, {n_done} done", flush=True)
+                print(
+                    f"{n_not_started} not started, "
+                    f"{n_running} running, "
+                    f"{n_failed} failed, "
+                    f"{n_done} done",
+                    flush=True)
+                if 'temp' in self.to_trace:
+                    temps = [tr.trace['temp'][-1] for tr in self.tracers]
+                    print(
+                        f"temperature range: "
+                        f"{min(temps)*11.604518121745585:.1f}, "
+                        f"{max(temps)*11.604518121745585:.1f}"
+                    )
             self.i_start = i_end + self.off*2
         # if self.verbose:
         print("Done", flush=True)
@@ -276,9 +293,9 @@ class tracer():
         return self.status
 
     def save(self):
-        if len(self.times) < 2: 
+        if len(self.times) < 2:
             return
-        self.times  = self.times[1:]
+        self.times = self.times[1:]
         self.pos = self.pos[1:]
         _, uinds = np.unique(np.round(self.times, 7), return_index=True)
         utimes = self.times[uinds]

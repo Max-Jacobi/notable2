@@ -267,7 +267,8 @@ def plotGD(sim: "Simulation",
         if norm.vmin is None:
             norm.vmin = min((dat[nan_mask].min() if np.any(
                 nan_mask := np.isfinite(dat)) else 0) for dat in data.values())
-        if symetric_around is not None:
+        # print(symetric_around)
+        if symetric_around is not None and symetric_around is not False:
             dv = max(np.abs(norm.vmin - symetric_around),
                      np.abs(norm.vmax - symetric_around))
             norm.vmin = symetric_around - dv

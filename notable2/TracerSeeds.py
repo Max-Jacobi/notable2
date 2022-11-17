@@ -90,7 +90,6 @@ def densSeeds(sim: "Simulation",
     yy[out_mask] /= out_fac
     zz[out_mask] /= out_fac
     in_mask = rr < inner_r
-    print(f"{np.sum(in_mask)} inside")
     in_fac = rr[in_mask]/inner_r
     xx[in_mask] /= in_fac
     yy[in_mask] /= in_fac
@@ -273,7 +272,6 @@ class GridRefine:
 
         while (any(np.any(rfm) for rfm in ref_mask)
                and ref_step <= max_ref_steps):
-            print(f"step: {ref_step}")
             for ii, (grid, dx, mass, rfm, dens) in enumerate(zip(grids,
                                                                  dxs,
                                                                  masses,
