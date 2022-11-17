@@ -242,11 +242,14 @@ class tracer():
         self.status = -2
 
     def get_rhs(self, tt, pos):
-        try:
-            return self.get_data(tt, pos, self.keys)
-        except KeyError:
-            print(tt)
-            raise
+        for n_try in range(3):
+            try:
+                return self.get_data(tt, pos, self.keys)
+            except BlockingIOError as ex:
+                sleep(5)
+                continue
+        else:
+            raise ex
 
     def set_trace(self, time, pos):
         self.times = np.concatenate((self.times, time[1:]))
