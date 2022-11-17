@@ -242,7 +242,7 @@ class tracer():
         self.status = -2
 
     def get_rhs(self, tt, pos):
-        for n_try in range(3):
+        for n_try in range(20):
             try:
                 return self.get_data(tt, pos, self.keys)
             except BlockingIOError as ex:
