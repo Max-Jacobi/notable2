@@ -3,6 +3,8 @@ import re
 from os.path import basename, isfile
 from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING, Dict
 from collections.abc import Iterable
+from time import sleep
+
 import numpy as np
 from scipy.signal import find_peaks  # type: ignore
 from scipy.interpolate import interp1d, interp2d  # type: ignore
@@ -218,8 +220,17 @@ class Simulation():
 
         if not isfile(outf := f"{self.sim_path}/output-0000/{self.sim_name}.out"):
             return None, None
-        with open(outf, 'r') as file:
-            m = re.search(pattern, file.read())
+        for n_try in range(20):
+            try:
+                with open(outf, 'r') as file:
+                    m = re.search(pattern, file.read())
+                break
+            except BlockingIOError as ex:
+                sleep(5)
+                continue
+        else:
+            raise ex
+
         if m is not None:
             return float(m[1]), float(m[2])
         return np.nan, np.nan
