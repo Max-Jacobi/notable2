@@ -192,20 +192,20 @@ class Simulation():
         return self._its[self._times.searchsorted(time, side='left')]
 
     def get_t_merg(self, use_GW: bool = True) -> Optional[float]:
-
         if use_GW:
-            try:
-                habs = self.get_data("h-abs")
-                ind, prop = find_peaks(habs.data, height=.1)
-                return habs.times[ind[np.argmax(prop['peak_heights'])]]
-            except (VariableError, IndexError):
-                pass
+            for n_try in range(10):
+                try:
+                    habs = self.get_data("h-abs")
+                    ind, prop = find_peaks(habs.data, height=.1)
+                    return habs.times[ind[np.argmax(prop['peak_heights'])]]
+                except BlockingIOError as ex:
+                    sleep(5)
+                    continue
+                except (VariableError, IndexError):
+                    break
         if self.verbose:
             print(f"{self.sim_name} using "
                   "peaks in the lapse minimum to determine merger time")
-            # "bns separation to determine merger time")
-        # data = self.get_data('bns-sep-tot')
-        # return bisect(interp1d(data.times, data.data - 8), 0, data.times[-1])
         data = self.get_data('alpha-min')
         times = data.times
         peaks = find_peaks(-data.data)[0]
@@ -225,10 +225,13 @@ class Simulation():
                 with open(outf, 'r') as file:
                     m = re.search(pattern, file.read())
                 break
-            except BlockingIOError as ex:
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
                 sleep(5)
                 continue
         else:
+            print("could not get ADM mass")
             raise ex
 
         if m is not None:

@@ -245,11 +245,12 @@ class tracer():
         for n_try in range(20):
             try:
                 return self.get_data(tt, pos, self.keys)
-            except BlockingIOError as ex:
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
                 sleep(5)
                 continue
-        else:
-            raise ex
+        raise ex
 
     def set_trace(self, time, pos):
         self.times = np.concatenate((self.times, time[1:]))
