@@ -190,7 +190,9 @@ class TracerBunch():
                     f"{n_done} done",
                     flush=True)
                 if 'temp' in self.to_trace:
-                    temps = [tr.trace['temp'][-1] for tr in self.tracers]
+                    temps = [tr.trace['temp'][-1]
+                             for tr in self.tracers
+                             if len(tr.trace['temp']) > 0]
                     print(
                         f"temperature range: "
                         f"{min(temps)*11.604518121745585:.1f}, "
