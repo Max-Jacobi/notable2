@@ -59,8 +59,12 @@ class TracerBunch():
         max_t = self.init_tracers()
 
         i_start = self.times.searchsorted(max_t)
-        self.times = self.times[:i_start+self.off+2]
-        self.its = self.its[:i_start+self.off+2]
+        if i_start >= len(self.its) - 1 - self.off:
+            print(f"{i_start, len(self.its)}")
+            print(f"{max_t, max(self.times)}")
+            i_start = len(self.its) - 1 - self.off
+        self.times = self.times[:i_start+self.off+1]
+        self.its = self.its[:i_start+self.off+1]
 
         self.i_start = len(self.times)-1
 
@@ -84,7 +88,7 @@ class TracerBunch():
                                          for kk, var in self.vars.items()}
                         break
                     except OSError as ex:
-                        if "Resource temporarily unavailable" in ex:
+                        if "Resource temporarily unavailable" in str(ex):
                             sleep(10)
                             continue
                         raise
