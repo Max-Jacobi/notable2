@@ -59,14 +59,10 @@ class TracerBunch():
         max_t = self.init_tracers()
 
         i_start = self.times.searchsorted(max_t)
-        if i_start >= len(self.its) - 1 - self.off:
-            print(f"{i_start, len(self.its)}")
-            print(f"{max_t, max(self.times)}")
-            i_start = len(self.its) - 1 - self.off
-        self.times = self.times[:i_start+self.off+1]
-        self.its = self.its[:i_start+self.off+1]
+        self.times = self.times[:i_start+self.off+3]
+        self.its = self.its[:i_start+self.off+3]
 
-        self.i_start = len(self.times)-1
+        self.i_start = len(self.times)-2
 
     def load_chunk(self, i_start):
         large_it = self.its[i_start]
@@ -128,8 +124,10 @@ class TracerBunch():
         return max(tr.times[-1] for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
-        if tt < self.times.min():
-            raise RuntimeError(f"Interpolation time {tt} not in loaded times")
+        if tt < self.times.min() or tt > self.times.max():
+            raise RuntimeError(f"Interpolation time {tt} not in loaded times {self.times.min()}:{self.times.max()}") 
+        elif not np.isfinite(tt):
+            raise RuntimeError(f"Interpolation time is not finite: {tt}")
 
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
 
@@ -170,6 +168,7 @@ class TracerBunch():
                 if self.verbose:
                     print(
                         f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
+                tr.integrate(t_start, t_end)
                 try:
                     tr.integrate(t_start, t_end)
                 except KeyboardInterrupt:
@@ -248,15 +247,16 @@ class tracer():
         self.status = -2
 
     def get_rhs(self, tt, pos):
-        for n_try in range(20):
-            try:
-                return self.get_data(tt, pos, self.keys)
-            except KeyboardInterrupt:
-                raise
-            except Exception as ex:
-                sleep(5)
-                continue
-        raise ex
+        #for n_try in range(20):
+        #    try:
+        #        return self.get_data(tt, pos, self.keys)
+        #    except KeyboardInterrupt:
+        #        raise
+        #    except Exception as ex:
+        #        sleep(5)
+        #        continue
+        #raise ex
+        return self.get_data(tt, pos, self.keys)
 
     def set_trace(self, time, pos):
         self.times = np.concatenate((self.times, time[1:]))
