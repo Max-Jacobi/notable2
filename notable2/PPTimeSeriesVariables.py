@@ -1090,20 +1090,6 @@ pp_variables = {
         reduction=mean,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
-    'temp-in-rho-cont-mean': dict(
-        dependencies=("temp", "rho",),
-        func=lambda temp, rho, rho_cont=1e13 *
-        RUnits['Rho'], *_, **kw: temp*_nan_mask(rho >= rho_cont),
-        plot_name_kwargs=dict(
-            name=r"mean temperature ($\rho \geq rho_cont)",
-            unit="MeV",
-            format_opt=dict(
-                rho_cont=_rho_cont_format_func
-            ),
-        ),
-        reduction=mean,
-        PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
-    ),
     'Gamma-th-eos-max': dict(
         dependencies=("Gamma-th-eos",),
         func=lambda Gamma, *_, **kw: Gamma,

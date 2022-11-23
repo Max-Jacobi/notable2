@@ -125,7 +125,8 @@ class TracerBunch():
 
     def get_data(self, tt, pos, keys):
         if tt < self.times.min() or tt > self.times.max():
-            raise RuntimeError(f"Interpolation time {tt} not in loaded times {self.times.min()}:{self.times.max()}") 
+            raise RuntimeError(
+                f"Interpolation time {tt} not in loaded times {self.times.min()}:{self.times.max()}")
         elif not np.isfinite(tt):
             raise RuntimeError(f"Interpolation time is not finite: {tt}")
 
@@ -224,6 +225,7 @@ class tracer():
                  max_step=203.025,
                  termvar=None,
                  termval=None,
+                 verbose=False,
                  ):
 
         self.num = int(num)
@@ -234,6 +236,7 @@ class tracer():
 
         self.termvar = termvar
         self.termval = termval
+        self.verbose = verbose
 
         self.keys = ['V^x', 'V^y', 'V^z']
 
@@ -247,16 +250,21 @@ class tracer():
         self.status = -2
 
     def get_rhs(self, tt, pos):
-        #for n_try in range(20):
-        #    try:
-        #        return self.get_data(tt, pos, self.keys)
-        #    except KeyboardInterrupt:
-        #        raise
-        #    except Exception as ex:
-        #        sleep(5)
-        #        continue
-        #raise ex
-        return self.get_data(tt, pos, self.keys)
+        ex = RuntimeError("This should never happen")
+        for n_try in range(5):
+            try:
+                return self.get_data(tt, pos, self.keys)
+            except KeyboardInterrupt:
+                raise
+            except Exception as ee:
+                ex = ee
+                if self.verbose:
+                    print(
+                        f"Tracer {self.num}: get_rhs had exception {ex}, {n_try+1} tries"
+                    )
+                sleep(5)
+                continue
+        raise ex
 
     def set_trace(self, time, pos):
         self.times = np.concatenate((self.times, time[1:]))
