@@ -49,20 +49,19 @@ class TracerBunch():
 
         self.vars = {var: self.sim.get_variable(var)
                      for var in self.to_trace+('V^x', 'V^y', 'V^z')}
-        self.its = reduce(np.intersect1d,
-                          (var.available_its(self.region)
-                           for var in self.vars.values()))
+
+        all_its = [var.available_its(self.region) for var in self.vars.values()]
+        self.its = reduce(np.intersect1d, all_its)
         self.times = self.sim.get_time(self.its)
         self.max_step = self.times[1] - \
             self.times[0] if max_step is None else max_step
 
         max_t = self.init_tracers()
+        i_start = self.times.searchsorted(max_t, side='left') + self.off + 1
+        self.times = self.times[:i_start]
+        self.its = self.its[:i_start]
 
-        i_start = self.times.searchsorted(max_t)
-        self.times = self.times[:i_start+self.off+3]
-        self.its = self.its[:i_start+self.off+3]
-
-        self.i_start = len(self.times)-2
+        self.i_start = len(self.times)-self.off
 
     def load_chunk(self, i_start):
         large_it = self.its[i_start]
@@ -132,7 +131,7 @@ class TracerBunch():
 
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
 
-        ind = self.times.searchsorted(tt, side='right')
+        ind = self.times.searchsorted(tt, side='left')
         inds = np.arange(ind-self.off, ind+self.off)
         data = {}
         for it in self.its[inds]:
@@ -155,10 +154,15 @@ class TracerBunch():
                     if tr.status == 0:
                         tr.save()
                 break
-            t_start = self.times[self.i_start-self.off+1]
-            t_end = self.times[i_end+self.off+1]
-            it_start = self.its[self.i_start-self.off+1]
-            it_end = self.its[i_end+self.off+1]
+
+            i_end_off = min(len(self.times)-1, i_end + self.off)
+            i_start_off = min(len(self.times)-1, i_start - self.off)
+            
+
+            t_start = self.times[i_start_off]
+            t_end = self.times[i_end_off]
+            it_start = self.its[i_start_off]
+            it_end = self.its[i_end_off]
             if self.verbose:
                 print(
                     f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})", flush=True)
@@ -169,16 +173,32 @@ class TracerBunch():
                 if self.verbose:
                     print(
                         f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
-                tr.integrate(t_start, t_end)
-                try:
-                    tr.integrate(t_start, t_end)
-                except KeyboardInterrupt:
-                    raise
-                except Exception as ee:
+                for ntry in range(10):
+                    try:
+                        tr.integrate(t_start, t_end)
+                        break
+                    except KeyboardInterrupt:
+                        raise
+                    except OSError as ee:
+                        os_ex = ee
+                        sleep(30)
+                        continue
+                    except Exception as ee:
+                        warn(
+                            f"{tr.num} had an exception in integration step "
+                            f"{t_start, t_end}\n{type(ee).__name__}: {str(ee)}"
+                            )
+                        tr.status = -1
+                        tr.save()
+                        break
+                else:
                     warn(
-                        f"{tr.num} had exception in integration step {t_start, t_end}\n{type(ee).__name__}: {str(ee)}")
+                        f"{tr.num} had an OSError {ntry} times in integration step "
+                        f"{t_start, t_end}\n{type(os_ex).__name__}: {str(os_ex)}"
+                        )
                     tr.status = -1
-                    tr.save()
+                    # raise RuntimeError(f"OS error after {ntry} tries") from os_ex
+
 
             n_not_started = sum(tr.status == -2 for tr in self.tracers)
             n_running = sum(tr.status == 0 for tr in self.tracers)
@@ -197,14 +217,15 @@ class TracerBunch():
                     temps = [tr.trace['temp'][-1]
                              for tr in self.tracers
                              if len(tr.trace['temp']) > 0]
-                    print(
-                        f"temperature range: "
-                        f"{min(temps)*11.604518121745585:.1f}, "
-                        f"{max(temps)*11.604518121745585:.1f}"
-                    )
+                    if len(temps)>0:
+                        print(
+                            f"temperature range: "
+                            f"{min(temps)*11.604518121745585:.1f}, "
+                            f"{max(temps)*11.604518121745585:.1f}"
+                        )
             self.i_start = i_end + self.off*2
-        # if self.verbose:
-        print("Done", flush=True)
+        if self.verbose:
+            print("Done", flush=True)
         return np.array([tr.status for tr in self.tracers])
 
 
@@ -276,7 +297,7 @@ class tracer():
 
     def integrate(self, t_start, t_end):
         if self.status == 1 or self.status == -1:
-            return
+            return self.status
         min_time, max_time = min(t_start, t_end), max(t_start, t_end)
         if np.isclose(max_time, self.times[-1]):
             self.times[-1] = max_time*0.9999
@@ -299,9 +320,19 @@ class tracer():
                 self.t_step = np.abs(sol.t[-1] - sol.t[-2])
             self.set_trace(sol.t, sol.y.T)
 
+            if 'temp' in self.trace:
+                if np.all(self.trace['temp']>10/11.605) and len(self.trace['temp']) > 20:
+                    self.status = -1
+                    self.message = "More then 20 timesteps with temp>10GK"
+                    self.save()
+                    return self.status
+
             self.status = sol.status
             if sol.status == -1:
                 self.message = sol.message
+                self.save()
+                return self.status
+
 
             if self.termvar is not None:
                 term = self.trace[self.termvar]
@@ -332,6 +363,8 @@ class tracer():
         out = np.stack((utimes, *self.pos[uinds].T,
                         *[val[uinds] for val in self.trace.values()]))
         header = f"status={self.status}, mass={self.weight}, t0={t0}\n"
+        if self.status < 0:
+            header = f"message={self.message}\n"
         header += f"{'time':>13s} {'x':>15s} {'y':>15s} {'z':>15s} "
         fmt = "%15.7e "*4
         for kk in self.trace:
