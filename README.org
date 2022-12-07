@@ -1,0 +1,11 @@
+* Notable 2
+
+Post-processing and plotting routines for [[https://www.einsteintoolkit.org/][Einstein Toolkit]] data.
+
+** Dependencies
+  - numpy
+  - [[https://github.com/fguercilena/alpyne][alpyne]]
+  - scipy
+  - matplotlib
+  - tqdm
+  - h5py

@@ -7,11 +7,19 @@ from setuptools import setup
 setup(
     name="notable2",
     version="2.0dev",
-    author="Max Jacobi",
+    author="Maximilian Jacobi",
     author_email="mjacobi@theorie.ikp.physik.tu-darmstadt.de",
-    packages=['notable2'],
+    packages=["notable2"],
+    license='MIT',
     include_package_data=True,
-    description="Some scripts to plot output from the ET",
-    # cmdclass={'build_ext': build_ext},
-    # ext_modules=[Extension("lic_internal", ["notable/lic_internal.pyx"], include_dirs=[numpy.get_include()])]
+    install_requires=[
+        "numpy",
+        "alpyne",
+        "scipy",
+        "matplotlib",
+        "tqdm",
+        "h5py",
+    ],
+    python_requires='>=3.7',
+    description="Routines to post-process and plot output from the ET",
 )
