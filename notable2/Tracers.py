@@ -7,6 +7,8 @@ import scipy.integrate as sint
 from scipy.interpolate import interp1d
 from .Utils import Units
 
+from numpy.typing import NDArray
+
 
 class TracerBunch():
     def __init__(self,
@@ -380,6 +382,18 @@ class tracer():
 
 
 class Trajectory:
+    x: NDArray[np.float_]
+    y: NDArray[np.float_]
+    z: NDArray[np.float_]
+    time: NDArray[np.float_]
+    rho: NDArray[np.float_]
+    temp: NDArray[np.float_]
+    ye: NDArray[np.float_]
+    t0: float
+    mass: float
+    num: int
+    status: int
+
     def __init__(self, file_path):
         regex = "status=(.*), mass=([0-9\.e+-]+)(, t0=)?(.*)?"
         with open(file_path, 'r') as ff:
@@ -393,14 +407,27 @@ class Trajectory:
             else:
                 raise RuntimeError("Could not read header:\n"+header)
             header = ff.readline()
-        header = header.replace('# ', '')
-        keys = header.split()
 
-        for key, data in zip(keys, np.loadtxt(file_path, unpack=True)):
-            setattr(self, key, data)
-            # = dict(zip(keys, np.loadtxt(file_path, unpack=True)))
         self.mass = float(mass)
         self.status = int(status)
         self.t0 = float(t0)
         if len(nums := re.findall(r'\d+', file_path)) > 0:
             self.num = int(nums[-1])
+
+        with open(file_path, 'r') as ff:
+            for _ in range(10):
+                nheader = ff.readline()
+                if nheader[0] != '#':
+                    break
+                header = nheader
+            else:
+                raise RuntimeError(
+                    f"{file_path} does not have header")
+
+        header = header.replace('# ', '')
+        keys = header.split()
+
+        for key, data in zip(keys, np.loadtxt(file_path, unpack=True)):
+            if isinstance(data, float):
+                data = np.array([data])
+            setattr(self, key, data)
