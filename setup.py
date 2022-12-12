@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "numpy",
-        "alpyne",
+        "alpyne @ git+https://github.com/fguercilena/alpyne@master",
         "scipy",
         "matplotlib",
         "tqdm",
