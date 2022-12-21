@@ -52,19 +52,22 @@ class TracerBunch():
         self.vars = {var: self.sim.get_variable(var)
                      for var in self.to_trace+('V^x', 'V^y', 'V^z')}
 
-        all_its = [var.available_its(self.region) for var in self.vars.values()]
+        all_its = [var.available_its(self.region)
+                   for var in self.vars.values()]
         self.its = reduce(np.intersect1d, all_its)
-        self.times = np.round(self.sim.get_time(self.its), 3) # round for comparissons
+        self.times = np.round(self.sim.get_time(
+            self.its), 3)  # round for comparissons
         self.max_step = self.times[1] - \
             self.times[0] if max_step is None else max_step
 
         max_t = self.init_tracers()
 
-        assert max_t <= self.times.max(), f"Maximum tracer time {max_t} is larger then simulations times {self.times.max()}"
+        assert max_t <= self.times.max(
+        ), f"Maximum tracer time {max_t} is larger then simulations times {self.times.max()}"
 
         self.i_start = self.times.searchsorted(max_t, side='left')
-        self.times = self.times[:self.i_start  + self.off]
-        self.its = self.its[:self.i_start  + self.off]
+        self.times = self.times[:self.i_start + self.off]
+        self.its = self.its[:self.i_start + self.off]
 
     def load_chunk(self, i_start):
         large_it = self.its[i_start]
@@ -186,20 +189,21 @@ class TracerBunch():
                         sleep(30)
                         continue
                     except Exception as ee:
-                        tr.message = (f"Error in t={t_start}-{t_end}\n{type(ee).__name__}: {str(ee)}")
+                        tr.message = (
+                            f"Error in t={t_start}-{t_end}\n{type(ee).__name__}: {str(ee)}")
                         print()
                         warn(f"Tr. {tr.num}: {tr.message}")
                         tr.status = -1
                         tr.save()
                         break
                 else:
-                    tr.message = (f"OSError after 10 tries in t={t_start}-{t_end}\n{type(ee).__name__}: {str(os_ex)}")
+                    tr.message = (
+                        f"OSError after 10 tries in t={t_start}-{t_end}\n{type(ee).__name__}: {str(os_ex)}")
                     print()
                     warn(f"Tr. {tr.num}: {tr.message}")
                     tr.status = -1
                     tr.save()
                     # raise RuntimeError(f"OS error after {ntry} tries") from os_ex
-
 
             n_not_started = sum(tr.status == -2 for tr in self.tracers)
             n_running = sum(tr.status == 0 for tr in self.tracers)
@@ -218,17 +222,17 @@ class TracerBunch():
                     temps = [tr.trace['temp'][-1]
                              for tr in self.tracers
                              if tr.status == 0 and len(tr.trace['temp']) > 0]
-                    if len(temps)>0:
+                    if len(temps) > 0:
                         print(
                             f"temperature range: "
                             f"{min(temps)*11.604518121745585:.1f}, "
                             f"{max(temps)*11.604518121745585:.1f} GK",
                             end=' | '
                         )
-                radii = [np.sqrt(np.sum(tr.pos[-1]**2)) 
-                        for tr in self.tracers 
-                        if tr.status == 0 and len(tr.pos) > 0]
-                if len(radii)>0:
+                radii = [np.sqrt(np.sum(tr.pos[-1]**2))
+                         for tr in self.tracers
+                         if tr.status == 0 and len(tr.pos) > 0]
+                if len(radii) > 0:
                     print(
                         f"radius range: "
                         f"{min(radii)*Units['Length']:.2e}, "
@@ -330,7 +334,7 @@ class tracer():
                 warn(f"Tr. {self.num}: {self.message}")
                 self.save()
                 return self.status
-            if np.any(radii<100):
+            if np.any(radii < 100):
                 self.message = "Radius < 100km"
                 self.status = -1
                 warn(f"Tr. {self.num}: {self.message}")
@@ -343,10 +347,9 @@ class tracer():
                 self.save()
                 return self.status
 
-
             if self.termvar is not None:
                 term = self.trace[self.termvar]
-                if any(term >= self.termval):# and any(term <= self.termval):
+                if any(term >= self.termval):  # and any(term <= self.termval):
                     self.status = 1
                     self.save()
         return self.status
@@ -431,3 +434,29 @@ class Trajectory:
             if isinstance(data, float):
                 data = np.array([data])
             setattr(self, key, data)
+
+        if hasattr(self, 'time'):
+            self.time += self.t0
+
+    def get_at(self, key: str, val: float, target: str, extend=False):
+
+        if not hasattr(self, key):
+            raise ValueError(f"{key} not in this trajectory")
+        if not hasattr(self, target):
+            raise ValueError(f"{target} not in this trajectory")
+
+        val_ar = getattr(self, key)
+        target_ar = getattr(self, target)
+
+        if not extend:
+            if val_ar.min() > val:
+                raise ValueError(f"{key} is allways larger then {val}")
+            if val_ar.max() < val:
+                raise ValueError(f"{key} is allways smaller then {val}")
+        else:
+            if val_ar.min() > val:
+                return target_ar[np.argmin(val_ar)]
+            if val_ar.max() < val:
+                return target_ar[np.argmax(val_ar)]
+
+        return interp1d(val_ar, target_ar, )(val)

@@ -1165,4 +1165,37 @@ pp_variables = {
         ),
         save=False,
     ),
+    'E-nu-e': dict(
+        dependencies=("L-e-ene-M0", "L-e-num-M0", ),
+        func=lambda Le, Ln, *_, **__: Le/Ln,
+        plot_name_kwargs=dict(
+            name=r"$E_{\nu_e}$",
+            unit="MeV",
+            code_unit="",
+        ),
+        save=False,
+        scale_factor=1.115415671526276e10,
+    ),
+    'E-nu-a': dict(
+        dependencies=("L-a-ene-M0", "L-a-num-M0", ),
+        func=lambda Le, Ln, *_, **__: Le/Ln,
+        plot_name_kwargs=dict(
+            name=r"$E_{\bar{\nu}_e}$",
+            unit="MeV",
+            code_unit="",
+        ),
+        save=False,
+        scale_factor=1.115415671526276e10,
+    ),
+    'E-nu-x': dict(
+        dependencies=("L-x-ene-M0", "L-x-num-M0", ),
+        func=lambda Le, Ln, *_, **__: Le/Ln,
+        plot_name_kwargs=dict(
+            name=r"$E_{\nu_x}$",
+            unit="MeV",
+            code_unit="",
+        ),
+        save=False,
+        scale_factor=1.115415671526276e10,
+    ),
 }

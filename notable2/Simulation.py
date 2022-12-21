@@ -17,9 +17,6 @@ from .Config import config
 from .Variable import Variable, GridFuncVariable, TimeSeriesVariable
 from .Variable import PPGridFuncVariable, PPTimeSeriesVariable, GravitationalWaveVariable
 from .PostProcVariables import get_pp_variables
-from .Plot import plotGD, plotTS, animateGD, plotHist
-from .Animations import GDAniFunc as GDAF
-from .Animations import TSLineAniFunc as TSAF
 from .Utils import IterationError, VariableError, BackupException, RLArgument
 
 if TYPE_CHECKING:
@@ -48,6 +45,9 @@ class Simulation():
     plotTS: Callable
     animateGD: Callable
     plotHist: Callable
+
+    from .Plot import plotGD, plotTS, animateGD, plotHist
+    from .Animations import GDAniFunc, TSLineAniFunc
 
     def __init__(self,
                  sim_path: str,
@@ -186,31 +186,49 @@ class Simulation():
         ...
 
     def get_it(self, time):
-        """Get the smallest itteration(s) with time < the given time"""
+        "Get the smallest itteration(s) with time < the given time"
         return self._its[self._times.searchsorted(time, side='left')]
 
     def get_t_merg(self, use_GW: bool = True) -> Optional[float]:
+        """
+        Get the merger time
+        if use_GW is True (default True) use the largest peak in abs(h) (minumum height 0.1)
+        if use_GW is False or there is no peak in GW data use first large decrease of the
+        minium of the lapse function (> 0.05)
+        returns None if no large decrease in min(lapse) (no merger happened)
+        """
         if use_GW:
             for n_try in range(10):
                 try:
                     habs = self.get_data("h-abs")
                     ind, prop = find_peaks(habs.data, height=.1)
-                    return habs.times[ind[np.argmax(prop['peak_heights'])]]
-                except BlockingIOError as ex:
+                    if len(ind) > 0:
+                        return habs.times[ind[np.argmax(prop['peak_heights'])]]
+                    else:
+                        break
+                except OSError as ex:
                     sleep(5)
                     continue
                 except (VariableError, IndexError):
                     break
         if self.verbose:
-            print(f"{self.sim_name} using "
-                  "peaks in the lapse minimum to determine merger time")
-        data = self.get_data('alpha-min')
-        times = data.times
-        peaks = find_peaks(-data.data)[0]
-        diffs = np.diff(data.data[peaks])
-        if np.any(big_diffs := diffs < -.05):
-            min_ind = peaks[np.argwhere(big_diffs)[0][0]+1]
-        return float(times[min_ind])
+            print(
+                f"{self.sim_name} using peaks in the "
+                "lapse minimum to determine merger time"
+            )
+        dat = self.get_data('alpha-min')
+        i_peaks = find_peaks(dat.data)[0]
+        i_dips = find_peaks(-dat.data)[0]
+        diffs = dat.data[i_peaks] - dat.data[i_dips]
+        if np.any(big_diffs := diffs > 0.05):
+            return dat.times[i_dips][big_diffs][0]
+        else:
+            if self.verbose:
+                print(
+                    f"{self.sim_name}: no dips in the lapse "
+                    "minimum to determine merger time"
+                )
+            return
 
     def get_ADM_MJ(self):
         pattern = r"ADM mass of the system : ([0-9]\.[0-9]+) M_sol\n"
@@ -331,15 +349,3 @@ class Simulation():
     #             hf[nk] = hf[kk][:]
     #             del hf[kk]
     #         hf.flush()
-
-    def GDAniFunc(self, *args, **kwargs):
-        return GDAF(self, *args, **kwargs)
-
-    def TSAniFunc(self, *args, **kwargs):
-        return TSAF(self, *args, **kwargs)
-
-
-Simulation.plotGD = plotGD
-Simulation.plotTS = plotTS
-Simulation.animateGD = animateGD
-Simulation.plotHist = plotHist

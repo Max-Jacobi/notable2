@@ -109,7 +109,7 @@
       "cmap": "inferno",
       "func": "log"
     },
-    "name": "$Q_{\\nu_x}",
+    "name": "$Q_{\\nu_x}$",
     "scale_factor": 1.1269044823088264e+41,
     "unit": "erg cm$^{-3}$ ms$^{-1}$"
   },

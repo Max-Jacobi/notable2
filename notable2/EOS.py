@@ -280,13 +280,14 @@ class TabulatedEOS(EOS):
                                           'ye temp rho'.split(),
                                           [self.ye_range, self.temp_range, self.rho_range]):
 
-                aa = aa.copy()
-                aa[lmask := aa < rl] = rl
-                aa[rmask := aa > ru] = ru
-                if np.any(lmask):
-                    warn(f"{name} below EOS range")
-                if np.any(rmask):
-                    warn(f"{name} above EOS range")
+                if isinstance(aa, np.ndarray):
+                    aa = aa.copy()
+                    aa[(lmask := aa < rl)] = rl
+                    aa[(rmask := aa > ru)] = ru
+                    if np.any(lmask):
+                        warn(f"{name} below EOS range")
+                    if np.any(rmask):
+                        warn(f"{name} above EOS range")
 
             args = [ye.flatten(), np.log10(temp).flatten(),
                     np.log10(rho).flatten()]
