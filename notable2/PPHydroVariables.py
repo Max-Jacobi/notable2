@@ -519,5 +519,19 @@ pp_variables = {
             cmap='cubehelix'
         )
     ),
-
+    'press-Gamma-th': dict(
+        dependencies=("press-cold-eos", "rho", "eps-th-eos"),
+        func=lambda pc, rho, epsth, gamma_th=5/3,
+        *_, **__: pc + rho*epsth*gamma_th,
+        plot_name_kwargs=dict(
+            name=r"pressure ($\Gamma_th = gamma_th$)",
+            format_opt=dict(
+                gamma_th=str,
+            ),
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+        ),
+        kwargs=dict(cmap='plasma'),
+        scale_factor="Press"
+    ),
 }

@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
-from functools import reduce
 from inspect import signature
-from typing import Iterable, Callable, Optional, Union, TYPE_CHECKING, Any, List, Dict
+from typing import Callable, Optional, Union, TYPE_CHECKING, Any, List, Dict
+
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
 from matplotlib.animation import FuncAnimation  # type: ignore
 
-from .Utils import RLArgument, Units, func_dict, Plot2D
 from .Plot import _handle_kwargs, _handle_PPkwargs
+from .Utils import Units, func_dict, Plot2D
 from .Variable import Variable
+
 
 if TYPE_CHECKING:
     from .Utils import Simulation
@@ -274,6 +275,7 @@ class GDAniFunc(AniFunc):
             t_str = f"{time*Units['Time']: .2f} ms"
         if self.sim.t_merg is not None:
             t_str = f"$t - t_{{\\rm merg}}$ = {t_str}"
+
         else:
             t_str = f"$t$ = {t_str}"
         new_title = self.title
