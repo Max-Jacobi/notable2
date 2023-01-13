@@ -1030,6 +1030,17 @@ pp_variables = {
         ),
         scale_factor=RUnits['Time']
     ),
+    'Omega-mean': dict(
+        dependencies=("Omega-excised",),
+        func=lambda Gamma, *_, **kw: Gamma,
+        reduction=mean,
+        plot_name_kwargs=dict(
+            name="$<\Omega>$",
+            unit="rad ms$^{-1}$",
+            code_unit="rad $M_\\odot^{-1}$",
+        ),
+        scale_factor=RUnits['Time']
+    ),
     'temp-max-pp': dict(
         dependencies=("temp",),
         func=lambda temp, *_, **kw: temp,
