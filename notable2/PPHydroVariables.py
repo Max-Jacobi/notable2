@@ -70,7 +70,9 @@ def _Omega_excised(vx, vy, x=0, y=0, z=0, **_):
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
     r = (x**2 + y**2)**.5
     r[r <= 2] = np.inf
-    return (x*vy - y*vx)/r**2
+    om = (x*vy - y*vx)/r**2
+    om[om > 300] = np.nan
+    return om
 
 
 def _J_phi(dd, hh, ww,
