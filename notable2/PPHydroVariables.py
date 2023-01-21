@@ -524,16 +524,67 @@ pp_variables = {
     'press-Gamma-th': dict(
         dependencies=("press-cold-eos", "rho", "eps-th-eos"),
         func=lambda pc, rho, epsth, gamma_th=5/3,
-        *_, **__: pc + rho*epsth*gamma_th,
+        *_, **__: pc + rho*epsth*(gamma_th-1),
         plot_name_kwargs=dict(
-            name=r"pressure ($\Gamma_th = gamma_th$)",
+            name=r"pressure ($\Gamma_{\rm th} = gamma_th$)",
             format_opt=dict(
-                gamma_th=str,
+                gamma_th=lambda gamma_th, **_: "{:.2f}".format(gamma_th),
             ),
             code_unit="$M_\\odot^{-2}$",
             unit="g cm$^{-1}$ s$^{-2}$",
         ),
-        kwargs=dict(cmap='plasma'),
-        scale_factor="Press"
+        kwargs=dict(cmap='plasma', func='log'),
+        scale_factor="Press",
+        PPkeys=dict(gamma_th=5/3),
+    ),
+    'press-th-Gamma-th': dict(
+        dependencies=("rho", "eps-th-eos"),
+        func=lambda rho, epsth, gamma_th=5/3,
+        *_, **__: rho*epsth*(gamma_th-1),
+        plot_name_kwargs=dict(
+            name=r"thermal pressure ($\Gamma_{\rm th} = gamma_th$)",
+            format_opt=dict(
+                gamma_th=lambda gamma_th, **_: "{:.2f}".format(gamma_th),
+            ),
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+        ),
+        kwargs=dict(cmap='plasma', func='log'),
+        scale_factor="Press",
+        PPkeys=dict(gamma_th=5/3),
+    ),
+    'press-Gamma-th-ratio': dict(
+        dependencies=('press', 'press-Gamma-th'),
+        func=lambda p1, p2, *_, **__: p1/p2,
+        plot_name_kwargs=dict(
+            name=r"pressure ratio ($\Gamma_{\rm th} = gamma_th$)",
+            format_opt=dict(
+                gamma_th=lambda gamma_th, **_: "{:.2f}".format(gamma_th),
+            ),
+        ),
+        kwargs=dict(cmap='seismic', symetric_around=1),
+        PPkeys=dict(gamma_th=5/3),
+    ),
+    'press-ideal': dict(
+        dependencies=('rho', 'eps'),
+        func=lambda rho, eps, *_, gamma=2, **__: (gamma - 1) * rho * eps,
+        plot_name_kwargs=dict(
+            name=r"pressure ",
+            code_unit="$M_\\odot^{-2}$",
+            unit="g cm$^{-1}$ s$^{-2}$",
+        ),
+        kwargs=dict(cmap='plasma', func='log'),
+        scale_factor="Press",
+        PPkeys=dict(gamma=2),
+    ),
+    'h-ideal': dict(
+        dependencies=('rho', 'eps'),
+        func=lambda rho, eps, *_, gamma=2, **__: 1 + gamma * eps,
+        plot_name_kwargs=dict(
+            name="specific enthalpy",
+        ),
+        kwargs=dict(
+            cmap='inferno',
+        )
     ),
 }

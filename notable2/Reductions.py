@@ -12,7 +12,7 @@ from .Variable import TimeSeriesBaseVariable, GridFuncBaseVariable
 if TYPE_CHECKING:
     from .Utils import (
         GridFuncVariable, PPGridFuncVariable, TimeSeriesVariable,
-        PPTimeSeriesVariable, PostProcVariable
+        PPTimeSeriesVariable, PostProcVariable, GridFunc
     )
     from numpy.typing import NDArray
 
@@ -296,3 +296,43 @@ def integral_2D(dependencies: Sequence[Union["GridFuncVariable",
             result[ii] += np.sum(integ)
 
     return result
+
+
+def central(dependencies: Sequence[Union["GridFuncBaseVariable", "TimeSeriesBaseVariable"]],
+            its: 'NDArray[np.int_]',
+            var: "PostProcVariable",
+            func: Callable,
+            **kwargs) -> 'NDArray[np.float_]':
+
+    region = 'xz' if var.sim.is_cartoon else 'xyz'
+
+    result = np.zeros_like(its, dtype=float)
+
+    ts_data = {dep.key: dep.get_data(it=its).data
+               for dep in dependencies
+               if isinstance(dep, TimeSeriesBaseVariable)}
+
+    result = np.zeros_like(its, dtype=float)
+
+    for ii, it in tqdm(enumerate(its),
+                       ncols=0,
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       total=len(its),
+                       ):
+        dep_data = [dep.get_data(region=region, it=it)
+                    if isinstance(dep,  GridFuncBaseVariable)
+                    else ts_data[dep.key][ii] for dep in dependencies]
+
+        result[ii] = func(*[_cent(data, region)
+                            if not isinstance(data, (float, np.floating))
+                            else data
+                            for data in dep_data], **kwargs)
+    return result
+
+
+def _cent(dd: "GridFunc", reg: str):
+    dd = dd[max(dd.keys())]
+    for _ in reg:
+        dd = dd[3]
+    return dd

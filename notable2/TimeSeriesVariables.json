@@ -276,7 +276,6 @@
       "phi_min",
       "phi-min-CCZ4"
     ],
-    "backups": ["phi-min-BSSN"],
     "file_key": "phi(minimum)",
     "file_name": "ml_ccz4-ml_log_confac.scalars.asc",
     "name": "minimum conformal factor"

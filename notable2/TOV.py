@@ -5,13 +5,12 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 from scipy.optimize import toms748
 
-from .Utils import RUnits
+from .Utils import RUnits, Units
 
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-
-    from .EOS import TabulatedEOS, EOS
+    from .EOS import EOS
 
 
 class TOV:
@@ -159,14 +158,28 @@ class TOV:
                terminal_pressure=None,
                **kwargs):
         if terminal_pressure is None:
-            terminal_pressure = self.table["press"][0]
+            # terminal_pressure = self.table["press"][0]
+            terminal_pressure = 1e-17 * Units["Length"]**-2
         p_span = central_press, terminal_pressure
-        p_eval = np.linspace(central_press, terminal_pressure, N_points)
+        p_int = central_press*.1
+        p_eval = np.concatenate([
+            np.linspace(central_press, p_int, N_points//2+1)[:-1],
+            np.logspace(np.log10(p_int),
+                        np.log10(terminal_pressure),
+                        N_points//2)
+        ])
+        p_eval = np.clip(p_eval, terminal_pressure, central_press)
+
+        self.parameters["Pcent"] = central_press
 
         y0 = np.array([1e-10, 1e-10, 2.0])
 
         solution = solve_ivp(
-            self._get_Psources, y0=y0, t_span=p_span, t_eval=p_eval, **kwargs
+            self._get_Psources,
+            y0=y0,
+            t_span=p_span,
+            t_eval=p_eval,
+            **kwargs
         )
 
         if solution.status >= 0:
@@ -174,39 +187,9 @@ class TOV:
             self.data["r"], self.data["m"], self.data["y"] = solution.y
             self.data["r"] = self.data["r"] ** 0.5
             self.post_proc()
-
-            self.parameters["Pcent"] = central_press
-            self.parameters["R"] = self.data["r"][-1]
-            self.parameters["M"] = self.data["m"][-1]
-            self.parameters["yR"] = self.data["y"][-1]
-            self.parameters["C"] = self.parameters["M"] / self.parameters["R"]
-            y = self.parameters["yR"]
-            c = self.parameters["C"]
-            self.parameters["k_2"] = (
-                8
-                / 5
-                * c**5
-                * (1 - 2 * c) ** 2
-                * (2 + 2 * c * (y - 1) - y)
-                / (
-                    2 * c * (6 - 3 * y + 3 * c * (5 * y - 8))
-                    + 4
-                    * c**3
-                    * (13 - 11 * y + c * (3 * y - 2) + 2 * c**2 * (1 + y))
-                    + 3
-                    * (1 - 2 * c) ** 2
-                    * (2 - y + 2 * c * (y - 1))
-                    * np.log(1 - 2 * c)
-                )
-            )
-
-            self.parameters["Lambda"] = (
-                2 / 3 * self.parameters["k_2"] * self.parameters["C"] ** -5
-            )
-            self.parameters["k2T"] = 3 / 16 * self.parameters["Lambda"]
         return solution.status
 
-    def _get_sources(self, rad, mpy):
+    def _get_Rsources(self, rad, mpy):
         mass, press, yy = mpy
         En = self._call_eos(press, "En")
         cs2 = self._call_eos(press, "cs2")
@@ -232,9 +215,10 @@ class TOV:
 
         return np.array([dm, dP, dy])
 
-    def solve(self, central_press, dr_out=0.01, terminal_pressure=None, **kwargs):
+    def Rsolve(self, central_press, dr_out=0.01, terminal_pressure=None, **kwargs):
         if terminal_pressure is None:
-            terminal_pressure = self.table["press"][0]
+            # terminal_pressure = self.table["press"][0]
+            terminal_pressure = 1e-17 * Units["Length"]**-2
         t_span = 1e-14, 50
         N = int(50 / dr_out) + 1
         t_eval = np.linspace(*t_span, N)
@@ -244,9 +228,10 @@ class TOV:
             return mpy[1] - terminal_pressure
 
         terminate.terminal = True
+        self.parameters["Pcent"] = central_press
 
         solution = solve_ivp(
-            self._get_sources,
+            self._get_Rsources,
             y0=y0,
             t_span=t_span,
             t_eval=t_eval,
@@ -258,51 +243,30 @@ class TOV:
             self.data["r"] = solution.t
             self.data["m"], self.data["p"], self.data["y"] = solution.y
             self.post_proc()
-        if solution.status == 1:
-            self.parameters["R"] = solution.t_events[0][0]
-            self.parameters["M"] = solution.y_events[0][0, 0]
-            self.parameters["yR"] = solution.y_events[0][0, 2]
-            self.parameters["C"] = self.parameters["M"] / self.parameters["R"]
-            y = self.parameters["yR"]
-            c = self.parameters["C"]
-            self.parameters["k_2"] = (
-                8
-                / 5
-                * c**5
-                * (1 - 2 * c) ** 2
-                * (2 + 2 * c * (y - 1) - y)
-                / (
-                    2 * c * (6 - 3 * y + 3 * c * (5 * y - 8))
-                    + 4
-                    * c**3
-                    * (13 - 11 * y + c * (3 * y - 2) + 2 * c**2 * (1 + y))
-                    + 3
-                    * (1 - 2 * c) ** 2
-                    * (2 - y + 2 * c * (y - 1))
-                    * np.log(1 - 2 * c)
-                )
-            )
         return solution.status
 
     def post_proc(self):
         self.data["C"] = self.data["m"] / self.data["r"]
-        y = self.data["y"][1:]
-        c = self.data["C"][1:]
-        self.data["k_2"] = np.zeros_like(self.data["r"])
-        self.data["k_2"][1:] = (
-            8
-            / 5
-            * c**5
-            * (1 - 2 * c) ** 2
-            * (2 + 2 * c * (y - 1) - y)
+        y = self.data["y"]
+        c = self.data["C"]
+        self.data["k_2"] = (
+            8/5 * c**5 * (1 - 2 * c) ** 2 * (2 + 2 * c * (y - 1) - y)
             / (
                 2 * c * (6 - 3 * y + 3 * c * (5 * y - 8))
-                + 4 * c**3 * (13 - 11 * y + c * (3 * y - 2) +
-                              2 * c**2 * (1 + y))
-                + (3 * (1 - 2 * c) ** 2 *
-                   (2 - y + 2 * c * (y - 1)) * np.log(1 - 2 * c))
+                + 4 * c**3
+                * (13 - 11 * y + c * (3 * y - 2) + 2 * c**2 * (1 + y))
+                + 3 * (1 - 2 * c) ** 2
+                * (2 - y + 2 * c * (y - 1)) * np.log(1 - 2 * c)
             )
         )
+        self.parameters["R"] = self.data["r"][-1]
+        self.parameters["M"] = self.data["m"][-1]
+        self.parameters["yR"] = self.data["y"][-1]
+        self.parameters["C"] = self.parameters["M"] / self.parameters["R"]
+        self.parameters["k_2"] = self.data["k_2"][-1]
+        k2C = self.parameters["k_2"] * self.parameters["C"]**-5
+        self.parameters["Lambda"] = 2/3 * k2C
+        self.parameters["k2T"] = 1/8 * k2C
         for key in "rho eps cs2 En ye".split():
             self.data[key] = np.array(
                 [self._call_eos(pp, key) for pp in self.data["p"]]
@@ -319,7 +283,7 @@ class TOV:
 
         def _get_mass(p_cent):
             sol = self.Psolve(p_cent, **kwargs)
-            if sol != 0:
+            if sol < 0:
                 return m_target
             if verbose:
                 print(

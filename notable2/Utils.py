@@ -2,6 +2,7 @@ from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List, Dict, Tu
 from collections.abc import Iterable, Mapping
 import numpy as np
 from matplotlib.colors import Normalize  # type: ignore
+from matplotlib.colorbar import Colorbar  # type: ignore
 from matplotlib.contour import QuadContourSet  # type: ignore
 from matplotlib.image import AxesImage  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
@@ -108,11 +109,13 @@ class Plot2D(Mapping):
     first: Union[AxesImage, QuadContourSet]
     cmap: str
     axes: Axes
+    cbar: Colorbar
     kwarg: Dict[str, Any]
 
     def __init__(self,
                  dictionary: Dict[int, Union[AxesImage, QuadContourSet]],
                  norm: Normalize,
+                 cax: Optional[Axes] = None,
                  **kwargs):
         self._dict = dictionary
         self.rls = np.sort(list(self._dict.keys()))
@@ -122,6 +125,7 @@ class Plot2D(Mapping):
         self.cmap = self.first.get_cmap()
         self.axes = self.first.axes
         self.kwargs = kwargs
+        self.cax = cax
 
     def __getitem__(self, rl):
         return self._dict[rl]

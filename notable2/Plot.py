@@ -310,10 +310,12 @@ def plotGD(sim: "Simulation",
         if bounds is not None:
             if isinstance(bounds, (float, int, np.number)):
                 bounds = float(bounds)
-                if sim.is_cartoon:
+                if region == 'xy':
+                    bounds = (-bounds, bounds, -bounds, bounds)
+                elif sim.is_cartoon:
                     bounds = (0., bounds, 0., bounds)
                 else:
-                    bounds = (-bounds, bounds, -bounds, bounds)
+                    bounds = (-bounds, bounds, 0., bounds)
             elif len(bounds) == 2:
                 bounds = list(bounds)*2
             ax.axis(bounds)
@@ -359,7 +361,8 @@ def plotGD(sim: "Simulation",
         if cbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
-            ColorbarBase(ax=cax, cmap=plot_2d.cmap, norm=plot_2d.norm)
+            plot_2d.cbar = ColorbarBase(
+                ax=cax, cmap=plot_2d.cmap, norm=plot_2d.norm)
             try:
                 plt.sca(ax)
             except ValueError:
@@ -514,7 +517,7 @@ def animateGD(sim: "Simulation",
 
     if fig is None:
         if ax is None:
-            fig, ax = plt.subplots(1)
+            fig, ax = plt.subplots(1, animated=True)
         else:
             fig = ax.figure
     elif ax is None:

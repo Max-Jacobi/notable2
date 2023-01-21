@@ -4,6 +4,7 @@ from os.path import basename, isfile
 from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING, Dict
 from collections.abc import Iterable
 from time import sleep
+from types import MethodType
 
 import numpy as np
 from scipy.signal import find_peaks  # type: ignore
@@ -18,6 +19,8 @@ from .Variable import Variable, GridFuncVariable, TimeSeriesVariable
 from .Variable import PPGridFuncVariable, PPTimeSeriesVariable, GravitationalWaveVariable
 from .PostProcVariables import get_pp_variables
 from .Utils import IterationError, VariableError, BackupException, RLArgument
+from .Plot import plotGD, plotTS, animateGD, plotHist
+from .Animations import GDAniFunc, TSLineAniFunc
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -43,11 +46,9 @@ class Simulation():
     pp_gw_variables: Dict[str, Dict[str, Any]]
     plotGD: Callable
     plotTS: Callable
+    plotHist: Callable
     animateGD: Callable
     plotHist: Callable
-
-    from .Plot import plotGD, plotTS, animateGD, plotHist
-    from .Animations import GDAniFunc, TSLineAniFunc
 
     def __init__(self,
                  sim_path: str,
@@ -92,6 +93,13 @@ class Simulation():
 
         self.ADM_M, self.ADM_J = self.get_ADM_MJ() if not self.is_cartoon else (None, None)
         self.t_merg = self.get_t_merg() if not self.is_cartoon else None
+
+        self.plotGD = MethodType(plotGD, self)
+        self.plotTS = MethodType(plotTS, self)
+        self.plotHist = MethodType(plotHist, self)
+        self.animateGD = MethodType(animateGD, self)
+        self.GDAniFunc = MethodType(GDAniFunc, self)
+        self.TSLineAniFunc = MethodType(TSLineAniFunc, self)
 
     def __repr__(self):
         return f"Einstein Toolkit simulation {self.sim_name}"

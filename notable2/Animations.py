@@ -104,7 +104,6 @@ class Animation:
 
         ani = FuncAnimation(fig=fig, frames=self.times,
                             func=_animate, init_func=_init, **kwargs)
-        plt.close(fig)
         return ani
 
 

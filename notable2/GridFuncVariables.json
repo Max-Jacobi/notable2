@@ -458,7 +458,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$gamma_{xx}$"
+    "name": "$\\gamma_{xx}$"
   },
   "g_xy": {
     "alias": [
@@ -469,7 +469,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$gamma_{xy}$"
+    "name": "$\\gamma_{xy}$"
   },
   "g_xz": {
     "alias": [
@@ -480,7 +480,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$gamma_{xz}$"
+    "name": "$\\gamma_{xz}$"
   },
   "g_yy": {
     "alias": [
@@ -491,7 +491,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$gamma_{yy}$"
+    "name": "$\\gamma_{yy}$"
   },
   "g_yz": {
     "alias": [
@@ -502,7 +502,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$gamma_{yz}$"
+    "name": "$\\gamma_{yz}$"
   },
   "g_zz": {
     "alias": [
@@ -513,7 +513,7 @@
     "kwargs": {
       "cmap": "plasma"
     },
-    "name": "$gamma_{zz}$"
+    "name": "$\\gamma_{zz}$"
   },
   "k_xx": {
     "alias": [
@@ -656,7 +656,6 @@
       "phi-CCZ4"
     ],
     "backups": [
-      "phi-BSSN",
       "phi-pp"
     ],
     "file_key": "ML_CCZ4::phi",
