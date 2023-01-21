@@ -417,7 +417,7 @@ pp_variables = {
             unit="ms",
             code_unit="$M_\odot$",
         ),
-        scale_factor="Time",  # 1.1269044823088264e+41,
+        scale_factor="Time",
         kwargs=dict(
             cmap="seismic",
             symetric_around=0,

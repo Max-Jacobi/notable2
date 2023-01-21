@@ -51,9 +51,11 @@ def _FFI(t, data, f0, order=2):
 def get_f0(t0, tt, C22):
 
     if t0 < (tmin := tt.min()):
-        raise ValueError(f't0 {t0} is smaller than minimum time of GW data: {tmin}')
+        raise ValueError(
+            f't0 {t0} is smaller than minimum time of GW data: {tmin}')
     if t0 > (tmax := tt.max()):
-        raise ValueError(f't0 {t0} is larger than maximum time of GW data: {tmax}')
+        raise ValueError(
+            f't0 {t0} is larger than maximum time of GW data: {tmax}')
     Phi = np.unwrap(np.angle(C22))
     dtPhi = np.diff(Phi)/np.diff(tt)
     dtPhit0 = interp1d((tt[:-1]+tt[1:])/2, dtPhi)(t0)
@@ -98,7 +100,7 @@ def compute_PSD(sim, dist=100, window="post merger", code_units=False, **kwargs)
     """
     Returns the PSD for the simulation sim.
     Arguments:
-    - distance: of detector in Mpc
+    - dist: of detector in Mpc
     - window:  "post merger", or t0, or a tuple of (t0, end), or (t0, end, width)
     - code_units: convert frequencies and PSD to Hz and Hz^-1
     - kwargs: keyword arguments for sim.get_data
@@ -115,13 +117,15 @@ def compute_PSD(sim, dist=100, window="post merger", code_units=False, **kwargs)
 
     if window is not None:
         if window == "post merger":
-            window = Planck_taper_window(ts, sim.t_merg-200, width=200, end=False)
+            window = Planck_taper_window(
+                ts, sim.t_merg-200, width=200, end=False)
         elif window is None:
             window = np.ones_like(data)
         elif callable(window):
             window = window(ts)
         elif isinstance(window, (int, float)):
-            window = Planck_taper_window(ts, window + sim.t_merg-200, width=200, end=False)
+            window = Planck_taper_window(
+                ts, window + sim.t_merg-200, width=200, end=False)
         elif len(window) == 2:
             window = Planck_taper_window(ts, window(0)+sim.t_merg-200,
                                          width=200,

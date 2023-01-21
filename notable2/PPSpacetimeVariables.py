@@ -38,7 +38,7 @@ pp_variables = {
         dependencies=("psi-pp",),
         func=lambda psi, *_, **kw: psi**-2,
         plot_name_kwargs=dict(
-            name="$phi$",
+            name="$\phi$",
         ),
         kwargs=dict(
             cmap="plasma",

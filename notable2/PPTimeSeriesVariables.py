@@ -341,23 +341,18 @@ pp_variables = {
         dependencies=("V^r", "dens"),
         func=_mass_flow,
         plot_name_kwargs=dict(
-            name="mass flux",
+            name=r"$\dot{M}_{\rm ej}$ ($r=radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
-        ),
-        reduction=sphere_surface_integral,
-        scale_factor=1/Units['Time'],
-    ),
-    'mass-flow-cartoon': dict(
-        dependencies=("V^r", "dens"),
-        func=_mass_flow,
-        plot_name_kwargs=dict(
-            name="mass flux",
-            unit=r"$M_\odot$ ms$^{-1}$",
-            code_unit="",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + 'M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
         ),
         reduction=sphere_surface_integral,
         scale_factor=RUnits['Time'],
+        PPkeys=dict(radius=1000),
     ),
     'rho-bulk': dict(
         dependencies=("dens", "rho"),
