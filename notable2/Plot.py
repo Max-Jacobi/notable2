@@ -511,6 +511,7 @@ def animateGD(sim: "Simulation",
               min_time: Optional[float] = None,
               max_time: Optional[float] = None,
               every: int = 1,
+              interval: int = 50,
               **kwargs):
 
     from .Animations import Animation
@@ -528,7 +529,7 @@ def animateGD(sim: "Simulation",
                     every=every)
     ani.add_animation(sim.GDAniFunc(*args, ax=ax, **kwargs))
 
-    return ani.animate(fig)
+    return ani.animate(fig, interval=interval)
 
 
 def plotHist(sim: "Simulation",

@@ -15,7 +15,7 @@ from h5py import File as HDF5  # type: ignore
 from .DataHandlers import DataHandler
 from .EOS import EOS, TabulatedEOS
 from .Config import config
-from .Variable import Variable, GridFuncVariable, TimeSeriesVariable
+from .Variable import GridFuncBaseVariable, TimeSeriesBaseVariable, Variable, GridFuncVariable, TimeSeriesVariable
 from .Variable import PPGridFuncVariable, PPTimeSeriesVariable, GravitationalWaveVariable
 from .PostProcVariables import get_pp_variables
 from .Utils import IterationError, VariableError, BackupException, RLArgument
@@ -298,11 +298,18 @@ class Simulation():
                 f"Could not find key {key} in {self}.") from last_exc
 
     def get_data(self, key: str,
+                 time: Optional[float] = None,
                  min_time: Optional[float] = None,
                  max_time: Optional[float] = None,
                  **kwargs):
         var = self.get_variable(key)
-        if min_time is not None or max_time is not None:
+        if time is not None:
+            its = var.get_it(time=time, **kwargs)
+            return var.get_data(it=its, **kwargs)
+        elif min_time is not None or max_time is not None:
+            if not isinstance(var, TimeSeriesBaseVariable):
+                raise ValueError(
+                    f"{var} is not a time series. Can not use min_time or max_time.")
             its = var.available_its(**kwargs)
             if min_time is not None:
                 min_it = var.get_it(min_time, **kwargs)

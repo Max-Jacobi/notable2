@@ -115,11 +115,13 @@ def _rho_cont_format_func(rho_cont=1e13*RUnits['Rho'], code_units=False):
         return f"{rho_cont*Units['Rho']:.0e}"+r"\,$g cm$^{-3}$"
 
 
-def _radius_format_func(radius, code_units=False):
-    if code_units:
-        return f"{radius:.0f} " + r'M_\odot$'
-    else:
-        return f"{radius*Units['Length']:.0e}"+r"\,$km"
+def _radius_format_func(code_units=False, **kwargs):
+    for radius in kwargs.values():
+        if code_units:
+            return f"{radius:.0f} " + r'M_\odot$'
+        else:
+            return f"{radius*Units['Length']:.0f}"+r"\,$km"
+    return "no_radius"
 
 
 pp_variables = {
@@ -553,7 +555,7 @@ pp_variables = {
         dependencies=("ejb-dens",),
         func=_ident,
         plot_name_kwargs=dict(
-            name=r"ejected mass ($inner_ \leq r \leq outer_r)",
+            name=r"ejected mass ($inner_r $\leq r \leq outer_r)",
             unit=r"$M_\odot$",
             format_opt=dict(
                 inner_r=_radius_format_func,
@@ -902,16 +904,10 @@ pp_variables = {
         dependencies=("dens", "u_t", 'h'),
         func=lambda dens, ut, h, *_, **__: 2*dens*(h*ut <= -1),
         plot_name_kwargs=dict(
-            name=r"$M_{\rm ej, in}$ ($r=$radius)",
+            name=r"$M_{\rm ej, in}$",
             unit=r"$M_\odot$",
-            format_opt=dict(
-                radius=lambda radius, code_units:
-                (f"{radius:.0f} " + '$M_\\odot$' if code_units
-                 else f"{radius*Units['Length']:.0f} km")
-            ),
         ),
         reduction=integral,
-        PPkeys=dict(radius=1000),
     ),
     'M-ejb-tot': dict(
         dependencies=("M-ejb-esc", "M-ejb-in"),
@@ -1364,33 +1360,36 @@ pp_variables = {
         dependencies=('L-nu-e', ),
         func=lambda L, *_, **__: L,
         plot_name_kwargs=dict(
-            name=r"$L_{\nu_e}$",
-            unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
-            code_unit=r"$10^{51}$"
+            name=r"$q^{\rm Leak}_{\nu_e}$",
+            unit="erg cm$^{-3}$ s$^{-1}$",
+            code_unit=r"$10^{51} M_\odot^{-3}$",
         ),
-        scale_factor=Units["Energy"]/Units["Time"]*1e3,
+        scale_factor=Units["Energy"] /
+            (Units["Time"]*1e-3)/(Units["Length"]*1e5),
         reduction=central,
     ),
     'L-a-cent': dict(
         dependencies=('L-nu-a', ),
         func=lambda L, *_, **__: L,
         plot_name_kwargs=dict(
-            name=r"$L_{\nu_e}$",
-            unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
-            code_unit=r"$10^{51}$"
+            name=r"$q^{\rm Leak}_{\bar{\nu_e}}$",
+            unit="erg cm$^{-3}$ s$^{-1}$",
+            code_unit=r"$10^{51} M_\odot^{-3}$",
         ),
-        scale_factor=Units["Energy"]/Units["Time"]*1e3,
+        scale_factor=Units["Energy"] /
+            (Units["Time"]*1e-3)/(Units["Length"]*1e5),
         reduction=central,
     ),
     'L-x-cent': dict(
         dependencies=('L-nu-x', ),
         func=lambda L, *_, **__: L,
         plot_name_kwargs=dict(
-            name=r"$L_{\nu_e}$",
-            unit=r"$10^{51}\,\mathrm{erg\,s}^{-1}$",
-            code_unit=r"$10^{51}$"
+            name=r"$q^{\rm Leak}_{\nu_x}$",
+            unit="erg cm$^{-3}$ s$^{-1}$",
+            code_unit=r"$M_\odot^{-3}$",
         ),
-        scale_factor=Units["Energy"]/Units["Time"]*1e3,
+        scale_factor=Units["Energy"] /
+            (Units["Time"]*1e-3)/(Units["Length"]*1e5),
         reduction=central,
     ),
     'tau-1e-cent': dict(

@@ -118,6 +118,7 @@ class TOV:
         )(press)
 
     def _get_Psources(self, press, r2my):
+        # print(f"Evaluating at {press:.5e}")
         r2, mass, yy = r2my
         if any(map(lambda dd: not np.all(np.isfinite(dd)), r2my)):
             return np.array([np.nan, np.nan, np.nan])
@@ -157,8 +158,12 @@ class TOV:
                N_points=1000,
                terminal_pressure=None,
                **kwargs):
+        kwargs.setdefault("method", "DOP853")
+        kwargs.setdefault("rtol", 1e-5)
+        kwargs.setdefault("atol", 1e-3)
+
         if terminal_pressure is None:
-            # terminal_pressure = self.table["press"][0]
+            # terminal_pressure =
             terminal_pressure = 1e-17 * Units["Length"]**-2
         p_span = central_press, terminal_pressure
         p_int = central_press*.1
@@ -187,6 +192,22 @@ class TOV:
             self.data["r"], self.data["m"], self.data["y"] = solution.y
             self.data["r"] = self.data["r"] ** 0.5
             self.post_proc()
+        elif "Required step size is less" in solution.message:
+            if kwargs['rtol'] < 1e-1:
+                kwargs['rtol'] = kwargs['rtol'] * 2
+                if self.verbose:
+                    print(
+                        f"Did not converge. Increasing 'rtol' to {kwargs['rtol']:.2e}"
+                    )
+                return self.Psolve(
+                    central_press=central_press,
+                    N_points=N_points,
+                    terminal_pressure=terminal_pressure,
+                    **kwargs
+                )
+
+        else:
+            print(solution.message)
         return solution.status
 
     def _get_Rsources(self, rad, mpy):
