@@ -21,14 +21,14 @@ class AniFunc(ABC):
     ani: "Animation"
 
     @abstractmethod
-    def get_times(self,
-                  min_time: Optional[float],
-                  max_time: Optional[float],
-                  every: int):
+    def _get_times(self,
+                   min_time: Optional[float],
+                   max_time: Optional[float],
+                   every: int):
         ...
 
     @abstractmethod
-    def init(self, fig):
+    def _init(self, fig):
         ...
 
     @abstractmethod
@@ -37,14 +37,32 @@ class AniFunc(ABC):
 
 
 class Animation:
+    """
+    Class for managing animations in matplotlib.
 
-    fig: plt.Figure
-    funcs: List[AniFunc]
+    Arguments for the constructor:
+        min_time: Optional[float]
+            The starting time for the animation. If None the start of the simulation is chosen. Defaults to None
+        max_time: Optional[float]
+            The end time for the animation. If None the end of the simulation is chosen. Defaults to None
+        every: int
+            An interval to animate every `every` time steps, defaults to 1
+        init_func: Optional[Callable]
+            An optional function to call once at the beginning of the animation
+
+    Methods
+        add_animation(self, func: AniFunc)
+            Adds an animation function to the list of functions to animate
+        animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation
+            Animate the functions in the figure and returns a FuncAnimation object.
+    """
+
     init_func: Optional[Callable]
     times: 'NDArray[np.float_]'
     min_time: Optional[float]
     max_time: Optional[float]
     every: int
+    funcs: List[AniFunc]
 
     def __init__(self,
                  min_time: Optional[float] = None,
@@ -60,18 +78,23 @@ class Animation:
         self.init_func = init_func
 
     def add_animation(self, func: AniFunc):
+        """
+        This function is used to add an animation to the Animation class.
+        It takes in one parameter:
+        - `func`: A object of type `AniFunc` that represents the animation to be added.
+        """
         self.funcs.append(func)
         func.ani = self
-        times = func.get_times(min_time=self.min_time,
-                               max_time=self.max_time,
-                               every=self.every)
+        times = func._get_times(min_time=self.min_time,
+                                max_time=self.max_time,
+                                every=self.every)
         self.times = np.unique(np.append(self.times, times))
         self.times.sort()
 
     def animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation:
         def _init():
             for func in self.funcs:
-                func.init()
+                func()
             if self.init_func is not None:
                 self.init_func()
 
@@ -181,7 +204,7 @@ class GDAniFunc(AniFunc):
 
         self.rls = rls
 
-    def get_times(self, min_time, max_time, every):
+    def _get_times(self, min_time, max_time, every):
 
         its = self.var.available_its(self.region)
         times = self.sim.get_time(its)
@@ -197,7 +220,7 @@ class GDAniFunc(AniFunc):
         self.times = np.round(times[mask][::every], -1)
         return self.times
 
-    def init(self):
+    def _init(self):
         init_it = int(self.its[int((len(self.its)-1)*self.setup_at)])
 
         rls = self.sim.expand_rl(self.rls, it=init_it)
@@ -286,6 +309,19 @@ class GDAniFunc(AniFunc):
 
 
 class TSLineAniFunc(AniFunc):
+    """
+    TSLineAniFunc creates an animation of a vertical line that moves along the
+    x-axis of a given matplotlib axes for the use with notable2.Animations.Animation.
+
+    Paramters:
+     - sim: an instance of the "Simulation" class, which is used to provide the
+       current time of the simulation
+     - ax: a matplotlib Axes instance that the animation will be plotted on
+     - code_units: a boolean value indicating whether the time should be in code
+       units or not. Default value is False.
+     - **kwargs: any additional keyword arguments that will be passed to the
+         matplotlib axvline function when initializing the animation
+    """
 
     def __init__(self,
                  sim: "Simulation",
@@ -297,10 +333,10 @@ class TSLineAniFunc(AniFunc):
         self.kwargs = kwargs
         self.code_units = code_units
 
-    def get_times(self, *_, **kwargs):
+    def _get_times(self, *_, **kwargs):
         return np.array([], dtype=float)
 
-    def init(self):
+    def _init(self):
         self.im = self.ax.axvline(0, **self.kwargs)
 
     def __call__(self, time: np.float_):
@@ -313,10 +349,10 @@ class AnyAniFunc(AniFunc):
     def __init__(self, ani_func):
         self.ani_func = ani_func
 
-    def get_times(self, *_, **kw):
+    def _get_times(self, *_, **kw):
         return np.array([], dtype=float)
 
-    def init(self):
+    def _init(self):
         ...
 
     def __call__(self, time: np.float_):

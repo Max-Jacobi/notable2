@@ -1,5 +1,5 @@
 """
-DataHandlers module
+Thi is the DataHandlers module.
 
 DataHandlers are responsible for parsing simulation output
 and returning stuff like GridFunc and TimeSeries.

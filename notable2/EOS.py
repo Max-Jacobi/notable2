@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, TYPE_CHECKING, List, Dict, Tuple
 from functools import reduce
@@ -351,5 +352,10 @@ class TabulatedEOS(EOS):
 
     def set_path(self, path: str):
         "EOS path setter"
+        cactus_base = (os.environ['CACTUS_BASEDIR']
+                       if "CACTUS_BASEDIR" in os.environ else None)
+        if path[0] != '/' and cactus_base is not None:
+            path = f"{cactus_base}/EOSs/{path}"
+
         self.hydro_path = f"{path}/hydro.h5"
         self.weak_path = f"{path}/weak.h5"

@@ -71,8 +71,6 @@ class Simulation():
         elif eos_path == 'ideal':
             ...
         else:
-            if eos_path[0] != '/' and cactus_base is not None:
-                eos_path = f"{cactus_base}/EOSs/{eos_path}"
             self.eos = TabulatedEOS(eos_path)
 
         self._offset = offset if offset is not None else dict(x=0, y=0, z=0)
