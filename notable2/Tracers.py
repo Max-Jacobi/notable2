@@ -67,14 +67,14 @@ class TracerBunch():
         self.times = self.times[:self.cur_ind + self.off]
         self.its = self.its[:self.cur_ind + self.off]
 
-    def load_chunk(self, cur_ind):
-        cur_its = self.its[cur_ind-self.off: cur_ind+self.off]
+    def load_chunk(self):
+        cur_its = self.its[self.cur_ind-self.off: self.cur_ind+self.off]
         for it, dat in self.dats.items():
             if it not in cur_its:
                 del dat
         for it in cur_its:
             if it not in self.its:
-                return
+                continue
             if it not in self.dats:
                 for n_try in range(4):
                     try:
@@ -92,7 +92,6 @@ class TracerBunch():
                     ) from ex
                 for kk in self.dats[it]:
                     self.dats[it][kk].mem_load = True
-        return cur_ind-1
 
     def init_tracers(self):
         seeds = np.loadtxt(self.seed_path)
@@ -138,14 +137,8 @@ class TracerBunch():
         return result
 
     def integrate_all(self):
-        while True:
-            i_end = self.load_chunk(self.cur_ind)
-            if i_end is None:
-                for tr in self.tracers:
-                    if tr.status == 0:
-                        tr.save()
-                break
-
+        while self.cur_ind >= 0:
+            self.load_chunk()
             t_start = self.times[self.cur_ind]
             t_end = self.times[self.cur_ind - 1]
             it_start = self.its[self.cur_ind]
@@ -220,7 +213,10 @@ class TracerBunch():
                         f"{min(radii)*Units['Length']:.2e}, "
                         f"{max(radii)*Units['Length']:.2e} km"
                     )
-            self.cur_ind = i_end + self.off
+            self.cur_ind = self.cur_ind - 1
+        for tr in self.tracers:
+            if tr.status == 0:
+                tr.save()
         if self.verbose:
             print("Done", flush=True)
         return np.array([tr.status for tr in self.tracers])
