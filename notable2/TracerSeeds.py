@@ -115,6 +115,7 @@ def fluxSeeds(sim: "Simulation",
               n_phi: int = 20,
               min_time: Optional[float] = None,
               max_time: Optional[float] = None,
+              shuffle: bool = True,
               unbound: Optional[str] = None):
 
     region = 'xz' if sim.is_cartoon else 'xyz'
@@ -157,8 +158,9 @@ def fluxSeeds(sim: "Simulation",
         raise ValueError("Cartoon tracers not yet implemented")
     else:
         gr = GridRefine((n_phi, n_theta), fluxes, get_surf_flux_3D(radius, dt))
-        # grids, dxs, masses = gr.get_mthresh(mthresh_est, n_tracers, n_tracers//100)
-        _, grids, dxs, masses = gr.refine_grid(mthresh_est, 2*n_tracers)
+        grids, dxs, masses = gr.get_mthresh(
+            mthresh_est, n_tracers, n_tracers//100)
+        # _, grids, dxs, masses = gr.refine_grid(mthresh_est, 2*n_tracers)
 
     it_seeds = np.concatenate([it*np.ones_like(mm)
                               for it, mm in zip(its, masses)])
@@ -174,8 +176,9 @@ def fluxSeeds(sim: "Simulation",
         coords = [radius * np.sin(thetas), radius * np.cos(thetas)]
 
     else:
-        grids = [(np.random.rand(*dx.shape)-.5)*dx +
-                 grid for grid, dx in zip(grids, dxs)]
+        if shuffle:
+            grids = [(np.random.rand(*dx.shape)-.5)*dx +
+                     grid for grid, dx in zip(grids, dxs)]
         phis = np.concatenate([2*np.pi*grid[:, 0] for grid in grids])
         thetas = np.concatenate([np.arccos(grid[:, 1]) for grid in grids])
 

@@ -18,7 +18,6 @@ class TracerBunch():
                  max_step=None,
                  to_trace=('rho', 'temp', 'ye'),
                  verbose=False,
-                 chunksize=2e9,
                  terminate_var=None,
                  terminate_val=None,
                  t_int_order=1):
@@ -32,7 +31,6 @@ class TracerBunch():
         self.to_trace = tuple(to_trace)
         self.verbose = verbose
         self.seed_path = seed_path
-        self.chunksize = chunksize
         self.terminate_var = terminate_var
         self.terminate_val = terminate_val
 
@@ -65,23 +63,18 @@ class TracerBunch():
         assert max_t <= self.times.max(
         ), f"Maximum tracer time {max_t} is larger then simulations times {self.times.max()}"
 
-        self.i_start = self.times.searchsorted(max_t, side='left')
-        self.times = self.times[:self.i_start + self.off]
-        self.its = self.its[:self.i_start + self.off]
+        self.cur_ind = self.times.searchsorted(max_t, side='left')
+        self.times = self.times[:self.cur_ind + self.off]
+        self.its = self.its[:self.cur_ind + self.off]
 
-    def load_chunk(self, i_start):
-        large_it = self.its[i_start]
-        cur_size = 0
+    def load_chunk(self, cur_ind):
+        cur_its = self.its[cur_ind-self.off: cur_ind+self.off]
         for it, dat in self.dats.items():
-            if it > large_it:
+            if it not in cur_its:
                 del dat
-            else:
-                for dd in dat.values():
-                    cur_size += sum(md.size *
-                                    md.itemsize for md in dd.mem_data.values())
-        self.dats = {}
-        ii = i_start
-        for it in self.its[i_start::-1]:
+        for it in cur_its:
+            if it not in self.its:
+                return
             if it not in self.dats:
                 for n_try in range(4):
                     try:
@@ -95,21 +88,13 @@ class TracerBunch():
                         raise
                 else:
                     raise OSError(
-                        f"Could not open hdf5 file after {n_try} tries") from ex
+                        f"Could not open hdf5 file after {n_try} tries"
+                    ) from ex
                 for kk in self.dats[it]:
                     self.dats[it][kk].mem_load = True
-                    cc = self.dats[it][kk].coords[0]
-                    ss = len(cc['x'])*len(cc['y'])*len(cc['z'])*8
-                    cur_size += ss
-            if cur_size > self.chunksize:
-                break
-            ii -= 1
-        else:
-            return
-        return ii
+        return cur_ind-1
 
     def init_tracers(self):
-
         seeds = np.loadtxt(self.seed_path)
         self.tracers = []
 
@@ -154,20 +139,17 @@ class TracerBunch():
 
     def integrate_all(self):
         while True:
-            i_end = self.load_chunk(self.i_start)
+            i_end = self.load_chunk(self.cur_ind)
             if i_end is None:
                 for tr in self.tracers:
                     if tr.status == 0:
                         tr.save()
                 break
 
-            i_end_off = min(len(self.times)-1, i_end + self.off)
-            i_start_off = min(len(self.times)-1, self.i_start - self.off + 1)
-
-            t_start = self.times[i_start_off]
-            t_end = self.times[i_end_off]
-            it_start = self.its[i_start_off]
-            it_end = self.its[i_end_off]
+            t_start = self.times[self.cur_ind]
+            t_end = self.times[self.cur_ind - 1]
+            it_start = self.its[self.cur_ind]
+            it_end = self.its[self.cur_ind - 1]
             if self.verbose:
                 print(
                     f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})", flush=True)
@@ -178,7 +160,7 @@ class TracerBunch():
                 if self.verbose:
                     print(
                         f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
-                for ntry in range(10):
+                for _ in range(10):
                     try:
                         tr.integrate(t_start, t_end)
                         break
@@ -238,7 +220,7 @@ class TracerBunch():
                         f"{min(radii)*Units['Length']:.2e}, "
                         f"{max(radii)*Units['Length']:.2e} km"
                     )
-            self.i_start = i_end + self.off
+            self.cur_ind = i_end + self.off
         if self.verbose:
             print("Done", flush=True)
         return np.array([tr.status for tr in self.tracers])
