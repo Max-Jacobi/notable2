@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import signature
-from typing import Callable, Optional, Union, TYPE_CHECKING, Any, List, Dict
+from typing import Callable, Optional, TYPE_CHECKING, Any, List, Dict, Iterable
 
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
@@ -12,7 +12,7 @@ from .Variable import Variable
 
 
 if TYPE_CHECKING:
-    from .Utils import Simulation
+    from .Utils import Simulation, RLArgument
     from numpy.typing import NDArray
 
 
@@ -28,7 +28,7 @@ class AniFunc(ABC):
         ...
 
     @abstractmethod
-    def _init(self, fig):
+    def _init(self):
         ...
 
     @abstractmethod
@@ -42,9 +42,11 @@ class Animation:
 
     Arguments for the constructor:
         min_time: Optional[float]
-            The starting time for the animation. If None the start of the simulation is chosen. Defaults to None
+            The starting time for the animation. If None the start of the
+            simulation is chosen. Defaults to None
         max_time: Optional[float]
-            The end time for the animation. If None the end of the simulation is chosen. Defaults to None
+            The end time for the animation. If None the end of the simulation is
+            chosen. Defaults to None
         every: int
             An interval to animate every `every` time steps, defaults to 1
         init_func: Optional[Callable]
@@ -81,7 +83,8 @@ class Animation:
         """
         This function is used to add an animation to the Animation class.
         It takes in one parameter:
-        - `func`: A object of type `AniFunc` that represents the animation to be added.
+        - `func`: A object of type `AniFunc` that represents the animation to be
+          added.
         """
         self.funcs.append(func)
         func.ani = self
@@ -92,11 +95,15 @@ class Animation:
         self.times.sort()
 
     def animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation:
+        """
+        Create the animation based on the added functions and return a
+        FuncAnimation object.
+        """
         def _init():
-            for func in self.funcs:
-                func()
             if self.init_func is not None:
                 self.init_func()
+            for func in self.funcs:
+                func._init()
 
         def _animate(time: np.float_):
             for func in self.funcs:
@@ -114,19 +121,20 @@ class GDAniFunc(AniFunc):
     var: Variable
     its: 'NDArray[np.int_]'
     times: 'NDArray[np.float_]'
-    image: Union[Plot2D, plt.Line2D]
+    image: (Plot2D | plt.Line2D)
+    ax: plt.Axes
     # -----------Plot kwargs-------------------------------
     rls: "RLArgument"
     region: str
     setup_at: float
     code_units: bool
     exclude_ghosts: int = 0
-    label: Union[bool, str]
-    title: Union[bool, str]
-    xlabel: Union[bool, str]
-    ylabel: Union[bool, str]
+    label: (bool | str)
+    title: (bool | str)
+    xlabel: (bool | str)
+    ylabel: (bool | str)
     # -----------Variable kwargs----------------------------
-    func: Optional[Union[Callable, bool]] = None
+    func: Optional[(Callable | bool)] = None
     slice_ax: Optional[Dict[str, float]] = None
     interp_ax: Optional[Dict[str, float]] = None
     # -----------kwargs dicts----------------------------
@@ -139,15 +147,16 @@ class GDAniFunc(AniFunc):
                  # -----------Plot kwargs-------------------------------
                  rls: "RLArgument" = None,
                  region: Optional[str] = None,
-                 setup_at: Union[int, float] = 0.,
+                 setup_at: (int | float) = 0.,
                  code_units: bool = False,
                  exclude_ghosts: int = 0,
-                 label: Union[bool, str] = False,
-                 title: Union[bool, str] = True,
-                 xlabel: Union[bool, str] = True,
-                 ylabel: Union[bool, str] = True,
+                 label: (bool | str) = False,
+                 title: (bool | str) = True,
+                 xlabel: (bool | str) = True,
+                 ylabel: (bool | str) = True,
+                 ax: Optional[plt.Axes] = None,
                  # -----------Variable kwargs----------------------------
-                 func: Optional[Union[Callable, str, bool]] = None,
+                 func: Optional[(Callable | str | bool)] = None,
                  slice_ax: Optional[Dict[str, float]] = None,
                  interp_ax: Optional[Dict[str, float]] = None,
                  # ------------------------------------------------------
@@ -164,6 +173,10 @@ class GDAniFunc(AniFunc):
         self.code_units = code_units
         self.exclude_ghosts = exclude_ghosts
         self.setup_at = float(setup_at)
+        if ax is None:
+            self.ax = plt.gca()
+        else:
+            self.ax = ax
 
         var_kwargs, popped = _handle_kwargs(self.var.kwargs, dict(func=(func, None),
                                                                   slice_ax=(
@@ -203,7 +216,11 @@ class GDAniFunc(AniFunc):
 
         self.rls = rls
 
-    def _get_times(self, min_time, max_time, every):
+    def _get_times(self,
+                   min_time: Optional[float],
+                   max_time: Optional[float],
+                   every: int,
+                   ):
 
         its = self.var.available_its(self.region)
         times = self.sim.get_time(its)
@@ -242,7 +259,7 @@ class GDAniFunc(AniFunc):
 
     def __call__(self, time: np.float_):
         if time > max(self.times):
-            if self.region == 1:
+            if len(self.region) == 1:
                 self.image.set_data([], [])
                 return
         if time not in self.times:
@@ -344,15 +361,123 @@ class TSLineAniFunc(AniFunc):
         self.im.set_xdata(time)
 
 
+class ContourAniFunc(GDAniFunc):
+    """
+    ContourAniFunc creates an animation of a contour plot for the use with
+    notable2.Animations.Animation.
+    """
+    image: Plot2D
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, contour=True, **kwargs)
+
+        # delete cmap if colors is given
+        if 'cmap' in self.kwargs and 'colors' in self.kwargs:
+            del self.kwargs['cmap']
+
+    def _init(self):
+        # delete old contours if animation has looped
+        if hasattr(self, 'image'):
+            for rl in self.image:
+                for cont in self.image[rl].collections:
+                    cont.remove()
+
+        super()._init()
+
+        # set levels in stone
+        if isinstance(self.kwargs['levels'], (int, np.integer)):
+            self.kwargs['levels'] = np.linspace(self.image.norm.vmin,
+                                                self.image.norm.vmax,
+                                                self.kwargs['levels'])
+
+    def __call__(self, time: np.float_):
+        # this is the same as GDAniFunc.__call__ except for the setting of the
+        # new data
+        if time not in self.times:
+            return
+        ii = self.times.searchsorted(time)
+        it = self.its[ii]
+
+        rls = self.sim.expand_rl(self.rls, it=it)
+
+        grid_func = self.var.get_data(region=self.region,
+                                      it=it,
+                                      exclude_ghosts=self.exclude_ghosts,
+                                      **self.PPkwargs)
+        coords = grid_func.coords
+
+        if not self.code_units:
+            data = {rl: grid_func.scaled(rl) for rl in grid_func}
+            coords = {rl: {ax: cc*Units['Length']
+                           for ax, cc in coords[rl].items()}
+                      for rl in grid_func}
+        else:
+            data = grid_func
+
+        if callable(self.func):
+            if isinstance(self.func, np.ufunc):
+                data = {rl: self.func(dd) for rl, dd in data.items()}
+            elif len(signature(self.func).parameters) == 1:
+                data = {rl: self.func(dd) for rl, dd in data.items()}
+            else:
+                data = {rl: self.func(dd, **coords[rl])
+                        for rl, dd in data.items()}
+
+        for rl in self.image:
+            for cont in self.image[rl].collections:
+                cont.remove()  # removes only the contours, leaves the rest intact
+
+        kwargs = self.kwargs.copy()
+        kwargs.pop('contour')
+        for rl in rls:
+            xx, yy = coords[rl].values()
+            self.image[rl] = self.ax.contour(xx, yy, data[rl].T,
+                                             norm=self.image.norm,
+                                             zorder=.99+.0001*rl,
+                                             **kwargs)
+
+        if self.code_units:
+            t_str = f"{time: .2f} $M_\\odot$"
+        else:
+            t_str = f"{time*Units['Time']: .2f} ms"
+
+        if self.sim.t_merg is not None:
+            t_str = f"$t - t_{{\\rm merg}}$ = {t_str}"
+        else:
+            t_str = f"$t$ = {t_str}"
+
+        new_title = self.title
+        if isinstance(new_title, str):
+            new_title = new_title.replace('TIME', t_str)
+            new_title = new_title.replace('IT', f'{it}')
+            self.image.axes.set_title(new_title)
+
+
 class AnyAniFunc(AniFunc):
-    def __init__(self, ani_func):
+    """
+    Custom AniFunc that can be used to create any animation by passsing a
+    animation function and optionally an init function
+
+    Arguments:
+        - ani_func: (callable) the animation function that will be called at
+          each frame
+        - init_func: (callable, None) the init function that will be called at
+          the beginning of the animation if not None
+    """
+
+    def __init__(self,
+                 ani_func: Callable,
+                 init_func: Optional[Callable] = None,
+                 ):
         self.ani_func = ani_func
+        self.init_func = init_func
 
     def _get_times(self, *_, **kw):
         return np.array([], dtype=float)
 
     def _init(self):
-        ...
+        if self.init_func is not None:
+            self.init_func()
 
     def __call__(self, time: np.float_):
         self.ani_func(time)

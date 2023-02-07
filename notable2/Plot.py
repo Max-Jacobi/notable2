@@ -281,6 +281,7 @@ def plotGD(sim: "Simulation",
             levels = kwargs.pop('levels') if 'levels' in kwargs else 10
             if isinstance(levels, (int, np.integer)):
                 levels = np.linspace(norm.vmin, norm.vmax, levels)
+            kwargs['levels'] = levels
         # ----------------Plotting-----------------------------------------
         im = {}
         for rl in actual_rls[::-1]:
@@ -299,7 +300,7 @@ def plotGD(sim: "Simulation",
 
             if contour:
                 im[rl] = ax.contour(xx, yy, dat.T, norm=norm,
-                                    levels=levels, zorder=.99+.0001*rl, **kwargs)
+                                    zorder=.99+.0001*rl, **kwargs)
             else:
                 im[rl] = ax.imshow(
                     dat.T, origin='lower', extent=extent, norm=norm, zorder=.9+.001*rl, **kwargs)
