@@ -5,25 +5,46 @@ from time import sleep
 import numpy as np
 import scipy.integrate as sint
 from scipy.interpolate import interp1d
-from .Utils import Units
-
+from typing import Optional
 from numpy.typing import NDArray
+
+from .Utils import Units
+from .Simulation import Simulation
 
 
 class TracerBunch():
+    """
+    A bunch of tracers. Used to coordinate the calculation of multiple tracers in bunches based on memory allocation.
+
+    Arguments:
+        sim: Simulation object
+        save_path: (str) path to save the data
+        seed_path: (str) path to the seed file
+        max_step: (float) maximum step size for the tracers
+        to_trace: (tuple) variables to trace
+        verbose: (bool) print progress
+        terminate_var: (str) variable to terminate the tracer on
+        terminate_val: (float) value of the variable to terminate the tracer on
+        t_int_order: (int) order of the time interpolation
+
+    Methods:
+        init_tracers: initialize the tracers
+        load_chunk: load the next chunk of data
+        get_data: interpolate data at the position and time of a tracer
+        integrate_all: integrate all tracers
+    """
+
     def __init__(self,
-                 sim,
-                 save_path,
-                 seed_path,
-                 max_step=None,
-                 to_trace=('rho', 'temp', 'ye'),
-                 verbose=False,
-                 terminate_var=None,
-                 terminate_val=None,
-                 t_int_order=1):
-        """
-        A bunch of tracers. Used to coordinate the calculation of multiple tracers in bunches based on memory allocation.
-        """
+                 sim: Simulation,
+                 save_path: str,
+                 seed_path: str,
+                 max_step: Optional[np.float_] = None,
+                 to_trace: tuple[str, ...] = ('rho', 'temp', 'ye'),
+                 verbose: bool = False,
+                 terminate_var: Optional[str] = None,
+                 terminate_val: Optional[np.float_] = None,
+                 t_int_order: int = 1,
+                 ):
 
         self.sim = sim
         self.seed_path = seed_path
@@ -68,14 +89,20 @@ class TracerBunch():
         self.its = self.its[:self.cur_ind + self.off]
 
     def load_chunk(self):
+        """
+        Load the next chunk of data
+        """
         cur_its = self.its[self.cur_ind-self.off: self.cur_ind+self.off]
+        # delete old data
         for it, dat in self.dats.items():
             if it not in cur_its:
                 del dat
+        # load new data
         for it in cur_its:
             if it not in self.its:
                 continue
             if it not in self.dats:
+                # try 4 times and wait if file is unavailable
                 for n_try in range(4):
                     try:
                         self.dats[it] = {kk: var.get_data(region=self.region, it=it)
@@ -90,10 +117,14 @@ class TracerBunch():
                     raise OSError(
                         f"Could not open hdf5 file after {n_try} tries"
                     ) from ex
+                # set save in memory flag to true
                 for kk in self.dats[it]:
                     self.dats[it][kk].mem_load = True
 
     def init_tracers(self):
+        """
+        Initialize the tracers
+        """
         seeds = np.loadtxt(self.seed_path)
         self.tracers = []
 
@@ -113,6 +144,9 @@ class TracerBunch():
         return max(tr.times.max() for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
+        """
+        Interpolate the data for 'keys' at time 'tt' and position 'pos'
+        """
         if tt < self.times.min() or tt > self.times.max():
             raise RuntimeError(
                 f"Interpolation time {tt} not in loaded times {self.times.min()}:{self.times.max()}")
@@ -137,6 +171,9 @@ class TracerBunch():
         return result
 
     def integrate_all(self):
+        """
+        Integrate all tracers
+        """
         while self.cur_ind >= 0:
             self.load_chunk()
             t_start = self.times[self.cur_ind]
@@ -148,44 +185,39 @@ class TracerBunch():
                     f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})", flush=True)
 
             for nn, tr in enumerate(self.tracers):
+                # ignore tracers that are already finished or crashed
                 if tr.status in [-1, 1]:
                     continue
                 if self.verbose:
                     print(
                         f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
-                for _ in range(10):
-                    try:
-                        tr.integrate(t_start, t_end)
-                        break
-                    except KeyboardInterrupt:
-                        raise
-                    except OSError as ee:
-                        os_ex = ee
-                        sleep(30)
-                        continue
-                    except Exception as ee:
-                        tr.message = (
-                            f"Error in t={t_start}-{t_end}\n{type(ee).__name__}: {str(ee)}")
-                        print()
-                        warn(f"Tr. {tr.num}: {tr.message}")
-                        tr.status = -1
-                        tr.save()
-                        break
-                else:
+                # try integrating tracers
+                try:
+                    tr.integrate(t_start, t_end)
+                    break
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ee:
+                    # if integration fails mark tracer as crashed and save
                     tr.message = (
-                        f"OSError after 10 tries in t={t_start}-{t_end}\n{type(ee).__name__}: {str(os_ex)}")
+                        f"Error in t={t_start}-{t_end}\n{type(ee).__name__}: {str(ee)}")
                     print()
                     warn(f"Tr. {tr.num}: {tr.message}")
                     tr.status = -1
                     tr.save()
-                    # raise RuntimeError(f"OS error after {ntry} tries") from os_ex
 
             n_not_started = sum(tr.status == -2 for tr in self.tracers)
             n_running = sum(tr.status == 0 for tr in self.tracers)
             n_failed = sum(tr.status == -1 for tr in self.tracers)
             n_done = sum(tr.status == 1 for tr in self.tracers)
+
+            # if all tracers are finished or crashed, we are done
             if n_running+n_not_started == 0:
                 break
+
+            # advance index backward in time
+            self.cur_ind = self.cur_ind - 1
+
             if self.verbose:
                 print(
                     f"{n_not_started} not started, "
@@ -193,6 +225,16 @@ class TracerBunch():
                     f"{n_failed} failed, "
                     f"{n_done} done",
                     flush=True)
+                # print some status messages about current temperature and position
+                radii = [np.sqrt(np.sum(tr.pos[-1]**2))
+                         for tr in self.tracers
+                         if tr.status == 0 and len(tr.pos) > 0]
+                if len(radii) > 0:
+                    print(
+                        f"radius range: "
+                        f"{min(radii)*Units['Length']:.2e}, "
+                        f"{max(radii)*Units['Length']:.2e} km"
+                    )
                 if 'temp' in self.to_trace:
                     temps = [tr.trace['temp'][-1]
                              for tr in self.tracers
@@ -204,19 +246,11 @@ class TracerBunch():
                             f"{max(temps)*11.604518121745585:.1f} GK",
                             end=' | '
                         )
-                radii = [np.sqrt(np.sum(tr.pos[-1]**2))
-                         for tr in self.tracers
-                         if tr.status == 0 and len(tr.pos) > 0]
-                if len(radii) > 0:
-                    print(
-                        f"radius range: "
-                        f"{min(radii)*Units['Length']:.2e}, "
-                        f"{max(radii)*Units['Length']:.2e} km"
-                    )
-            self.cur_ind = self.cur_ind - 1
+        # save all tracers that have not met any stopping criterion
         for tr in self.tracers:
             if tr.status == 0:
                 tr.save()
+
         if self.verbose:
             print("Done", flush=True)
         return np.array([tr.status for tr in self.tracers])
@@ -225,7 +259,7 @@ class TracerBunch():
 class tracer():
     """
     A single Tracer object.
-    Basically a wrapper around scipy.integrate.solve_ivp.
+    Basically just a wrapper around scipy.integrate.solve_ivp.
     """
 
     def __init__(self,
@@ -269,9 +303,16 @@ class tracer():
             self.trace[kk] = np.array([tt])
 
     def get_rhs(self, tt, pos):
+        """
+        Get the right hand side of the ODE system.
+        Just a wrapper for the parent Tracer bu
+        """
         return self.get_data(tt, pos, self.keys)
 
     def set_trace(self, time, pos):
+        """
+        Set the current position and time of the tracer and interpolate all data in self.trace.
+        """
         self.times = np.concatenate((self.times, time[1:]))
         self.pos = np.concatenate((self.pos, pos[1:]))
         trace = np.array([self.get_data(tt, yy, self.trace.keys())
@@ -280,6 +321,9 @@ class tracer():
             self.trace[kk] = np.concatenate((self.trace[kk], tt[1:]))
 
     def integrate(self, t_start, t_end):
+        """
+        Integrate the tracer from t_start to t_end.
+        """
         if self.status == 1 or self.status == -1:
             return self.status
         min_time, max_time = min(t_start, t_end), max(t_start, t_end)
@@ -333,26 +377,37 @@ class tracer():
         return self.status
 
     def save(self):
-        _, uinds = np.unique(np.round(self.times, 3), return_index=True)
-        utimes = self.times[uinds]
+        """
+        Format tracer output and save the tracer to a file.
+        """
+        # if tracer is allready saved nothing needs to be done
+        if self.saved:
+            return
 
-        t0 = utimes.min()
-        utimes -= t0
-
-        utimes *= Units['Time']
-        t0 *= Units['Time']
+        # format units
+        self.times *= Units['Time']
         self.pos *= Units['Length']
         if 'rho' in self.trace:
             self.trace['rho'] *= Units['Rho']
         if 'temp' in self.trace:
             self.trace['temp'] *= 11.604518121745585
 
+        # subtract starting time for better floating point accuracy in text file
+        t0 = self.times.min()
+        self.times -= t0
+
+        # resort arrays based unique sorted times
+        _, uinds = np.unique(np.round(self.times, 3), return_index=True)
+        utimes = self.times[uinds]
         out = np.stack((utimes, *self.pos[uinds].T,
                         *[val[uinds] for val in self.trace.values()]))
+
+        # write to file
         header = f"status={self.status}, mass={self.weight}, t0={t0}\n"
         if self.status < 0:
             header += f"message={self.message}\n"
         header += f"{'time':>13s} {'x':>15s} {'y':>15s} {'z':>15s} "
+
         fmt = "%15.7e "*4
         for kk in self.trace:
             fmt += "%15.7e "
@@ -363,6 +418,20 @@ class tracer():
 
 
 class Trajectory:
+    """
+    Class for a trajectory of a tracer particle.
+
+    Attributes:
+        num (int): The number of the tracer.
+        weight (float): The mass of the tracer.
+        times (np.ndarray): The times of the tracer.
+        pos (np.ndarray): The positions of the tracer.
+        trace (dict): The data of the tracer.
+        status (int): The status of the integration.
+
+    Methods:
+        get_data (tt, pos, keys): Get the data of the tracer at a given time and position.
+    """
     x: NDArray[np.float_]
     y: NDArray[np.float_]
     z: NDArray[np.float_]
@@ -417,15 +486,20 @@ class Trajectory:
             self.time += self.t0
 
     def get_at(self, key: str, val: float, target: str, extend=False):
-
+        """
+        Get the data for 'target' where 'key' has value 'val
+        """
+        # Check if key and target exist
         if not hasattr(self, key):
             raise ValueError(f"{key} not in this trajectory")
         if not hasattr(self, target):
             raise ValueError(f"{target} not in this trajectory")
 
+        # get the data for the key and target
         val_ar = getattr(self, key)
         target_ar = getattr(self, target)
 
+        # check if val is in the array
         if not extend:
             if val_ar.min() > val:
                 raise ValueError(f"{key} is allways larger then {val}")
@@ -437,4 +511,5 @@ class Trajectory:
             if val_ar.max() < val:
                 return target_ar[np.argmax(val_ar)]
 
+        # do the interpolation
         return interp1d(val_ar, target_ar, )(val)
