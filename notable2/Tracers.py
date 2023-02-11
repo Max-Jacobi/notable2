@@ -148,8 +148,8 @@ class TracerBunch():
         Interpolate the data for 'keys' at time 'tt' and position 'pos'
         """
         if tt < self.times.min() or tt > self.times.max():
-            raise RuntimeError(
-                f"Interpolation time {tt} not in loaded times {self.times.min()}:{self.times.max()}")
+            raise RuntimeError(f"Interpolation time {tt} not in loaded times "
+                               f"{self.times.min()}:{self.times.max()}")
         elif not np.isfinite(tt):
             raise RuntimeError(f"Interpolation time is not finite: {tt}")
 
@@ -181,16 +181,16 @@ class TracerBunch():
             it_start = self.its[self.cur_ind]
             it_end = self.its[self.cur_ind - 1]
             if self.verbose:
-                print(
-                    f"integrating from t={t_start:.2f}M to t={t_end:.2f}M (it={it_start} to it={it_end})", flush=True)
+                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M "
+                      f"(it={it_start} to it={it_end})", flush=True)
 
             for nn, tr in enumerate(self.tracers):
                 # ignore tracers that are already finished or crashed
                 if tr.status in [-1, 1]:
                     continue
                 if self.verbose:
-                    print(
-                        f"integrating tracer {nn} ({tr.num})           ", end='\r', flush=True)
+                    print(f"integrating tracer {nn} ({tr.num})           ",
+                          end='\r', flush=True)
                 # try integrating tracers
                 try:
                     tr.integrate(t_start, t_end)
@@ -199,8 +199,8 @@ class TracerBunch():
                     raise
                 except Exception as ee:
                     # if integration fails mark tracer as crashed and save
-                    tr.message = (
-                        f"Error in t={t_start}-{t_end}\n{type(ee).__name__}: {str(ee)}")
+                    tr.message = (f"Error in t={t_start}-{t_end}\n"
+                                  f"{type(ee).__name__}: {str(ee)}")
                     print()
                     warn(f"Tr. {tr.num}: {tr.message}")
                     tr.status = -1
@@ -230,22 +230,18 @@ class TracerBunch():
                          for tr in self.tracers
                          if tr.status == 0 and len(tr.pos) > 0]
                 if len(radii) > 0:
-                    print(
-                        f"radius range: "
-                        f"{min(radii)*Units['Length']:.2e}, "
-                        f"{max(radii)*Units['Length']:.2e} km"
-                    )
+                    print(f"radius range: "
+                          f"{min(radii)*Units['Length']:.2e}, "
+                          f"{max(radii)*Units['Length']:.2e} km")
                 if 'temp' in self.to_trace:
                     temps = [tr.trace['temp'][-1]
                              for tr in self.tracers
                              if tr.status == 0 and len(tr.trace['temp']) > 0]
                     if len(temps) > 0:
-                        print(
-                            f"temperature range: "
-                            f"{min(temps)*11.604518121745585:.1f}, "
-                            f"{max(temps)*11.604518121745585:.1f} GK",
-                            end=' | '
-                        )
+                        print(f"temperature range: "
+                              f"{min(temps)*11.604518121745585:.1f}, "
+                              f"{max(temps)*11.604518121745585:.1f} GK",
+                              end=' | ')
         # save all tracers that have not met any stopping criterion
         for tr in self.tracers:
             if tr.status == 0:
