@@ -16,6 +16,8 @@ CRASHED = -1
 RUNNING = 0
 FINISHED = 1
 
+MeV_to_GK = 11.604518121745585
+
 
 class TracerBunch():
     """
@@ -244,14 +246,13 @@ class TracerBunch():
                     print(f"radius range: "
                           f"{min(radii)*Units['Length']:.2e}, "
                           f"{max(radii)*Units['Length']:.2e} km")
-                if 'temp' not in self.to_trace:
-                    temps = [tr.trace['temp'][-1]
-                             for tr in self.tracers
+                if 'temp' in self.to_trace:
+                    temps = [tr.trace['temp'][-1] for tr in self.tracers
                              if tr.status == RUNNING and len(tr.trace['temp']) > 0]
                     if len(temps) > 0:
                         print(f"temperature range: "
-                              f"{min(temps)*11.604518121745585:.1f}, "
-                              f"{max(temps)*11.604518121745585:.1f} GK",
+                              f"{min(temps)*MeV_to_GK:.1f}, "
+                              f"{max(temps)*MeV_to_GK:.1f} GK",
                               end=' | ')
 
             # advance index backward in time
@@ -408,7 +409,7 @@ class tracer():
         if 'rho' in self.trace:
             self.trace['rho'] *= Units['Rho']
         if 'temp' in self.trace:
-            self.trace['temp'] *= 11.604518121745585
+            self.trace['temp'] *= MeV_to_GK
 
         # subtract starting time for better floating point accuracy in text file
         t0 = self.times.min()
