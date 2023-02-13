@@ -185,9 +185,6 @@ class TracerBunch():
                       f"(it={it_start} to it={it_end})", flush=True)
 
             for nn, tr in enumerate(self.tracers):
-                # ignore tracers that are already finished or crashed
-                if tr.status in [-1, 1]:
-                    continue
                 if self.verbose:
                     print(f"integrating tracer {nn} ({tr.num})           ",
                           end='\r', flush=True)
@@ -323,53 +320,56 @@ class tracer():
         if self.status == 1 or self.status == -1:
             return self.status
         min_time, max_time = min(t_start, t_end), max(t_start, t_end)
-        if np.isclose(max_time, self.times[-1]):
+        if np.isclose(max_time, self.times[-1], rtol=1e-4):
             self.times[-1] = max_time*0.9999
-        if min_time <= self.times[-1] <= max_time:
-            if self.t_step is not None:
-                if self.t_step > (max_t_step := np.abs(self.times[-1] - t_end)):
-                    self.t_step = max_t_step
-                if self.t_step <= 0:
-                    self.t_step = None
+        if min_time >= self.times[-1] or max_time <= self.times[-1]:
+            return self.status
 
-            sol = sint.solve_ivp(self.get_rhs,
-                                 (self.times[-1], t_end),
-                                 self.pos[-1],
-                                 first_step=self.t_step,
-                                 rtol=1e-5,
-                                 max_step=self.max_step)
-            if len(sol.t) > 2:
-                self.t_step = np.abs(sol.t[-2] - sol.t[-3])
-            elif len(sol.t) == 2:
-                self.t_step = np.abs(sol.t[-1] - sol.t[-2])
-            self.set_trace(sol.t, sol.y.T)
+        if self.t_step is None:
+            pass
+        elif self.t_step > (max_t_step := np.abs(self.times[-1] - t_end)):
+            self.t_step = max_t_step
+        elif self.t_step <= 0:
+            self.t_step = None
 
-            radii = np.sqrt(np.sum(self.pos**2, axis=-1)) * Units['Length']
-            dt = (self.times.max() - self.times.min())*Units['Time']
-            if dt > 5 and radii.max()-radii.min() < radii.max()*1e-2:
-                self.message = "Not moving for 5ms"
-                self.status = -1
-                warn(f"Tr. {self.num}: {self.message}")
+        sol = sint.solve_ivp(self.get_rhs,
+                             (self.times[-1], t_end),
+                             self.pos[-1],
+                             first_step=self.t_step,
+                             rtol=1e-5,
+                             max_step=self.max_step)
+        if len(sol.t) > 2:
+            self.t_step = np.abs(sol.t[-2] - sol.t[-3])
+        elif len(sol.t) == 2:
+            self.t_step = np.abs(sol.t[-1] - sol.t[-2])
+        self.set_trace(sol.t, sol.y.T)
+
+        radii = np.sqrt(np.sum(self.pos**2, axis=-1)) * Units['Length']
+        dt = (self.times.max() - self.times.min())*Units['Time']
+        if dt > 5 and radii.max()-radii.min() < radii.max()*1e-2:
+            self.message = "Not moving for 5ms"
+            self.status = -1
+            warn(f"Tr. {self.num}: {self.message}")
+            self.save()
+            return self.status
+        if np.any(radii < 100):
+            self.message = "Radius < 100km"
+            self.status = -1
+            warn(f"Tr. {self.num}: {self.message}")
+            self.save()
+            return self.status
+
+        self.status = sol.status
+        if sol.status == -1:
+            self.message = sol.message
+            self.save()
+            return self.status
+
+        if self.termvar is not None:
+            term = self.trace[self.termvar]
+            if any(term >= self.termval):  # and any(term <= self.termval):
+                self.status = 1
                 self.save()
-                return self.status
-            if np.any(radii < 100):
-                self.message = "Radius < 100km"
-                self.status = -1
-                warn(f"Tr. {self.num}: {self.message}")
-                self.save()
-                return self.status
-
-            self.status = sol.status
-            if sol.status == -1:
-                self.message = sol.message
-                self.save()
-                return self.status
-
-            if self.termvar is not None:
-                term = self.trace[self.termvar]
-                if any(term >= self.termval):  # and any(term <= self.termval):
-                    self.status = 1
-                    self.save()
         return self.status
 
     def save(self):
