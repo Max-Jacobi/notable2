@@ -237,17 +237,19 @@ class TracerBunch():
                 # print some status messages about current temperature and position
                 radii = [np.linalg.norm(tr.pos[-1]) for tr in self.tracers
                          if tr.status == RUNNING and len(tr.pos) > 0]
-                if len(radii) > 0:
-                    print(f"radius range: "
-                          f"{min(radii)*Units['Length']:.2e}, "
-                          f"{max(radii)*Units['Length']:.2e} km")
                 if 'temp' in self.to_trace:
                     temps = [tr.trace['temp'][-1] for tr in self.tracers
                              if tr.status == RUNNING and len(tr.trace['temp']) > 0]
                     if len(temps) > 0:
-                        print(f"temperature range: "
-                              f"{min(temps)*MeV_to_GK:.1f}, "
-                              f"{max(temps)*MeV_to_GK:.1f} GK")
+                        print(f"T = "
+                              f"{min(temps)*MeV_to_GK:.1f}-"
+                              f"{max(temps)*MeV_to_GK:.1f}GK",
+                              end=" | ", flush=True)
+                if len(radii) > 0:
+                    print(f"r = "
+                          f"{min(radii)*Units['Length']:.2e}-"
+                          f"{max(radii)*Units['Length']:.2e}km",
+                          flush=True)
 
             # advance index backward in time
             self.cur_ind = self.cur_ind - 1
