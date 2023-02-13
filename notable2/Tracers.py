@@ -11,6 +11,11 @@ from numpy.typing import NDArray
 from .Utils import Units
 from .Simulation import Simulation
 
+NOT_STARTED = -2
+CRASHED = -1
+RUNNING = 0
+FINISHED = 1
+
 
 class TracerBunch():
     """
@@ -175,11 +180,14 @@ class TracerBunch():
         Integrate all tracers
         """
         while self.cur_ind > 0:
+
             self.load_chunk()
+
             t_start = self.times[self.cur_ind]
             t_end = self.times[self.cur_ind - 1]
             it_start = self.its[self.cur_ind]
             it_end = self.its[self.cur_ind - 1]
+
             if self.verbose:
                 print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M "
                       f"(it={it_start} to it={it_end})", flush=True)
@@ -191,7 +199,6 @@ class TracerBunch():
                 # try integrating tracers
                 try:
                     tr.integrate(t_start, t_end)
-                    break
                 except KeyboardInterrupt:
                     raise
                 except Exception as ee:
@@ -200,13 +207,23 @@ class TracerBunch():
                                   f"{type(ee).__name__}: {str(ee)}")
                     print()
                     warn(f"Tr. {tr.num}: {tr.message}")
-                    tr.status = -1
+                    tr.status = CRASHED
                     tr.save()
 
-            n_not_started = sum(tr.status == -2 for tr in self.tracers)
-            n_running = sum(tr.status == 0 for tr in self.tracers)
-            n_failed = sum(tr.status == -1 for tr in self.tracers)
-            n_done = sum(tr.status == 1 for tr in self.tracers)
+            n_not_started, n_running, n_finished, n_crashed = 0, 0, 0, 0
+            for tr in self.tracers:
+                if tr.status == NOT_STARTED:
+                    n_not_started += 1
+                elif tr.status == RUNNING:
+                    n_running += 1
+                elif tr.status == FINISHED:
+                    n_finished += 1
+                elif tr.status == CRASHED:
+                    n_crashed += 1
+            if self.verbose:
+                print(f"Tracers: {n_not_started} not started, "
+                      f"{n_running} running, {n_finished} finished, "
+                      f"{n_crashed} crashed", flush=True)
 
             # if all tracers are finished or crashed, we are done
             if n_running+n_not_started == 0:
@@ -225,7 +242,7 @@ class TracerBunch():
                 # print some status messages about current temperature and position
                 radii = [np.sqrt(np.sum(tr.pos[-1]**2))
                          for tr in self.tracers
-                         if tr.status == 0 and len(tr.pos) > 0]
+                         if tr.status == RUNNING and len(tr.pos) > 0]
                 if len(radii) > 0:
                     print(f"radius range: "
                           f"{min(radii)*Units['Length']:.2e}, "
@@ -233,7 +250,7 @@ class TracerBunch():
                 if 'temp' in self.to_trace:
                     temps = [tr.trace['temp'][-1]
                              for tr in self.tracers
-                             if tr.status == 0 and len(tr.trace['temp']) > 0]
+                             if tr.status == RUNNING and len(tr.trace['temp']) > 0]
                     if len(temps) > 0:
                         print(f"temperature range: "
                               f"{min(temps)*11.604518121745585:.1f}, "
@@ -241,7 +258,7 @@ class TracerBunch():
                               end=' | ')
         # save all tracers that have not met any stopping criterion
         for tr in self.tracers:
-            if tr.status == 0:
+            if tr.status == RUNNING:
                 tr.save()
 
         if self.verbose:
@@ -280,7 +297,7 @@ class tracer():
         self.verbose = verbose
 
         self.t_step = None
-        self.status = -2
+        self.status = NOT_STARTED
         self.saved = False
 
         self.keys = ['V^x', 'V^y', 'V^z']
@@ -304,7 +321,8 @@ class tracer():
 
     def set_trace(self, time, pos):
         """
-        Set the current position and time of the tracer and interpolate all data in self.trace.
+        Set the current position and time of the tracer and interpolate all data
+        in self.trace.
         """
         self.times = np.concatenate((self.times, time[1:]))
         self.pos = np.concatenate((self.pos, pos[1:]))
@@ -317,12 +335,15 @@ class tracer():
         """
         Integrate the tracer from t_start to t_end.
         """
-        if self.status == 1 or self.status == -1:
+        if self.status == FINISHED or self.status == CRASHED:
             return self.status
-        min_time, max_time = min(t_start, t_end), max(t_start, t_end)
-        if np.isclose(max_time, self.times[-1], rtol=1e-4):
-            self.times[-1] = max_time*0.9999
-        if min_time >= self.times[-1] or max_time <= self.times[-1]:
+
+        if t_start < self.times[-1] and self.status == NOT_STARTED:
+            raise ValueError(f"Tracer {self.num}'s time has passed but "
+                             "it was never started. Maybe seed time is too "
+                             "late?")
+
+        if t_end >= self.times[-1]:
             return self.status
 
         if self.t_step is None:
@@ -348,19 +369,19 @@ class tracer():
         dt = (self.times.max() - self.times.min())*Units['Time']
         if dt > 5 and radii.max()-radii.min() < radii.max()*1e-2:
             self.message = "Not moving for 5ms"
-            self.status = -1
+            self.status = CRASHED
             warn(f"Tr. {self.num}: {self.message}")
             self.save()
             return self.status
         if np.any(radii < 100):
             self.message = "Radius < 100km"
-            self.status = -1
+            self.status = CRASHED
             warn(f"Tr. {self.num}: {self.message}")
             self.save()
             return self.status
 
         self.status = sol.status
-        if sol.status == -1:
+        if sol.status == CRASHED:
             self.message = sol.message
             self.save()
             return self.status
@@ -368,7 +389,7 @@ class tracer():
         if self.termvar is not None:
             term = self.trace[self.termvar]
             if any(term >= self.termval):  # and any(term <= self.termval):
-                self.status = 1
+                self.status = FINISHED
                 self.save()
         return self.status
 
@@ -400,7 +421,7 @@ class tracer():
 
         # write to file
         header = f"status={self.status}, mass={self.weight}, t0={t0}\n"
-        if self.status < 0:
+        if self.status == CRASHED:
             header += f"message={self.message}\n"
         header += f"{'time':>13s} {'x':>15s} {'y':>15s} {'z':>15s} "
 
