@@ -222,10 +222,6 @@ class TracerBunch():
                     n_finished += 1
                 elif tr.status == CRASHED:
                     n_crashed += 1
-            if self.verbose:
-                print(f"Tracers: {n_not_started} not started, "
-                      f"{n_running} running, {n_finished} finished, "
-                      f"{n_crashed} crashed", flush=True)
 
             # if all tracers are finished or crashed, we are done
             if n_running+n_not_started == 0:
@@ -251,8 +247,7 @@ class TracerBunch():
                     if len(temps) > 0:
                         print(f"temperature range: "
                               f"{min(temps)*MeV_to_GK:.1f}, "
-                              f"{max(temps)*MeV_to_GK:.1f} GK",
-                              end=' | ')
+                              f"{max(temps)*MeV_to_GK:.1f} GK")
 
             # advance index backward in time
             self.cur_ind = self.cur_ind - 1
