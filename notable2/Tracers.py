@@ -239,8 +239,7 @@ class TracerBunch():
                     flush=True)
 
                 # print some status messages about current temperature and position
-                radii = [np.sqrt(np.sum(tr.pos[-1]**2))
-                         for tr in self.tracers
+                radii = [np.linalg.norm(tr.pos[-1]) for tr in self.tracers
                          if tr.status == RUNNING and len(tr.pos) > 0]
                 if len(radii) > 0:
                     print(f"radius range: "
@@ -367,7 +366,7 @@ class tracer():
             self.t_step = np.abs(sol.t[-1] - sol.t[-2])
         self.set_trace(sol.t, sol.y.T)
 
-        radii = np.sqrt(np.sum(self.pos**2, axis=-1)) * Units['Length']
+        radii = np.linalg.norm(self.pos, axis=-1)
         dt = (self.times.max() - self.times.min())*Units['Time']
         if dt > 5 and radii.max()-radii.min() < radii.max()*1e-2:
             self.message = "Not moving for 5ms"
