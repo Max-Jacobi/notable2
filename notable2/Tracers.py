@@ -95,6 +95,10 @@ class TracerBunch():
         self.times = self.times[:self.cur_ind + self.off]
         self.its = self.its[:self.cur_ind + self.off]
 
+    def message(self, msg, **kwargs):
+        if self.verbose:
+            print(msg, flush=True, **kwargs)
+
     def load_chunk(self):
         """
         Load the next chunk of data
@@ -146,8 +150,9 @@ class TracerBunch():
                                        data_getter=self.get_data,
                                        max_step=self.max_step,
                                        save_path=self.save_path))
-        if self.verbose:
-            print(f"loaded {len(self.tracers)} tracer", flush=True)
+
+        self.message(f"loaded {len(self.tracers)} tracer")
+
         return max(tr.times.max() for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
@@ -190,14 +195,12 @@ class TracerBunch():
             it_start = self.its[self.cur_ind]
             it_end = self.its[self.cur_ind - 1]
 
-            if self.verbose:
-                print(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M "
-                      f"(it={it_start} to it={it_end})", flush=True)
+            self.message(f"integrating from t={t_start:.2f}M to t={t_end:.2f}M "
+                         f"(it={it_start} to it={it_end})")
 
             for nn, tr in enumerate(self.tracers):
-                if self.verbose:
-                    print(f"integrating tracer {nn} ({tr.num})           ",
-                          end='\r', flush=True)
+                self.message(f"integrating tracer {nn} ({tr.num})           ",
+                             end='\r')
                 # try integrating tracers
                 try:
                     tr.integrate(t_start, t_end)
@@ -207,7 +210,6 @@ class TracerBunch():
                     # if integration fails mark tracer as crashed and save
                     tr.message = (f"Error in t={t_start}-{t_end}\n"
                                   f"{type(ee).__name__}: {str(ee)}")
-                    print()
                     warn(f"Tr. {tr.num}: {tr.message}")
                     tr.status = CRASHED
                     tr.save()
@@ -226,41 +228,40 @@ class TracerBunch():
             # if all tracers are finished or crashed, we are done
             if n_running+n_not_started == 0:
                 break
-            if self.verbose:
-                print(
-                    f"{n_not_started} not started, "
-                    f"{n_running} running, "
-                    f"{n_crashed} failed, "
-                    f"{n_finished} done",
-                    flush=True)
-
-                # print some status messages about current temperature and position
-                radii = [np.linalg.norm(tr.pos[-1]) for tr in self.tracers
-                         if tr.status == RUNNING and len(tr.pos) > 0]
-                if 'temp' in self.to_trace:
-                    temps = [tr.trace['temp'][-1] for tr in self.tracers
-                             if tr.status == RUNNING and len(tr.trace['temp']) > 0]
-                    if len(temps) > 0:
-                        print(f"T = "
-                              f"{min(temps)*MeV_to_GK:.1f}-"
-                              f"{max(temps)*MeV_to_GK:.1f}GK",
-                              end=" | ", flush=True)
-                if len(radii) > 0:
-                    print(f"r = "
-                          f"{min(radii)*Units['Length']:.2e}-"
-                          f"{max(radii)*Units['Length']:.2e}km",
-                          flush=True)
 
             # advance index backward in time
             self.cur_ind = self.cur_ind - 1
+
+            if not self.verbose:
+                continue
+            self.message(f"{n_not_started} not started, "
+                         f"{n_running} running, "
+                         f"{n_crashed} failed, "
+                         f"{n_finished} done",)
+
+            # print some status messages about current temperature and position
+            if 'temp' in self.to_trace:
+                temps = [tr.trace['temp'][-1] for tr in self.tracers
+                         if tr.status == RUNNING and len(tr.trace['temp']) > 0]
+                if len(temps) > 0:
+                    self.message(f"T = "
+                                 f"{min(temps)*MeV_to_GK:.1f}-"
+                                 f"{max(temps)*MeV_to_GK:.1f}GK",
+                                 end=" | ")
+
+            radii = [np.linalg.norm(tr.pos[-1]) for tr in self.tracers
+                     if tr.status == RUNNING and len(tr.pos) > 0]
+            if len(radii) > 0:
+                self.message(f"r = "
+                             f"{min(radii)*Units['Length']:.0f}-"
+                             f"{max(radii)*Units['Length']:.0f}km")
 
         # save all tracers that have not met any stopping criterion
         for tr in self.tracers:
             if tr.status == RUNNING:
                 tr.save()
 
-        if self.verbose:
-            print("Done", flush=True)
+        self.message("Done")
         return np.array([tr.status for tr in self.tracers])
 
 
