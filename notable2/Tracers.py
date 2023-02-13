@@ -174,7 +174,7 @@ class TracerBunch():
         """
         Integrate all tracers
         """
-        while self.cur_ind >= 0:
+        while self.cur_ind > 0:
             self.load_chunk()
             t_start = self.times[self.cur_ind]
             t_end = self.times[self.cur_ind - 1]
