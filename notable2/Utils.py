@@ -113,7 +113,7 @@ class Plot2D(Mapping):
     kwarg: Dict[str, Any]
 
     def __init__(self,
-                 dictionary: Dict[int, Union[AxesImage, QuadContourSet]],
+                 dictionary: Dict[int, (AxesImage | QuadContourSet)],
                  norm: Normalize,
                  cax: Optional[Axes] = None,
                  **kwargs):
@@ -129,6 +129,9 @@ class Plot2D(Mapping):
 
     def __getitem__(self, rl):
         return self._dict[rl]
+
+    def __setitem__(self, rl, plot):
+        self._dict[rl] = plot
 
     def __iter__(self):
         for rl in self.rls:
