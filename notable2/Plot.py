@@ -1,33 +1,57 @@
 from inspect import signature
 
-from typing import Optional, Sequence, Callable, Union, Any, TYPE_CHECKING, Dict, Tuple
+from typing import (Optional, Sequence, Callable, Union,
+                    Any, TYPE_CHECKING, Dict, Tuple)
 from collections.abc import Iterable
-from functools import reduce
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
-from matplotlib.animation import FuncAnimation  # type: ignore
 from matplotlib.axes import Axes  # type: ignore
 from matplotlib.colors import Normalize, LogNorm  # type: ignore
 from matplotlib.colorbar import ColorbarBase  # type: ignore
 from mpl_toolkits.axes_grid1 import make_axes_locatable  # type: ignore
 
-from .Utils import Units, func_dict, Plot2D, IterationError, BackupException, VariableError
-from .Variable import PostProcVariable, PPTimeSeriesVariable, GravitationalWaveVariable
+from .Utils import Units, func_dict, Plot2D, IterationError
+from .Variable import (PostProcVariable,
+                       PPTimeSeriesVariable,
+                       GravitationalWaveVariable)
 if TYPE_CHECKING:
     from .Utils import Simulation, RLArgument
-    from numpy.typing import NDArray
 
 
 def _handle_kwargs(var_kwargs: Dict[str, Any],
-                   pop: Dict[str, tuple]
-                   ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+                   pop: Dict[str, tuple[Any, Any]]
+                   ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+    """
+    Handle kwargs for plotting functions.
+
+    Arguments:
+        var_kwargs:
+            kwargs defined by the variable
+        pop:
+            dict with structure:
+            {key: (supplied_arg, default_arg)}
+
+
+    returns:
+        var_kwargs:
+            copy of supplied var_kwargs without keys that are also in pop
+        popped:
+            dict of args for keys in pop
+            arguments are used with follwing priority
+            - supplied_arg if it was not None
+            - var_kwargs[key] if key in var_kwargs
+            - default_arg else
+    """
     var_kwargs = var_kwargs.copy()
     popped = {}
     for key, (item, default) in pop.items():
+        # generate default value for key
         popped[key] = default
+        # if key is in var_kwargs, use that value and pop it
         if key in var_kwargs:
             kw = var_kwargs.pop(key)
             popped[key] = kw
+        # if keyword argument was supplied use that instead
         if item is not None:
             popped[key] = item
 
@@ -35,6 +59,22 @@ def _handle_kwargs(var_kwargs: Dict[str, Any],
 
 
 def _handle_PPkwargs(kwargs, var):
+    """
+    Seperate plot kwargs from PostProcVariables kwargs
+
+    Arguments:
+        kwargs:
+            kwargs supplied for plotting function
+        var:
+            Variable instance that will be plotted
+
+    returns:
+        kwargs:
+            copy of kwargs without kwargs for PostProcVariable
+        PPkwargs:
+            dict with kwargs for PostProcVariable
+    """
+
     PPkwargs = {}
     if isinstance(var, PostProcVariable):
         if isinstance(var.PPkeys, dict):
@@ -72,14 +112,49 @@ def plotGD(sim: "Simulation",
            contour: bool = False,
            # -----------Variable kwargs----------------------------
            func: Optional[Union[Callable, str, bool]] = None,
-           slice_ax: Optional[Dict[str, float]] = None,
-           interp_ax: Optional[Dict[str, float]] = None,
            vmax: Optional[float] = None,
            vmin: Optional[float] = None,
            symetric_around: Optional[Union[float, bool]] = None,
            norm: Optional[Normalize] = None,
            # ------------------------------------------------------
            **kwargs):
+    """
+    Plot a grid variable.
+
+    plot data for key at specified itertaion or time
+
+    Arguments:
+        sim:
+            Simulation instance
+        key:
+            key of variable to plot
+        it:
+            iteration to plot
+        time:
+            time to plot if time
+        region:
+            region to plot
+        rls:
+            refinement levels to plot
+        code_units:
+            if True, plot in code units
+        bounds:
+            boundaries of plot, either float or Iterable of floats.
+            Interpretation depends on region and mirror
+        exclude_ghosts:
+            number of ghost cells to exclude
+        ax:
+            matplotlib axes to plot on
+        mirror:
+            mirror plot to other side of bounds
+        label:
+            label for plot.
+            The substrings "TIME", "IT", "SIM", and "PLOTNAME" are replaced with
+            corresponding values
+            If True, use "SIM; TIME" as label
+        title:
+            if True, add title to plot
+    """
 
     # -------------arguments checking and expanding------------------------
     if region is None:
@@ -113,20 +188,17 @@ def plotGD(sim: "Simulation",
     if ax is None:
         ax = plt.gca()
 
-    var_kwargs, popped = _handle_kwargs(var.kwargs, dict(func=(func, None),
-                                                         slice_ax=(
-                                                             slice_ax, None),
-                                                         interp_ax=(
-                                                             interp_ax, None),
-                                                         vmax=(vmax, None),
-                                                         vmin=(vmin, None),
-                                                         symetric_around=(
-                                                             symetric_around, None),
-                                                         norm=(norm, Normalize(vmin, vmax))))
+    var_kwargs, popped = _handle_kwargs(
+        var.kwargs,
+        dict(
+            func=(func, None),
+            vmax=(vmax, None),
+            vmin=(vmin, None),
+            symetric_around=(symetric_around, None),
+            norm=(norm, Normalize(vmin, vmax))
+        )
+    )
     func = popped["func"]
-    slice_ax = popped["slice_ax"]
-
-    interp_ax = popped["interp_ax"]
     vmax = popped["vmax"]
     vmin = popped["vmin"]
     symetric_around = popped["symetric_around"]
@@ -146,11 +218,6 @@ def plotGD(sim: "Simulation",
     actual_time = grid_func.time
     if sim.t_merg is not None:
         actual_time -= sim.t_merg
-
-    if slice_ax is not None:
-        ...  # TODO
-    if interp_ax is not None:
-        ...  # TODO
 
     if not code_units:
         actual_time *= Units['Time']
@@ -225,7 +292,7 @@ def plotGD(sim: "Simulation",
         ax.set_ylim(vmin, vmax)
 
         if label is True:
-            label = f"{sim.nice_name}; {t_str}"
+            label = "SIM; TIME"
         if isinstance(label, str):
             label = label.replace('TIME', t_str)
             label = label.replace('IT', f'{it}')

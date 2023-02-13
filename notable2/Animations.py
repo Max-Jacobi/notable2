@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from inspect import signature
-from typing import Callable, Optional, TYPE_CHECKING, Any, List, Dict, Iterable
+from typing import Callable, Optional, TYPE_CHECKING, Any, List, Dict
 
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 
 class AniFunc(ABC):
+    "Abstract base class for animation functions."
 
     ani: "Animation"
 
@@ -81,10 +82,12 @@ class Animation:
 
     def add_animation(self, func: AniFunc):
         """
-        This function is used to add an animation to the Animation class.
-        It takes in one parameter:
-        - `func`: A object of type `AniFunc` that represents the animation to be
-          added.
+        Add an animation to the Animation class.
+
+        Arguments:
+            func:
+                A object of type `AniFunc` that represents the animation to be
+                added.
         """
         self.funcs.append(func)
         func.ani = self
@@ -115,7 +118,6 @@ class Animation:
 
 
 class GDAniFunc(AniFunc):
-
     sim: "Simulation"
     key: str
     var: Variable
@@ -135,11 +137,57 @@ class GDAniFunc(AniFunc):
     ylabel: (bool | str)
     # -----------Variable kwargs----------------------------
     func: Optional[(Callable | bool)] = None
-    slice_ax: Optional[Dict[str, float]] = None
-    interp_ax: Optional[Dict[str, float]] = None
     # -----------kwargs dicts----------------------------
     kwargs: Dict[str, Any]
     PPkwargs: Dict[str, Any]
+    """
+    Class animating GridFunction data
+
+    For the use with notable2.Animations.Animation.
+
+    Arguments:
+        sim: Simulation
+            The simulation to animate
+        key: str
+            The key of the variable to animate.
+        rls: Optional[RLArgument]
+            The refinement levels to animate. If None all refinement levels
+            are animated. Defaults to None
+        region: Optional[RLArgument]
+            The region to animate. If None the region is the xy-plane
+            Defaults to None
+        setup_at: float between 0 and 1
+            The fraction of the animation to setup the plot at. Defaults to
+            0, i.e. the first itteration
+        code_units: bool
+            If True the data is converted to code units. Defaults to False
+        exclude_ghosts: int
+            The number of ghost cells to exclude from the plot. Defaults to
+            0
+        label: (bool | str)
+            If True the label is set to the variable name. If a string is
+            given the label is set to that string. Defaults to False
+        title: (bool | str)
+            If True the title is set to the variable name. If a string is
+            given the title is set to that string. Defaults to True
+        xlabel: (bool | str)
+            If True the xlabel is set to the x-axis name. If a string is
+            given the xlabel is set to that string. Defaults to True
+        ylabel: (bool | str)
+            If True the ylabel is set to the y-axis name. If a string is
+            given the ylabel is set to that string. Defaults to True
+        ax: Optional[plt.Axes]
+            The axes to plot on. If None a new figure is created. Defaults
+            to None
+        func: Optional[(Callable | str | bool)]
+            If a callable is given it is used to transform the data. If a
+            string is given it is used as a key to the `func_dict`
+            dictionary in the `Variable` class. If True the default function
+            for the variable is used. Defaults to None
+        **kwargs:
+            Keyword arguments to pass to the plotGD function on
+            initialization
+    """
 
     def __init__(self,
                  sim: "Simulation",
@@ -157,10 +205,8 @@ class GDAniFunc(AniFunc):
                  ax: Optional[plt.Axes] = None,
                  # -----------Variable kwargs----------------------------
                  func: Optional[(Callable | str | bool)] = None,
-                 slice_ax: Optional[Dict[str, float]] = None,
-                 interp_ax: Optional[Dict[str, float]] = None,
                  # ------------------------------------------------------
-                 **kwargs):
+                 ** kwargs):
         self.sim = sim
         self.key = key
         self.var = sim.get_variable(key)
@@ -178,12 +224,10 @@ class GDAniFunc(AniFunc):
         else:
             self.ax = ax
 
-        var_kwargs, popped = _handle_kwargs(self.var.kwargs, dict(func=(func, None),
-                                                                  slice_ax=(
-                                                                      slice_ax, None),
-                                                                  interp_ax=(interp_ax, None)))
-        self.slice_ax = popped["slice_ax"]
-        self.interp_ax = popped["interp_ax"]
+        var_kwargs, popped = _handle_kwargs(
+            self.var.kwargs, dict(func=(func, None))
+        )
+
         func = popped["func"]
 
         func_str: Optional[str]
@@ -250,8 +294,6 @@ class GDAniFunc(AniFunc):
                                      xlabel=self.xlabel,
                                      ylabel=self.ylabel,
                                      func=self.func,
-                                     slice_ax=self.slice_ax,
-                                     interp_ax=self.interp_ax,
                                      exclude_ghosts=self.exclude_ghosts,
                                      **self.kwargs)
 
@@ -363,8 +405,9 @@ class TSLineAniFunc(AniFunc):
 
 class ContourAniFunc(GDAniFunc):
     """
-    ContourAniFunc creates an animation of a contour plot for the use with
-    notable2.Animations.Animation.
+    Creates an animation of a contour plot
+
+    For the use with notable2.Animations.Animation.
     """
     image: Plot2D
 
