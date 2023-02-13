@@ -113,7 +113,7 @@ class TracerBunch():
                         self.dats[it] = {kk: var.get_data(region=self.region, it=it)
                                          for kk, var in self.vars.items()}
                         break
-                    except OSError as ex:
+                    except (OSError, BlockingIOError) as ex:
                         if "Resource temporarily unavailable" in str(ex):
                             sleep(10)
                             continue
@@ -228,17 +228,14 @@ class TracerBunch():
             # if all tracers are finished or crashed, we are done
             if n_running+n_not_started == 0:
                 break
-
-            # advance index backward in time
-            self.cur_ind = self.cur_ind - 1
-
             if self.verbose:
                 print(
                     f"{n_not_started} not started, "
                     f"{n_running} running, "
-                    f"{n_failed} failed, "
-                    f"{n_done} done",
+                    f"{n_crashed} failed, "
+                    f"{n_finished} done",
                     flush=True)
+
                 # print some status messages about current temperature and position
                 radii = [np.sqrt(np.sum(tr.pos[-1]**2))
                          for tr in self.tracers
@@ -247,7 +244,7 @@ class TracerBunch():
                     print(f"radius range: "
                           f"{min(radii)*Units['Length']:.2e}, "
                           f"{max(radii)*Units['Length']:.2e} km")
-                if 'temp' in self.to_trace:
+                if 'temp' not in self.to_trace:
                     temps = [tr.trace['temp'][-1]
                              for tr in self.tracers
                              if tr.status == RUNNING and len(tr.trace['temp']) > 0]
@@ -256,6 +253,10 @@ class TracerBunch():
                               f"{min(temps)*11.604518121745585:.1f}, "
                               f"{max(temps)*11.604518121745585:.1f} GK",
                               end=' | ')
+
+            # advance index backward in time
+            self.cur_ind = self.cur_ind - 1
+
         # save all tracers that have not met any stopping criterion
         for tr in self.tracers:
             if tr.status == RUNNING:
