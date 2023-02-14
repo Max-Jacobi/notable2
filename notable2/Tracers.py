@@ -170,8 +170,9 @@ class TracerBunch():
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
 
         ind = self.times.searchsorted(tt, side='left')
-        inds = np.arange(ind-self.off, ind+self.off)
-        its = self.its[inds]
+        its = self.its[ind-self.off: ind+self.off]
+        times = self.times[ind-self.off: ind+self.off]
+
         for it in its:
             if it not in self.dats:
                 raise RuntimeError(f"it {it} not loaded. "
@@ -183,11 +184,8 @@ class TracerBunch():
             data[kk] = [self.dats[it][kk](**coords)[0] for it in its]
 
         result = np.array([
-            interp1d(
-                self.times[inds],
-                data[kk],
-                kind=self.t_int_kind
-            )(tt) for kk in keys])
+            interp1d(times, data[kk], kind=self.t_int_kind)(tt)
+            for kk in keys])
         return result
 
     def integrate_all(self):
