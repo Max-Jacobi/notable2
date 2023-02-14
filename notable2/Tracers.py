@@ -108,29 +108,27 @@ class TracerBunch():
         for it, dat in self.dats.items():
             if it not in cur_its:
                 del dat
+
         # load new data
         for it in cur_its:
-            if it not in self.its:
+            if it not in self.its or it in self.dats:
                 continue
-            if it not in self.dats:
-                # try 4 times and wait if file is unavailable
-                for n_try in range(4):
-                    try:
-                        self.dats[it] = {kk: var.get_data(region=self.region, it=it)
-                                         for kk, var in self.vars.items()}
+
+            self.dats[it] = {}
+            for kk, var in self.vars.items():
+                # try 5 times and wait if file is unavailable
+                for n_try in range(5):
+                    try: 
+                        self.dats[it][kk] = var.get_data(region=self.region, it=it)
                         break
-                    except (OSError, BlockingIOError) as ex:
-                        if "Resource temporarily unavailable" in str(ex):
-                            sleep(10)
-                            continue
-                        raise
+                    except BlockingIOError as ex:
+                        sleep(10)
                 else:
-                    raise OSError(
-                        f"Could not open hdf5 file after {n_try} tries"
-                    ) from ex
-                # set save in memory flag to true
-                for kk in self.dats[it]:
-                    self.dats[it][kk].mem_load = True
+                    raise RuntimeError(f"Could not open {kk} hdf5 file after {n_try} tries") 
+
+            # set save in memory flag to true
+            for kk in self.dats[it]:
+                self.dats[it][kk].mem_load = True
 
     def init_tracers(self):
         """
@@ -170,13 +168,14 @@ class TracerBunch():
         ind = self.times.searchsorted(tt, side='left')
         inds = np.arange(ind-self.off, ind+self.off)
         data = {}
+
         for it in self.its[inds]:
             if it not in self.dats:
-                self.dats[it] = {kk: var.get_data(region=self.region, it=it)
-                                 for kk, var in self.vars.items()}
-
-        data = {kk: np.array([self.dats[it][kk](**coords)[0] for it in self.its[inds]])
-                for kk in keys}
+                raise RuntimeError(f"it {it} not loaded. "
+                                   f"Loaded its: {list(self.dats.keys())} "
+                                   "This should not happen")
+            for kk in keys:
+                data[kk] = self.data[it][kk](**coords)[0]
 
         result = np.array(
             [interp1d(self.times[inds], data[kk], kind=self.t_int_kind)(tt) for kk in keys])
@@ -207,6 +206,7 @@ class TracerBunch():
                 except KeyboardInterrupt:
                     raise
                 except Exception as ee:
+                    raise
                     # if integration fails mark tracer as crashed and save
                     tr.message = (f"Error in t={t_start}-{t_end}\n"
                                   f"{type(ee).__name__}: {str(ee)}")
@@ -261,6 +261,7 @@ class TracerBunch():
             if tr.status == RUNNING:
                 tr.save()
 
+        self.message("")
         self.message("Done")
         return np.array([tr.status for tr in self.tracers])
 
