@@ -171,15 +171,16 @@ class TracerBunch():
 
         ind = self.times.searchsorted(tt, side='left')
         inds = np.arange(ind-self.off, ind+self.off)
-        data = {}
-
-        for it in self.its[inds]:
+        its = self.its[inds]
+        for it in its:
             if it not in self.dats:
                 raise RuntimeError(f"it {it} not loaded. "
                                    f"Loaded its: {list(self.dats.keys())} "
                                    "This should not happen")
-            for kk in keys:
-                data[kk] = self.dats[it][kk](**coords)[0]
+
+        data = {}
+        for kk in keys:
+            data[kk] = [self.dats[it][kk](**coords)[0] for it in its]
 
         result = np.array([
             interp1d(
