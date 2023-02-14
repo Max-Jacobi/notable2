@@ -161,6 +161,9 @@ class TracerBunch():
         """
         Interpolate the data for 'keys' at time 'tt' and position 'pos'
         """
+        if np.isclose(tt, self.times[self.cur_ind-1], atol=1e-2):
+            tt = self.times[self.cur_ind-1]
+
         if tt < self.times.min() or tt > self.times.max():
             raise RuntimeError(f"Interpolation time {tt} not in loaded times "
                                f"{self.times.min()}:{self.times.max()}")
@@ -169,7 +172,7 @@ class TracerBunch():
 
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
 
-        ind = self.times.searchsorted(tt, side='left')
+        ind = self.times.searchsorted(tt, side='right')
         its = self.its[ind-self.off: ind+self.off]
         times = self.times[ind-self.off: ind+self.off]
 
