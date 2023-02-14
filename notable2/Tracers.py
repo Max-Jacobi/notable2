@@ -118,13 +118,17 @@ class TracerBunch():
             for kk, var in self.vars.items():
                 # try 5 times and wait if file is unavailable
                 for n_try in range(5):
-                    try: 
-                        self.dats[it][kk] = var.get_data(region=self.region, it=it)
+                    try:
+                        self.dats[it][kk] = var.get_data(
+                            region=self.region, it=it
+                        )
                         break
-                    except BlockingIOError as ex:
+                    except BlockingIOError:
                         sleep(10)
                 else:
-                    raise RuntimeError(f"Could not open {kk} hdf5 file after {n_try} tries") 
+                    raise RuntimeError(
+                        f"Could not open {kk} hdf5 file after {n_try} tries"
+                    )
 
             # set save in memory flag to true
             for kk in self.dats[it]:
@@ -308,9 +312,9 @@ class tracer():
         if self.termvar not in to_trace:
             self.trace[self.termvar] = np.array([])
 
-        trace = self.get_data(t_init, position, self.trace.keys())
-        for kk, tt in zip(self.trace, trace.T):
-            self.trace[kk] = np.array([tt])
+        # trace = self.get_data(t_init, position, self.trace.keys())
+        # for kk, tt in zip(self.trace, trace.T):
+        #     self.trace[kk] = np.array([tt])
 
     def get_rhs(self, tt, pos):
         """
