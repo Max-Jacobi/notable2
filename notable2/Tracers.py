@@ -179,10 +179,14 @@ class TracerBunch():
                                    f"Loaded its: {list(self.dats.keys())} "
                                    "This should not happen")
             for kk in keys:
-                data[kk] = self.data[it][kk](**coords)[0]
+                data[kk] = self.dats[it][kk](**coords)[0]
 
-        result = np.array(
-            [interp1d(self.times[inds], data[kk], kind=self.t_int_kind)(tt) for kk in keys])
+        result = np.array([
+            interp1d(
+                self.times[inds],
+                data[kk],
+                kind=self.t_int_kind
+            )(tt) for kk in keys])
         return result
 
     def integrate_all(self):
