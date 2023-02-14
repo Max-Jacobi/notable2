@@ -113,25 +113,10 @@ class TracerBunch():
         for it in cur_its:
             if it not in self.its or it in self.dats:
                 continue
-
             self.dats[it] = {}
             for kk, var in self.vars.items():
-                # try 5 times and wait if file is unavailable
-                for n_try in range(5):
-                    try:
-                        self.dats[it][kk] = var.get_data(
-                            region=self.region, it=it
-                        )
-                        break
-                    except BlockingIOError:
-                        sleep(10)
-                else:
-                    raise RuntimeError(
-                        f"Could not open {kk} hdf5 file after {n_try} tries"
-                    )
-
-            # set save in memory flag to true
-            for kk in self.dats[it]:
+                self.dats[it][kk] = var.get_data(region=self.region, it=it)
+                # set save in memory flag to true
                 self.dats[it][kk].mem_load = True
 
     def init_tracers(self):
@@ -173,18 +158,32 @@ class TracerBunch():
         coords = {'x': pos[0], 'y': pos[1], 'z': pos[2]}
 
         ind = self.times.searchsorted(tt, side='right')
+        if ind == len(self.times):
+            ind -= 1
+
         its = self.its[ind-self.off: ind+self.off]
         times = self.times[ind-self.off: ind+self.off]
 
         for it in its:
             if it not in self.dats:
                 raise RuntimeError(f"it {it} not loaded. "
+                                   f"time {tt} "
                                    f"Loaded its: {list(self.dats.keys())} "
                                    "This should not happen")
 
         data = {}
         for kk in keys:
-            data[kk] = [self.dats[it][kk](**coords)[0] for it in its]
+            # try 5 times and wait if file is unavailable
+            for n_try in range(5):
+                try:
+                    data[kk] = [self.dats[it][kk](**coords)[0] for it in its]
+                    break
+                except BlockingIOError:
+                    sleep(10)
+            else:
+                raise RuntimeError(
+                    f"Could not open {kk} hdf5 file after {n_try} tries"
+                )
 
         result = np.array([
             interp1d(times, data[kk], kind=self.t_int_kind)(tt)
@@ -318,10 +317,6 @@ class tracer():
         if self.termvar not in to_trace:
             self.trace[self.termvar] = np.array([])
 
-        # trace = self.get_data(t_init, position, self.trace.keys())
-        # for kk, tt in zip(self.trace, trace.T):
-        #     self.trace[kk] = np.array([tt])
-
     def get_rhs(self, tt, pos):
         """
         Get the right hand side of the ODE system.
@@ -345,7 +340,9 @@ class tracer():
         """
         Integrate the tracer from t_start to t_end.
         """
-        if self.status == FINISHED or self.status == CRASHED:
+        if (self.status == FINISHED or
+            self.status == CRASHED or 
+            (self.status == NOT_STARTED and self.times[0] < t_end)):
             return self.status
 
         if t_start < self.times[-1] and self.status == NOT_STARTED:
@@ -353,15 +350,18 @@ class tracer():
                              "it was never started. Maybe seed time is too "
                              "late?")
 
-        if t_end >= self.times[-1]:
-            return self.status
+        # set initial trace if tracer is about to start
+        if self.status == NOT_STARTED:
+            trace = self.get_data(self.times[0], self.pos[0], self.trace.keys())
+            for kk, tt in zip(self.trace, trace.T):
+                self.trace[kk] = np.array([tt])
 
-        if self.t_step is None:
-            pass
-        elif self.t_step > (max_t_step := np.abs(self.times[-1] - t_end)):
-            self.t_step = max_t_step
-        elif self.t_step <= 0:
-            self.t_step = None
+        max_step = np.abs(self.times[-1] - t_end)
+
+        if self.t_step is None or self.t_step <= 0:
+            self.t_step = max_step/10
+        elif self.t_step > max_step:
+            self.t_step = max_step
 
         sol = sint.solve_ivp(self.get_rhs,
                              (self.times[-1], t_end),
@@ -383,8 +383,8 @@ class tracer():
             warn(f"Tr. {self.num}: {self.message}")
             self.save()
             return self.status
-        if np.any(radii < 100):
-            self.message = "Radius < 100km"
+        if np.any(radii*Units['Length'] < 20):
+            self.message = "Radius < 20km"
             self.status = CRASHED
             warn(f"Tr. {self.num}: {self.message}")
             self.save()
