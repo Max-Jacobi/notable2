@@ -1,4 +1,5 @@
 import re
+import gc
 from warnings import warn
 from functools import reduce
 from time import sleep
@@ -103,11 +104,16 @@ class TracerBunch():
         """
         Load the next chunk of data
         """
-        cur_its = self.its[self.cur_ind-self.off: self.cur_ind+self.off]
+
+        cur_its = self.its[self.cur_ind-self.off: self.cur_ind+self.off+1]
+
         # delete old data
-        for it, dat in self.dats.items():
-            if it not in cur_its:
-                del dat
+        old_its = [it for it in self.dats if it not in cur_its]
+        for it in old_its:
+            for key in list(self.dats[it]):
+                del self.dats[it][key]
+            del self.dats[it]
+        gc.collect()
 
         # load new data
         for it in cur_its:
@@ -340,9 +346,11 @@ class tracer():
         """
         Integrate the tracer from t_start to t_end.
         """
-        if (self.status == FINISHED or
-            self.status == CRASHED or 
-            (self.status == NOT_STARTED and self.times[0] < t_end)):
+        if (
+            self.status == FINISHED or
+            self.status == CRASHED or
+            (self.status == NOT_STARTED and self.times[0] < t_end)
+        ):
             return self.status
 
         if t_start < self.times[-1] and self.status == NOT_STARTED:
@@ -352,7 +360,8 @@ class tracer():
 
         # set initial trace if tracer is about to start
         if self.status == NOT_STARTED:
-            trace = self.get_data(self.times[0], self.pos[0], self.trace.keys())
+            trace = self.get_data(
+                self.times[0], self.pos[0], self.trace.keys())
             for kk, tt in zip(self.trace, trace.T):
                 self.trace[kk] = np.array([tt])
 
