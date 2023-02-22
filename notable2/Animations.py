@@ -294,6 +294,7 @@ class GDAniFunc(AniFunc):
                                      xlabel=self.xlabel,
                                      ylabel=self.ylabel,
                                      func=self.func,
+                                     ax=self.ax,
                                      exclude_ghosts=self.exclude_ghosts,
                                      **self.kwargs)
 

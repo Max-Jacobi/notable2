@@ -26,6 +26,19 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
+def _get_sim_path(sim_path):
+    cactus_base = (os.environ['CACTUS_BASEDIR']
+                   if "CACTUS_BASEDIR" in os.environ else None)
+    if cactus_base is None or sim_path[0] == '/':
+        return sim_path
+    if sim_path in os.listdir(cactus_base):
+        return os.path.join(cactus_base, sim_path)
+    if os.path.isdir(f"{cactus_base}/by-short-name") and sim_path in os.listdir(f"{cactus_base}/by-short-name"):
+        return f"{cactus_base}/by-short-name/{sim_path}"
+    raise ValueError(
+        f"Could not find {sim_path} in {cactus_base} or {cactus_base}/by-short-name")
+
+
 class Simulation():
     """Documentation for Simulation """
     sim_path: str
@@ -57,10 +70,7 @@ class Simulation():
                  offset: Optional[Dict[str, float]] = None,
                  is_cartoon: bool = False
                  ):
-        cactus_base = (os.environ['CACTUS_BASEDIR']
-                       if "CACTUS_BASEDIR" in os.environ else None)
-        self.sim_path = (f"{cactus_base}/{sim_path}"
-                         if sim_path[0] != '/' and cactus_base is not None else sim_path)
+        self.sim_path = _get_sim_path(sim_path)
         self.sim_name = basename(sim_path)
         self.nice_name = self.sim_name
         self.is_cartoon = is_cartoon
@@ -351,16 +361,18 @@ class Simulation():
         return ret
 
     def delete_saved_pp_time_series(self, key: str):
-        with HDF5(f"{self.pp_hdf5_path}/time_series.h5", 'a') as hf:
+        with HDF5(f"{self.pp_hdf5_path}/time_series.h5", 'r+') as hf:
             to_delete = [kk for kk in hf if key in kk]
             for kk in to_delete:
                 del hf[kk]
                 hf.flush()
 
-    # def rename_saved_pp_variable(self, key: str,  new_key: str):
-    #     with HDF5(self.pp_hdf5_path, 'a') as hf:
-    #         to_rename = {kk: kk.replace(key, new_key) for kk in hf if key in kk}
-    #         for kk, nk in to_rename.items():
-    #             hf[nk] = hf[kk][:]
-    #             del hf[kk]
-    #         hf.flush()
+    def rename_saved_pp_time_series(self, key: str,  new_key: str):
+        with HDF5(f"{self.pp_hdf5_path}/time_series.h5", 'r+') as hf:
+            to_rename = {kk: kk.replace(key, new_key)
+                         for kk in hf if key in kk}
+            for kk, nk in to_rename.items():
+                hf[nk] = hf[kk][()]
+                hf[nk].attrs.update(hf[kk].attrs)
+                del hf[kk]
+            hf.flush()
