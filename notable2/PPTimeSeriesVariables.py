@@ -744,7 +744,7 @@ pp_variables = {
         ),
         save=False,
     ),
-    'M-ej-esc-dot': dict(
+    'M-ejg-esc-dot': dict(
         dependencies=("V^r", "dens", "u_t"),
         func=lambda vr, dens, u_t, *_, **__: _mass_flow(vr, dens) * (u_t < -1),
         plot_name_kwargs=dict(
@@ -761,8 +761,8 @@ pp_variables = {
         scale_factor=RUnits['Time'],
         PPkeys=dict(radius=1000),
     ),
-    'M-ej-esc': dict(
-        dependencies=("M-ej-esc-dot",),
+    'M-ejg-esc': dict(
+        dependencies=("M-ejg-esc-dot",),
         func=_time_int,
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, esc}$ ($r=$radius)",
@@ -776,7 +776,7 @@ pp_variables = {
         save=False,
         PPkeys=dict(radius=1000),
     ),
-    'M-ej-in': dict(
+    'M-ejg-in': dict(
         dependencies=("dens", "u_t"),
         func=lambda dens, ut, *_, **__: 2*dens*(ut <= -1),
         plot_name_kwargs=dict(
@@ -791,8 +791,8 @@ pp_variables = {
         reduction=integral,
         PPkeys=dict(radius=1000),
     ),
-    'M-ej-tot': dict(
-        dependencies=("M-ej-esc", "M-ej-in"),
+    'M-ejg-tot': dict(
+        dependencies=("M-ejg-esc", "M-ejg-in"),
         func=lambda m_out, m_in, *_, **__: m_out+m_in,
         plot_name_kwargs=dict(
             name=r"$M_{\rm ej, tot}$ ($r=$radius)",
