@@ -129,6 +129,14 @@ class TracerBunch():
         return max(tr.times.max() for tr in self.tracers)
 
     def get_data(self, tt, pos, keys):
+        """
+        Interpolate the data for 'keys' at time 'tt' and position 'pos'
+        """
+        if np.isclose(tt, self.times[self.cur_ind-1], atol=1e-2):
+            tt = self.times[self.cur_ind-1]
+        elif tt < self.times[self.cur_ind-1]:
+            raise RuntimeError(f"Time {tt} is to smol")
+
         if tt < self.times.min() or tt > self.times.max():
             raise RuntimeError(
                 f"Interpolation time {tt} not in loaded times {self.times.min()}:{self.times.max()}")

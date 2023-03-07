@@ -75,19 +75,16 @@ def _Omega_excised(vx, vy, x=0, y=0, z=0, **_):
     return om
 
 
-def _J_phi(dd, hh, ww,
+def _J_phi(rho, hh, ww,
            vx, vy, vz,
            gxx, gxy, gxz,
-           gyy, gyz,
+           gyy, gyz, gzz
            x=0, y=0, z=0, **_):
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
-    # r = (gxx*x**2 + gyy*y**2 +
-    #      2*gxy*x*y + gxz*x*z + gyz*y*z)**.5
-    r = (x**2 + y**2)**.5
-    r[r == 0] = np.inf
+    gamma = gxx*gyy*gzz + 2*gxy*gxz*gyz - gxx*gyz**2 - gyy*gxz**2 - gzz*gxy**2
     v_y = gxy*vx + gyy*vy + gyz*vz
     v_x = gxx*vx + gxy*vx + gxz*vz
-    return dd*hh*ww*(x*v_y - y*v_x)
+    return rho*hh*ww**2*(x*v_y - y*v_x)*gamma**.5
 
 
 def _radius_format_func(code_units=False, **kwargs):
@@ -160,10 +157,10 @@ pp_variables = {
         )
     ),
     "J_phi": dict(
-        dependencies=('dens', 'h', 'W',
+        dependencies=('rho', 'h', 'W',
                       'vel^x', 'vel^y', 'vel^z',
                       'g_xx', 'g_xy', 'g_xz',
-                      'g_yy', 'g_yz'),
+                      'g_yy', 'g_yz', 'g_zz'),
         func=_J_phi,
         plot_name_kwargs=dict(
             name="anular momentum density",
