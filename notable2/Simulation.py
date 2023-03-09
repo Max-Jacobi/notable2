@@ -77,9 +77,7 @@ class Simulation():
 
         self.data_handler = data_handler(self) if data_handler is not None \
             else config.default_data_handler(self)
-        if eos_path is None:
-            self.eos = TabulatedEOS(config.default_eos_path)
-        elif eos_path == 'ideal':
+        if eos_path == 'ideal':
             ...
         else:
             self.eos = TabulatedEOS(eos_path)
@@ -364,6 +362,7 @@ class Simulation():
         with HDF5(f"{self.pp_hdf5_path}/time_series.h5", 'r+') as hf:
             to_delete = [kk for kk in hf if key in kk]
             for kk in to_delete:
+                print(f"Deleting {kk} in {self}")
                 del hf[kk]
                 hf.flush()
 

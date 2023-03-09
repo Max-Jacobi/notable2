@@ -337,18 +337,9 @@
     "name": "c2p bitmask"
   },
   "consH": {
-    "backups": [
+    "alias": [
       "consH-BSSN"
     ],
-    "file_key": "ML_CCZ4::H",
-    "file_name": "ml_ccz4-ml_ham",
-    "kwargs": {
-      "cmap": "cubehelix",
-      "func": "logabs"
-    },
-    "name": "hamiltonian constraint violation"
-  },
-  "consH-BSSN": {
     "file_key": "ML_BSSN::H",
     "file_name": "ml_bssn-ml_ham",
     "kwargs": {
@@ -366,15 +357,6 @@
     },
     "name": "x-momentum constraint violation"
   },
-  "consM_x-CCZ4": {
-    "file_key": "ML_CCZ4::M1",
-    "file_name": "ml_ccz4-ml_mom",
-    "kwargs": {
-      "cmap": "cubehelix",
-      "func": "logabs"
-    },
-    "name": "x-momentum constraint violation"
-  },
   "consM_y": {
     "file_key": "ML_BSSN::M2",
     "file_name": "ml_bssn-ml_mom",
@@ -384,27 +366,9 @@
     },
     "name": "y-momentum constraint violation"
   },
-  "consM_y-CCZ4": {
-    "file_key": "ML_CCZ4::M2",
-    "file_name": "ml_ccz4-ml_mom",
-    "kwargs": {
-      "cmap": "cubehelix",
-      "func": "logabs"
-    },
-    "name": "y-momentum constraint violation"
-  },
   "consM_z": {
     "file_key": "ML_BSSN::M3",
     "file_name": "ml_bssn-ml_mom",
-    "kwargs": {
-      "cmap": "cubehelix",
-      "func": "logabs"
-    },
-    "name": "z-momentum constraint violation"
-  },
-  "consM_z-CCZ4": {
-    "file_key": "ML_CCZ4::M3",
-    "file_name": "ml_ccz4-ml_mom",
     "kwargs": {
       "cmap": "cubehelix",
       "func": "logabs"
@@ -653,22 +617,12 @@
   },
   "phi": {
     "alias": [
-      "phi-CCZ4"
+      "phi-BSSN",
+      "phi_BSSN",
+      "phi_bssn"
     ],
     "backups": [
       "phi-pp"
-    ],
-    "file_key": "ML_CCZ4::phi",
-    "file_name": "ml_ccz4-ml_log_confac",
-    "kwargs": {
-      "cmap": "plasma"
-    },
-    "name": "$phi$"
-  },
-  "phi-BSSN": {
-    "alias": [
-      "phi_BSSN",
-      "phi_bssn"
     ],
     "file_key": "ML_BSSN::phi",
     "file_name": "ml_bssn-ml_log_confac",

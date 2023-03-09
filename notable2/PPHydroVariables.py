@@ -75,16 +75,15 @@ def _Omega_excised(vx, vy, x=0, y=0, z=0, **_):
     return om
 
 
-def _J_phi(rho, hh, ww,
+def _j_phi(hh, ww,
            vx, vy, vz,
            gxx, gxy, gxz,
-           gyy, gyz, gzz
+           gyy, gyz,
            x=0, y=0, z=0, **_):
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
-    gamma = gxx*gyy*gzz + 2*gxy*gxz*gyz - gxx*gyz**2 - gyy*gxz**2 - gzz*gxy**2
-    v_y = gxy*vx + gyy*vy + gyz*vz
-    v_x = gxx*vx + gxy*vx + gxz*vz
-    return rho*hh*ww**2*(x*v_y - y*v_x)*gamma**.5
+    u_y = (gxy*vx + gyy*vy + gyz*vz)*ww
+    u_x = (gxx*vx + gxy*vx + gxz*vz)*ww
+    return hh*(x*u_y - y*u_x)
 
 
 def _radius_format_func(code_units=False, **kwargs):
@@ -100,8 +99,8 @@ def _radius_format_func(code_units=False, **kwargs):
 
 pp_variables = {
     "dens-pp": dict(
-        dependencies=('rho', 'W', 'phi'),
-        func=lambda W, rho, phi, *_, **kw: rho*W*phi**-3,
+        dependencies=('rho', 'W', 'vol-fac'),
+        func=lambda W, rho, sqg, *_, **kw: rho*W*sqg,
         plot_name_kwargs=dict(
             name="conserved density",
             unit="g cm$^{-3}$",
@@ -156,18 +155,28 @@ pp_variables = {
             symetric_around=0,
         )
     ),
-    "J_phi": dict(
-        dependencies=('rho', 'h', 'W',
+    "j_phi": dict(
+        dependencies=('h', 'W',
                       'vel^x', 'vel^y', 'vel^z',
                       'g_xx', 'g_xy', 'g_xz',
-                      'g_yy', 'g_yz', 'g_zz'),
-        func=_J_phi,
+                      'g_yy', 'g_yz'),
+        func=_j_phi,
         plot_name_kwargs=dict(
-            name="anular momentum density",
+            name="specific angular momentum density",
         ),
         kwargs=dict(
-            cmap='seismic',
-            symetric_around=0,
+            cmap='cubehelix',
+        )
+    ),
+    "J_phi": dict(
+        dependencies=('dens', 'j_phi'),
+        func=lambda dd, jj, *_, **__: dd*jj,
+        save=False,
+        plot_name_kwargs=dict(
+            name="angular momentum density",
+        ),
+        kwargs=dict(
+            cmap='cubehelix',
         )
     ),
     "V^x": dict(

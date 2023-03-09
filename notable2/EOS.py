@@ -62,26 +62,27 @@ class EOS(ABC):
 
 class TabulatedEOS(EOS):
     """Realistic Tabluated EOS """
-    hydro_path: str
-    weak_path: str
+    hydro_path: Optional[str]
+    weak_path: Optional[str]
     data: Dict[str, 'NDArray[np.float_]']
 
-    def __init__(self, path: str):
+    def __init__(self, path: Optional[str] = None):
         self._table: Optional[List['NDArray[np.float_]']] = None
         self._mass_fac: Optional[float] = None
         self._table_cold: Optional[List['NDArray[np.float_]']] = None
-        self._ye_r: Optional[Tuple[np.float_]] = None
-        self._temp_r: Optional[Tuple[np.float_]] = None
-        self._rho_r: Optional[Tuple[np.float_]] = None
+        self._ye_r: Optional[Tuple[float, float]] = None
+        self._temp_r: Optional[Tuple[float, float]] = None
+        self._rho_r: Optional[Tuple[float, float]] = None
         self.data = {}
+        self.name = "Unitilialized"
         self.set_path(path)
-        self.name = path.split('/')[-1]
 
     def __str__(self) -> str:
-        return self.hydro_path.replace('hydro.h5', '')
+        return self.name
 
     @property
     def ye_range(self) -> Tuple[np.float_]:
+        self._check_initialized()
         if self._ye_r is None:
             with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
@@ -90,6 +91,7 @@ class TabulatedEOS(EOS):
 
     @property
     def temp_range(self) -> Tuple[np.float_]:
+        self._check_initialized()
         if self._temp_r is None:
             with File(self.hydro_path, 'r') as hfile:
                 Temp = np.array(hfile['temperature'])
@@ -98,6 +100,7 @@ class TabulatedEOS(EOS):
 
     @property
     def rho_range(self) -> Tuple[np.float_]:
+        self._check_initialized()
         if self._rho_r is None:
             with File(self.hydro_path, 'r') as hfile:
                 Rho = np.array(hfile['density'])*RUnits['Rho']
@@ -106,11 +109,12 @@ class TabulatedEOS(EOS):
 
     @property
     def table(self) -> List['NDArray[np.float_]']:
+        self._check_initialized()
         if self._table is None:
             with File(self.hydro_path, 'r') as hfile:
                 Ye = np.array(hfile['ye'])
-                ltemp = np.log10(hfile['temperature'])
-                lrho = np.log10(hfile['density']) + np.log10(RUnits['Rho'])
+                ltemp = np.log10(np.array(hfile['temperature']))
+                lrho = np.log10(np.array(hfile['density']) * RUnits['Rho'])
                 iye = 1/(Ye[1]-Ye[0])
                 iltemp = 1/(ltemp[1]-ltemp[0])
                 ilrho = 1/(lrho[1]-lrho[0])
@@ -119,6 +123,7 @@ class TabulatedEOS(EOS):
         return self._table
 
     def get_key(self, key):
+        self._check_initialized()
         self._get_keys([key])
         return self.data[key]
 
@@ -324,10 +329,7 @@ class TabulatedEOS(EOS):
         return self._mass_fac*mev_50_msol
 
     def _get_keys(self, keys: List[str]):
-        if self.hydro_path is None:
-            raise OSError(
-                "Path to EOS file not given. "
-                "Run Simulation.eos.set_path('path/to/eos/')")
+        self._check_initialized()
 
         new_keys = [kk for kk in keys if kk not in self.data]
 
@@ -351,8 +353,18 @@ class TabulatedEOS(EOS):
                 else:
                     raise KeyError(f"{kk} not found in EOS tables in {self}")
 
-    def set_path(self, path: str):
+    def _check_initialized(self):
+        if self.name == 'Unitilialized':
+            raise ValueError("Path to EOS file not given. "
+                             "Run Simulation.eos.set_path('path/to/eos/')")
+
+    def set_path(self, path: Optional[str]):
         "EOS path setter"
+        if path is None:
+            self.hydro_path = None
+            self.weak_path = None
+            return
+
         cactus_base = (os.environ['CACTUS_BASEDIR']
                        if "CACTUS_BASEDIR" in os.environ else None)
         if path[0] != '/' and cactus_base is not None:
@@ -360,3 +372,4 @@ class TabulatedEOS(EOS):
 
         self.hydro_path = f"{path}/hydro.h5"
         self.weak_path = f"{path}/weak.h5"
+        self.name = path.split('/')[-1]

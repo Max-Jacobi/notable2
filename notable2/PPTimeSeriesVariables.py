@@ -598,29 +598,36 @@ pp_variables = {
         func=lambda jj, rho, *_, rho_cont=1e13 *
         RUnits['Rho'], **__: 2*jj*(rho >= rho_cont),
         plot_name_kwargs=dict(
-            name=r"J ($\rho > rho_cont)",
+            name=r"$J$ ($\rho > rho_cont)",
             format_opt=dict(
                 rho_cont=_rho_cont_format_func
             ),
         ),
         reduction=integral,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
+    ),
+    'J-tot': dict(
+        dependencies=("J_phi",),
+        func=lambda jj, *_, **__: 2*jj,
+        plot_name_kwargs=dict(
+            name=r"$J$",
+        ),
+        reduction=integral,
     ),
     'J-out-rho-cont': dict(
-        dependencies=("J_phi", "rho"),
-        func=lambda jj, rho, *_, rho_cont=1e13 *
-        RUnits['Rho'], **__: 2*jj*(rho < rho_cont),
-        plot_name_kwargs=dict(
-            name=r"J ($\rho < rho_cont)",
+        dependencies=("J-in-rho-cont", "J-tot"),
+        func=lambda ji, jtot, *_, **__: jtot - ji,
+            name=r"$J$ ($\rho < rho_cont)",
             format_opt=dict(
                 rho_cont=_rho_cont_format_func
             ),
         ),
-        reduction=integral,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
-    ),
+        save=False,
+    )
     'J/M-out-rho-cont': dict(
         dependencies=("J-out-rho-cont", "mass-out-rho-cont"),
+        save=False,
         func=lambda jj, mm, *_, **__: jj/mm,
         plot_name_kwargs=dict(
             name=r"J/M ($\rho < rho_cont)",
