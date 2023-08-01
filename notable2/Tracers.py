@@ -446,7 +446,7 @@ class Trajectory:
         if hasattr(self, 'time'):
             self.time += self.t0
 
-    def get_at(self, key: str, val: float, target: str, extend=False):
+    def get_at(self, key: str, val: NDArray[np.float_], target: str, extend=False):
 
         if not hasattr(self, key):
             raise ValueError(f"{key} not in this trajectory")
@@ -456,15 +456,6 @@ class Trajectory:
         val_ar = getattr(self, key)
         target_ar = getattr(self, target)
 
-        if not extend:
-            if val_ar.min() > val:
-                raise ValueError(f"{key} is allways larger then {val}")
-            if val_ar.max() < val:
-                raise ValueError(f"{key} is allways smaller then {val}")
-        else:
-            if val_ar.min() > val:
-                return target_ar[np.argmin(val_ar)]
-            if val_ar.max() < val:
-                return target_ar[np.argmax(val_ar)]
-
-        return interp1d(val_ar, target_ar, )(val)
+        return interp1d(val_ar, target_ar,
+                        bounds_error=not extend,
+                        fill_value=(target_ar.min(), target_ar.max()))(val)

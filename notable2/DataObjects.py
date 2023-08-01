@@ -180,7 +180,7 @@ class PPGridFunc(GridFunc):
             if os.path.isfile(f'{self.var.sim.pp_hdf5_path}/{key}.h5'):
                 with HDF5(f'{self.var.sim.pp_hdf5_path}/{key}.h5', 'r') as hdf5:
                     if dset_path in hdf5:
-                        data = hdf5[dset_path][...]
+                        data = np.array(hdf5[dset_path])
                         if self.mem_load:
                             self.mem_data[rl] = data
                         return data

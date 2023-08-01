@@ -52,6 +52,9 @@ def getHist(sim: "Simulation",
             for key, data in datas.items()}
 
     vols = []
+    for ax in region:
+        dats[ax] = np.array([])
+
     for rl in actual_rls:
         coord = coords[rl]
         dx = {ax: cc[1] - cc[0] for ax, cc in coord.items()}
@@ -61,9 +64,16 @@ def getHist(sim: "Simulation",
         else:
             vol = dx['x']*dx['y']*dx['z']*np.ones_like(coord['x'])
         vols.append(vol.ravel())
+        for ax in region:
+            dats[ax] = np.concatenate((dats[ax], coord[ax].ravel()))
     vols = np.concatenate(vols)
 
     mdat = vols*dats['dens']*dats['reduce-weights']
+
+    m_mask = mdat > 0
+    for kk in dats:
+        dats[kk] = dats[kk][m_mask]
+    mdat = mdat[m_mask]
 
     return dats, mdat
 

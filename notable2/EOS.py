@@ -115,9 +115,18 @@ class TabulatedEOS(EOS):
                 Ye = np.array(hfile['ye'])
                 ltemp = np.log10(np.array(hfile['temperature']))
                 lrho = np.log10(np.array(hfile['density']) * RUnits['Rho'])
-                iye = 1/(Ye[1]-Ye[0])
-                iltemp = 1/(ltemp[1]-ltemp[0])
-                ilrho = 1/(lrho[1]-lrho[0])
+                if len(Ye) > 1:
+                    iye = 1/(Ye[1]-Ye[0])
+                else:
+                    iye = np.nan
+                if len(ltemp) > 1:
+                    iltemp = 1/(ltemp[1]-ltemp[0])
+                else:
+                    iltemp = np.nan
+                if len(lrho) > 1:
+                    ilrho = 1/(lrho[1]-lrho[0])
+                else:
+                    ilrho = np.nan
                 self._table = [np.array([Ye[0], ltemp[0], lrho[0]]),
                                np.array([iye, iltemp, ilrho])]
         return self._table
@@ -322,6 +331,7 @@ class TabulatedEOS(EOS):
         return eos_caller
 
     def get_mbary50(self,) -> float:
+        self._check_initialized()
         if self._mass_fac is None:
             with File(self.hydro_path, 'r') as hfile:
                 self._mass_fac = hfile['mass_factor'][()]

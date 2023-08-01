@@ -17,6 +17,7 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
     ppvars = {
         'ndens-eos': dict(
             dependencies=['rho'],
+            save=False,
             func=lambda rho, *_, **__: rho/eos.get_mbary50(),
             plot_name_kwargs=dict(name="number density [fm$^{-3}$]"),
             kwargs=dict(cmap='viridis'),
