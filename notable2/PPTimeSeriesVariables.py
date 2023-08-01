@@ -617,14 +617,16 @@ pp_variables = {
     'J-out-rho-cont': dict(
         dependencies=("J-in-rho-cont", "J-tot"),
         func=lambda ji, jtot, *_, **__: jtot - ji,
+        plot_name_kwargs=dict(
             name=r"$J$ ($\rho < rho_cont)",
             format_opt=dict(
                 rho_cont=_rho_cont_format_func
             ),
+            unit=Units['Energy']*Units['Time']*1e47,  # 1e50erg*ms*1e-3
         ),
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
         save=False,
-    )
+    ),
     'J/M-out-rho-cont': dict(
         dependencies=("J-out-rho-cont", "mass-out-rho-cont"),
         save=False,
@@ -634,7 +636,10 @@ pp_variables = {
             format_opt=dict(
                 rho_cont=_rho_cont_format_func
             ),
+            code_unit=r"$M_\odot$",
+            unit=r"km$^2$ s$^{-1}$ ",
         ),
+        scale_factor=Units["Length"]**2 * RUnits['Time']*1e3,
         PPkeys=dict(rho_cont=1e13*RUnits["Rho"]),
     ),
     'J/M-in-rho-cont': dict(
@@ -842,6 +847,19 @@ pp_variables = {
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
             ),
+        ),
+        save=False,
+        PPkeys=dict(radius=1000),
+    ),
+    'M-ejdiff-esc-dot': dict(
+        dependencies=("M-ejb-esc-dot", "M-ejg-esc-dot"),
+        func=lambda bb, gg, *_, **__: bb - gg,
+            name=r"$M_{\rm ej, esc}$ ($r=$radius)",
+            unit=r"$M_\odot$",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
         ),
         save=False,
         PPkeys=dict(radius=1000),
