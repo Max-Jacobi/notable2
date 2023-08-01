@@ -9,7 +9,7 @@ from matplotlib.colors import ColorConverter
 from .Simulation import Simulation
 from .Animations import Animation
 from .EOS import TabulatedEOS
-from .TOV import TOV
+from .TOV import TOVSolver
 from .Utils import Units, RUnits
 
 
