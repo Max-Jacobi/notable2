@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from inspect import signature
 from typing import Callable, Optional, TYPE_CHECKING, Any, List, Dict
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
@@ -56,8 +57,14 @@ class Animation:
     Methods
         add_animation(self, func: AniFunc)
             Adds an animation function to the list of functions to animate
-        animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation
+        animate(fig: plt.Figure, **kwargs) -> FuncAnimation
             Animate the functions in the figure and returns a FuncAnimation object.
+        save_frames(fig: plt.Figure,
+                    path: str,
+                    file_format: str = 'png',
+                    verbose: bool = True,
+                    **kwargs)
+            Save frameas of animation as picture files.
     """
 
     init_func: Optional[Callable]
@@ -103,10 +110,10 @@ class Animation:
         FuncAnimation object.
         """
         def _init():
-            if self.init_func is not None:
-                self.init_func()
             for func in self.funcs:
                 func._init()
+            if self.init_func is not None:
+                self.init_func()
 
         def _animate(time: np.float_):
             for func in self.funcs:
@@ -115,6 +122,35 @@ class Animation:
         ani = FuncAnimation(fig=fig, frames=self.times,
                             func=_animate, init_func=_init, **kwargs)
         return ani
+
+    def save_frames(self,
+                    fig: plt.Figure,
+                    path: str,
+                    file_format: str = 'png',
+                    verbose: bool = True,
+                    **kwargs):
+        """
+        Save all frames of the animation based on the added functions.
+        The files with be saved as <path>_<frame_number>.<file_format>.
+        """
+        for func in self.funcs:
+            func._init()
+        if self.init_func is not None:
+            self.init_func()
+
+        def _animate(time: np.float_):
+            for func in self.funcs:
+                func(time)
+
+        for ii, time in tqdm(
+            enumerate(self.times),
+            disable=not verbose,
+            total=len(self.times)
+        ):
+            _animate(time)
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+            plt.savefig(f'{path}_{ii}.{file_format}', **kwargs)
 
 
 class GDAniFunc(AniFunc):
