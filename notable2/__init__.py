@@ -9,4 +9,3 @@ from .Animations import Animation
 from .Utils import U, RU, RUnits, Units
 
 from tabulatedEOS import TabulatedEOS
-from TOV_solver import TOVSolver

@@ -22,7 +22,7 @@ from .Plot import plotGD, plotTS, animateGD, plotHist
 from .Animations import GDAniFunc, TSLineAniFunc
 
 
-from tabulatedEOS import TabulatedEOS
+from tabulatedEOS import TabulatedEOS, EOS
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
