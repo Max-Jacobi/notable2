@@ -13,7 +13,6 @@ from scipy.optimize import minimize, bisect  # type: ignore
 from h5py import File as HDF5  # type: ignore
 
 from .DataHandlers import DataHandler
-from .EOS import EOS, TabulatedEOS
 from .Config import config
 from .Variable import GridFuncBaseVariable, TimeSeriesBaseVariable, Variable, GridFuncVariable, TimeSeriesVariable
 from .Variable import PPGridFuncVariable, PPTimeSeriesVariable, GravitationalWaveVariable
@@ -21,6 +20,9 @@ from .PostProcVariables import get_pp_variables
 from .Utils import IterationError, VariableError, BackupException, RLArgument
 from .Plot import plotGD, plotTS, animateGD, plotHist
 from .Animations import GDAniFunc, TSLineAniFunc
+
+
+from tabulatedEOS import TabulatedEOS
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray

@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.integrate import cumtrapz  # type: ignore
-from notable2.Reductions import integral, integral_2D, sphere_surface_integral
-from notable2.Reductions import mean, minimum, maximum, central
+from notable2.Reductions import *
 from notable2.Utils import Units, RUnits
 
 
@@ -1432,5 +1431,38 @@ pp_variables = {
             name=r"$\tau_{\bar{\nu}_e}$",
         ),
         reduction=central,
+    ),
+    'disk-thickness': dict(
+        dependencies=("rho",),
+        func=lambda rho, *_, **__: rho,
+        plot_name_kwargs=dict(
+            name=r"Disk thickness",
+            unit=r"km",
+            code_unit=r"$M_\odot$",
+        ),
+        reduction=thickness,
+        scale_factor="Length",
+        PPkeys=dict(threshold=1e10*RUnits['Rho'], n_points=100),
+    ),
+    'disk-width': dict(
+        dependencies=("rho",),
+        func=lambda rho, *_, **__: rho,
+        plot_name_kwargs=dict(
+            name=r"Disk width",
+            unit=r"km",
+            code_unit=r"$M_\odot$",
+        ),
+        reduction=width,
+        scale_factor="Length",
+        PPkeys=dict(threshold=1e10*RUnits['Rho'], n_points=100),
+    ),
+    'disk-aspect': dict(
+        dependencies=("disk-width", "disk-thickness"),
+        func=lambda ww, tt, *_, **__: ww/tt,
+        plot_name_kwargs=dict(
+            name=r"Disk aspect",
+        ),
+        PPkeys=dict(threshold=1e10*RUnits['Rho'], n_points=100),
+        save=False,
     ),
 }

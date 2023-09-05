@@ -104,23 +104,24 @@ class Animation:
         self.times = np.unique(np.append(self.times, times))
         self.times.sort()
 
+    def _init(self):
+        for func in self.funcs:
+            func._init()
+        if self.init_func is not None:
+            self.init_func()
+
+    def _animate(self, time: np.float_):
+        for func in self.funcs:
+            func(time)
+
     def animate(self, fig: plt.Figure, **kwargs) -> FuncAnimation:
         """
         Create the animation based on the added functions and return a
         FuncAnimation object.
         """
-        def _init():
-            for func in self.funcs:
-                func._init()
-            if self.init_func is not None:
-                self.init_func()
-
-        def _animate(time: np.float_):
-            for func in self.funcs:
-                func(time)
 
         ani = FuncAnimation(fig=fig, frames=self.times,
-                            func=_animate, init_func=_init, **kwargs)
+                            func=self._animate, init_func=self._init, **kwargs)
         return ani
 
     def save_frames(self,
@@ -133,21 +134,14 @@ class Animation:
         Save all frames of the animation based on the added functions.
         The files with be saved as <path>_<frame_number>.<file_format>.
         """
-        for func in self.funcs:
-            func._init()
-        if self.init_func is not None:
-            self.init_func()
-
-        def _animate(time: np.float_):
-            for func in self.funcs:
-                func(time)
+        self._init()
 
         for ii, time in tqdm(
             enumerate(self.times),
             disable=not verbose,
             total=len(self.times)
         ):
-            _animate(time)
+            self._animate(time)
             fig.canvas.draw()
             fig.canvas.flush_events()
             plt.savefig(f'{path}_{ii}.{file_format}', **kwargs)

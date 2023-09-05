@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name="notable2",
-    version="2.0dev",
+    version="2.1",
     author="Maximilian Jacobi",
     author_email="mjacobi@theorie.ikp.physik.tu-darmstadt.de",
     packages=["notable2"],

@@ -1,5 +1,6 @@
 from typing import Union, Optional, TYPE_CHECKING, Callable, Any, List, Dict, Tuple
 from collections.abc import Iterable, Mapping
+from collections import namedtuple
 import numpy as np
 from matplotlib.colors import Normalize  # type: ignore
 from matplotlib.colorbar import Colorbar  # type: ignore
@@ -71,6 +72,13 @@ RUnits = {"Rho":  1.6192159539877191e-18,
           "Energy":  5.595508386114039e-55,
           "Time":  203.02544670054692,
           "Length":  0.6772199943086858}
+
+
+# create a class from the dictionary of units for easy access
+_lower_U = {k.lower(): v for k, v in Units.items()}
+_lower_RU = {k.lower(): v for k, v in RUnits.items()}
+U = namedtuple('Units', _lower_U.keys())(**_lower_U)
+RU = namedtuple('RUnits', _lower_RU.keys())(**_lower_RU)
 
 
 class IterationError(Exception):

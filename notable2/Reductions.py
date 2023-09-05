@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Union, Sequence, Callable, Optional
 
 from .Config import config
 from .Variable import TimeSeriesBaseVariable, GridFuncBaseVariable
+from .Utils import RUnits
 
 if TYPE_CHECKING:
     from .Utils import (
@@ -336,3 +337,81 @@ def _cent(dd: "GridFunc", reg: str):
     for _ in reg:
         dd = dd[3]
     return dd
+
+
+def thickness(dependencies: Sequence[Union["GridFuncVariable", "PPGridFuncVariable"]],
+              func: Callable,
+              its: 'NDArray[np.int_]',
+              var: "PostProcVariable",
+              threshold: float,
+              n_points: int = 100,
+              **kwargs) -> 'NDArray[np.float_]':
+
+    region = 'xyz'
+    if var.sim.is_cartoon:
+        raise ValueError(
+            "Thickness is not implemented for cartoon simulations")
+
+    zz = np.linspace(10, 100, n_points)*RUnits['Length']
+    rr = np.linspace(10, 200, n_points)*RUnits['Length']
+    phi = np.linspace(0, 2*np.pi, n_points+1)[:-1],
+
+    phi, rr, zz = np.meshgrid(phi, rr, zz, indexing='ij')
+    rays = {'x': rr*np.cos(phi), 'y': rr*np.sin(phi), 'z': zz}
+
+    result = np.zeros_like(its, dtype=float)
+    for ii, it in tqdm(enumerate(its),
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       ncols=0,
+                       total=len(its),
+                       ):
+        dep_data = [dep.get_data(region=region, it=it, **kwargs)
+                    for dep in dependencies]
+        int_vals = [dat(**rays) for dat in dep_data]
+
+        rho = func(*int_vals, **rays, **kwargs)
+        if np.any(mask := rho > threshold):
+            z_reduced = zz.copy()
+            z_reduced[~mask] = 0
+            result[ii] = np.average(np.max(z_reduced, axis=(1, 2)))
+    return 2*result
+
+
+def width(dependencies: Sequence[Union["GridFuncVariable", "PPGridFuncVariable"]],
+          func: Callable,
+          its: 'NDArray[np.int_]',
+          var: "PostProcVariable",
+          threshold: float,
+          n_points: int = 100,
+          **kwargs) -> 'NDArray[np.float_]':
+
+    region = 'xyz'
+    if var.sim.is_cartoon:
+        raise ValueError(
+            "Thickness is not implemented for cartoon simulations")
+
+    zz = np.linspace(10, 100, n_points)*RUnits['Length']
+    rr = np.linspace(10, 200, n_points)*RUnits['Length']
+    phi = np.linspace(0, 2*np.pi, n_points+1)[:-1],
+
+    phi, rr, zz = np.meshgrid(phi, rr, zz, indexing='ij')
+    rays = {'x': rr*np.cos(phi), 'y': rr*np.sin(phi), 'z': zz}
+
+    result = np.zeros_like(its, dtype=float)
+    for ii, it in tqdm(enumerate(its),
+                       desc=f"{var.sim.sim_name} - {var.key}",
+                       disable=not var.sim.verbose,
+                       ncols=0,
+                       total=len(its),
+                       ):
+        dep_data = [dep.get_data(region=region, it=it, **kwargs)
+                    for dep in dependencies]
+        int_vals = [dat(**rays) for dat in dep_data]
+
+        rho = func(*int_vals, **rays, **kwargs)
+        if np.any(mask := rho > threshold):
+            r_reduced = rr.copy()
+            r_reduced[~mask] = 0
+            result[ii] = np.average(np.max(r_reduced, axis=(1, 2)))
+    return 2*result

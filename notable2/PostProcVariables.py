@@ -2,7 +2,7 @@ import os
 import importlib.util
 from typing import TYPE_CHECKING, ItemsView, Any, Dict
 
-from .EOS import EOS
+from tabulatedEOS import EOS
 
 if TYPE_CHECKING:
     from .Utils import PostProcVariable
