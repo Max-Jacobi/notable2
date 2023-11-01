@@ -3,7 +3,7 @@ from typing import Dict, Any
 
 
 from notable2.Utils import RUnits, Units
-from notable2.EOS import EOS
+from tabulatedEOS import EOS
 
 
 def _tau_exp(vr, x=0, y=0, z=0, **_):

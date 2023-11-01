@@ -1,5 +1,5 @@
 import numpy as np
-from notable2.EOS import EOS
+from tabulatedEOS import EOS
 from typing import Any
 
 from notable2.Utils import Units, RUnits, Dict
