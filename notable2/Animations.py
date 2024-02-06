@@ -26,7 +26,8 @@ class AniFunc(ABC):
     def _get_times(self,
                    min_time: Optional[float],
                    max_time: Optional[float],
-                   every: int):
+                   every: int,
+                   round_times: int):
         ...
 
     @abstractmethod
@@ -79,6 +80,7 @@ class Animation:
                  max_time: Optional[float] = None,
                  every: int = 1,
                  init_func: Optional[Callable] = None,
+                 round_times: int = -1,
                  ):
         self.funcs = []
         self.times = np.array([], dtype=float)
@@ -86,6 +88,7 @@ class Animation:
         self.max_time = max_time
         self.every = every
         self.init_func = init_func
+        self.round_times = round_times
 
     def add_animation(self, func: AniFunc):
         """
@@ -98,9 +101,13 @@ class Animation:
         """
         self.funcs.append(func)
         func.ani = self
-        times = func._get_times(min_time=self.min_time,
-                                max_time=self.max_time,
-                                every=self.every)
+        times = func._get_times(
+            min_time=self.min_time,
+            max_time=self.max_time,
+            every=self.every,
+            round_times=self.round_times,
+        )
+
         self.times = np.unique(np.append(self.times, times))
         self.times.sort()
 
@@ -127,7 +134,7 @@ class Animation:
     def save_frames(self,
                     fig: plt.Figure,
                     path: str,
-                    file_format: str = 'png',
+                    file_format: str = 'jpg',
                     verbose: bool = True,
                     **kwargs):
         """
@@ -154,6 +161,8 @@ class GDAniFunc(AniFunc):
     its: 'NDArray[np.int_]'
     times: 'NDArray[np.float_]'
     image: (Plot2D | plt.Line2D)
+    min_time: Optional[float]
+    max_time: Optional[float]
     ax: plt.Axes
     # -----------Plot kwargs-------------------------------
     rls: "RLArgument"
@@ -222,6 +231,8 @@ class GDAniFunc(AniFunc):
     def __init__(self,
                  sim: "Simulation",
                  key: str,
+                 min_time: Optional[float] = None,
+                 max_time: Optional[float] = None,
                  # -----------Plot kwargs-------------------------------
                  rls: "RLArgument" = None,
                  region: Optional[str] = None,
@@ -245,6 +256,8 @@ class GDAniFunc(AniFunc):
             self.region = 'xz' if self.sim.is_cartoon else 'xy'
         else:
             self.region = region
+        self.min_time = min_time
+        self.max_time = max_time
 
         self.code_units = code_units
         self.exclude_ghosts = exclude_ghosts
@@ -294,6 +307,7 @@ class GDAniFunc(AniFunc):
                    min_time: Optional[float],
                    max_time: Optional[float],
                    every: int,
+                   round_times: int,
                    ):
 
         its = self.var.available_its(self.region)
@@ -306,8 +320,12 @@ class GDAniFunc(AniFunc):
             mask = mask & (times >= min_time)
         if max_time is not None:
             mask = mask & (times <= max_time)
+        if self.min_time is not None:
+            mask = mask & (times >= self.min_time)
+        if self.max_time is not None:
+            mask = mask & (times <= self.max_time)
         self.its = its[mask][::every]
-        self.times = np.round(times[mask][::every], -1)
+        self.times = np.round(times[mask][::every], round_times)
         return self.times
 
     def _init(self):
@@ -403,8 +421,6 @@ class TSLineAniFunc(AniFunc):
     x-axis of a given matplotlib axes for the use with notable2.Animations.Animation.
 
     Paramters:
-     - sim: an instance of the "Simulation" class, which is used to provide the
-       current time of the simulation
      - ax: a matplotlib Axes instance that the animation will be plotted on
      - code_units: a boolean value indicating whether the time should be in code
        units or not. Default value is False.
@@ -413,11 +429,9 @@ class TSLineAniFunc(AniFunc):
     """
 
     def __init__(self,
-                 sim: "Simulation",
                  ax: plt.Axes,
                  code_units: bool = False,
                  **kwargs):
-        self.sim = sim
         self.ax = ax
         self.kwargs = kwargs
         self.code_units = code_units

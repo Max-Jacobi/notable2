@@ -120,8 +120,9 @@ class GridFunc(Mapping):
 
             if not np.any(mask):
                 continue
+            data = np.array([self[rl]])
             interp, = interpolate(*[int_coords[ax][mask] for ax in coords_level],
-                                  orig, ih, np.array([self[rl]]))
+                                  orig, ih, data)
 
             result[mask] = interp
             assert not np.any(interp == 666.), (
@@ -153,6 +154,7 @@ class GridFunc(Mapping):
 class PPGridFunc(GridFunc):
     """Documentation for PPGridFunc"""
     kwargs: Dict[str, Any]
+    var: "PPGridFuncVariable"
 
     def __init__(self,
                  var: "PPGridFuncVariable",

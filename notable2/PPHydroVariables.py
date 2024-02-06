@@ -3,7 +3,7 @@ from typing import Dict, Any
 
 
 from notable2.Utils import RUnits, Units
-from tabulatedEOS import EOS
+from tabulatedEOS.PizzaEOS import PizzaEOS
 
 
 def _tau_exp(vr, x=0, y=0, z=0, **_):
@@ -41,13 +41,14 @@ def _r_proj(vx, vy, vz,
             x=0, y=0, z=0, **_):
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
     rr = (x**2 + y**2 + z**2)**.5
+    rr[rr == 0] = np.inf
     vr = (gxx*vx*x + gyy*vy*y + gzz*vz*z +
           gxy*(vx*y + vy*x) +
           gxz*(vx*z + vz*x) +
           gyz*(vy*z + vz*y)
           )/rr
     if np.any(vr > 1):
-        breakpoint()
+        vr[vr > 1] = 1
     return vr
 
 
@@ -59,7 +60,7 @@ def _radial(vx, vy, vz, x=0, y=0, z=0, **_):
     #    coords[ii] -= oo
     x, y, z = [cc.squeeze() for cc in np.meshgrid(x, y, z, indexing='ij')]
     r = (x**2 + y**2 + z**2)**.5
-    r[r == 0] = 1
+    r[r == 0] = np.inf
     return (vx*x + vy*y + vz*z)/r
 
 
@@ -95,13 +96,15 @@ def _radius_format_func(code_units=False, **kwargs):
         if name in kwargs:
             radius = kwargs[name]
             break
+    else:
+        raise ValueError('No radius found in kwargs')
     if code_units:
         return f"{radius:.0f} " + r'M_\odot$'
     else:
         return f"{radius*Units['Length']:.0e}"+r"\,$km"
 
 
-def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
+def pp_variables(eos: PizzaEOS) -> Dict[str, Dict[str, Any]]:
     ppvars = {
         "dens-pp": dict(
             dependencies=('rho', 'W', 'vol-fac'),
@@ -424,7 +427,7 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
         "R-nu-tot": dict(
             dependencies=("R-nu-e", "R-nu-a", "nu-abs-num"),
             func=lambda re, ra, rabs, *_, **__:
-            rabs - eos.get_mbary50()*(re - ra),
+            rabs - eos.mbary50*(re - ra),
             save=False,
             plot_name_kwargs=dict(
                 name=r"$r_{\nu}$",

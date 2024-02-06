@@ -1,5 +1,5 @@
 import numpy as np
-from tabulatedEOS import EOS
+from tabulatedEOS.PizzaEOS import PizzaEOS
 from typing import Any
 
 from notable2.Utils import Units, RUnits, Dict
@@ -13,12 +13,12 @@ def _Gamma(rho, eps, press, *_, **kw):
     return gamma
 
 
-def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
+def pp_variables(eos: PizzaEOS) -> Dict[str, Dict[str, Any]]:
     ppvars = {
         'ndens-eos': dict(
             dependencies=['rho'],
             save=False,
-            func=lambda rho, *_, **__: rho/eos.get_mbary50(),
+            func=lambda rho, *_, **__: rho/eos.mbary50,
             plot_name_kwargs=dict(name="number density [fm$^{-3}$]"),
             kwargs=dict(cmap='viridis'),
             scale_factor=1/Units['Length']**3/1e4
@@ -34,7 +34,7 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
         'h-inf': dict(
             dependencies=['ye'],
             func=eos.get_inf_caller(['internalEnergy'],
-                                    func=lambda eps, mfac, *_, **__:
+                                    func=lambda eps, *_, **__:
                                     1 + eps),
             plot_name_kwargs=dict(name=r"$h_\infty$"),
             kwargs=dict(cmap='cubehelix'),
@@ -42,7 +42,7 @@ def pp_variables(eos: EOS) -> Dict[str, Dict[str, Any]]:
         'eps-eos': dict(
             dependencies=['ye', 'temp', 'rho'],
             func=eos.get_caller(['internalEnergy'],
-                                func=lambda eps, *_, **kw: eps),
+                                func=lambda eps, *_, **__: eps),
             plot_name_kwargs=dict(name="specific internal energy"),
             kwargs=dict(cmap='inferno'),
         ),

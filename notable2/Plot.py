@@ -259,8 +259,8 @@ def plotGD(sim: "Simulation",
         # ----------------Tidy up kwargs-----------------------------------
         for kw in ['cmap']:
             kwargs.pop(kw)
-        if 'c' not in kwargs and 'color' not in kwargs and hasattr(sim, 'color'):
-            kwargs["color"] = sim.color
+        if 'c' not in kwargs and 'color' not in kwargs and "color" in sim.properties:
+            kwargs["color"] = sim.properties["color"]
 
         # ----------------Plotting-----------------------------------------
 
@@ -469,8 +469,8 @@ def plotTS(sim: "Simulation",
     kwargs = {**var_kwargs, **kwargs}
 
     kwargs, PPkwargs = _handle_PPkwargs(kwargs, var)
-    if 'c' not in kwargs and 'color' not in kwargs and hasattr(sim, 'color'):
-        kwargs["color"] = sim.color
+    if 'c' not in kwargs and 'color' not in kwargs and "color" in sim.properties:
+        kwargs["color"] = sim.properties["color"]
 
     # -------------data handling-------------------------------------------
     av_its = var.available_its(**PPkwargs)
@@ -614,7 +614,7 @@ def plotHist(sim: "Simulation",
              title: Union[bool, str] = True,
              xlabel: Union[bool, str] = True,
              ylabel: Union[bool, str] = True,
-             cmap: str = None,
+             cmap: Optional[str] = None,
              cbar: bool = True,
              norm: Optional[Normalize] = None,
              # ------------------------------------------------------

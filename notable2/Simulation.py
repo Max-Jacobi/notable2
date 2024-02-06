@@ -5,6 +5,7 @@ from typing import Optional, Type, Callable, overload, Any, TYPE_CHECKING, Dict
 from collections.abc import Iterable
 from time import sleep
 from types import MethodType
+import json
 
 import numpy as np
 from scipy.signal import find_peaks  # type: ignore
@@ -22,7 +23,7 @@ from .Plot import plotGD, plotTS, animateGD, plotHist
 from .Animations import GDAniFunc, TSLineAniFunc
 
 
-from tabulatedEOS import TabulatedEOS, EOS
+from tabulatedEOS.PizzaEOS import PizzaEOS
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -52,13 +53,14 @@ class Simulation():
     rls: Dict[int, 'NDArray[np.int_]']
     finest_rl: Dict[int, int]
     data_handler: DataHandler
-    eos: EOS
+    eos: PizzaEOS
     is_cartoon: bool
     verbose: int = 0
     pp_hdf5_path: str
     pp_grid_func_variables: Dict[str, Dict[str, Any]]
     pp_time_series_variables: Dict[str, Dict[str, Any]]
     pp_gw_variables: Dict[str, Dict[str, Any]]
+    properties: Dict[str, Any]
     plotGD: Callable
     plotTS: Callable
     plotHist: Callable
@@ -76,13 +78,13 @@ class Simulation():
         self.sim_name = basename(sim_path)
         self.nice_name = self.sim_name
         self.is_cartoon = is_cartoon
+        self.properties = dict()
 
         self.data_handler = data_handler(self) if data_handler is not None \
             else config.default_data_handler(self)
-        if eos_path == 'ideal':
-            ...
-        else:
-            self.eos = TabulatedEOS(eos_path)
+        # TODO: Add support for other EOSs by creating a EOS factory based on
+        # the content in the path
+        self.eos = PizzaEOS(eos_path)
 
         self._offset = offset if offset is not None else dict(x=0, y=0, z=0)
 
@@ -96,13 +98,20 @@ class Simulation():
         self.pp_time_series_variables = {}
         self.pp_gw_variables = {}
         self.read_PPVariables()
+        self.read_properties()
 
         self.pp_hdf5_path = f"{self.sim_path}/PPVars"
         if not os.path.isdir(self.pp_hdf5_path):
             os.mkdir(self.pp_hdf5_path)
 
         self.ADM_M, self.ADM_J = self.get_ADM_MJ() if not self.is_cartoon else (None, None)
-        self.t_merg = self.get_t_merg() if not self.is_cartoon else None
+        try:
+            if self.is_cartoon:
+                self.t_merg = None
+            else:
+                self.t_merg = self.get_t_merg()
+        except (ValueError, KeyError, OSError):
+            self.t_merg = None
 
         self.plotGD = MethodType(plotGD, self)
         self.plotTS = MethodType(plotTS, self)
@@ -377,3 +386,26 @@ class Simulation():
                 hf[nk].attrs.update(hf[kk].attrs)
                 del hf[kk]
             hf.flush()
+
+    def write_properties(self, **properties):
+        """
+        Write properties json file containing the given properties.
+        """
+        with open(f"{self.sim_path}/properties.json", 'w') as file:
+            json.dump(properties, file, indent=4)
+        self.read_properties()
+
+    def read_properties(self):
+        """
+        Read properties json file
+        """
+        if not os.path.isfile(f"{self.sim_path}/properties.json"):
+            return
+
+        with open(f"{self.sim_path}/properties.json", 'r') as file:
+            self.properties = json.load(file)
+
+        # if property is a attribute of simulation and has a fitting type set it
+        for key in list(self.properties):
+            if hasattr(self, key) and isinstance(self.properties[key], type(getattr(self, key))):
+                setattr(self, key, self.properties.pop(key))

@@ -49,7 +49,7 @@ class Variable(ABC):
         return f"{self.__class__.__name__} {self.key}"
 
     def __str__(self):
-        return f"{self.plot_name} ({self.key})"
+        return f"{self.key}"
 
 
 class TimeSeriesBaseVariable(Variable, ABC):
@@ -257,11 +257,13 @@ class GridFuncVariable(NativeVariable, GridFuncBaseVariable):
     def __init__(self, key: str, sim: "Simulation", ):
         super().__init__(key, sim, config.GridFuncVariable_json)
 
-    def get_data(self,
-                 region: str,
-                 it: int,
-                 exclude_ghosts: int = 0,
-                 **kwargs) -> GridFunc:
+    def get_data(
+        self,
+        region: str,
+        it: int,
+        exclude_ghosts: int = 0,
+        **kwargs
+        ) -> GridFunc:
 
         coords = self.sim.get_coords(
             region=region, it=it, exclude_ghosts=exclude_ghosts)

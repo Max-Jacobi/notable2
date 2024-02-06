@@ -7,5 +7,4 @@ from matplotlib.colors import ColorConverter
 from .Simulation import Simulation
 from .Animations import Animation
 from .Utils import U, RU, RUnits, Units
-
-from tabulatedEOS import TabulatedEOS
+from .Plot import plotGD, plotTS

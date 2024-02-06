@@ -123,6 +123,14 @@ def _radius_format_func(code_units=False, **kwargs):
     return "no_radius"
 
 
+def _ej_flow(vr, dens, u_t, *_, **__):
+    return _mass_flow(vr, dens) * (u_t < -1)
+
+
+def _ej_tidal_flow(vr, dens, u_t, ye, *_, **__):
+    return _mass_flow(vr, dens) * (u_t < -1) * (ye < .1)
+
+
 pp_variables = {
     'psi-max': dict(
         backups=["phi-max-BSSN"],
@@ -558,7 +566,7 @@ pp_variables = {
             unit=r"$M_\odot$",
             format_opt=dict(
                 inner_r=_radius_format_func,
-                outer_r=_radius_format_func
+                outer_r=_radius_format_func,
             ),
         ),
         reduction=integral,
@@ -757,7 +765,7 @@ pp_variables = {
     ),
     'M-ejg-esc-dot': dict(
         dependencies=("V^r", "dens", "u_t"),
-        func=lambda vr, dens, u_t, *_, **__: _mass_flow(vr, dens) * (u_t < -1),
+        func=_ej_flow,
         plot_name_kwargs=dict(
             name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
@@ -817,12 +825,11 @@ pp_variables = {
         save=False,
         PPkeys=dict(radius=1000),
     ),
-    'M-ejb-esc-dot': dict(
-        dependencies=("V^r", "dens", "h-u_t"),
-        func=lambda vr, dens, hu_t, *_, **__:
-        _mass_flow(vr, dens) * (hu_t < -1),
+    'M-ej-tidal-esc-dot': dict(
+        dependencies=("V^r", "dens", "u_t", "ye"),
+        func=_ej_tidal_flow,
         plot_name_kwargs=dict(
-            name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
+            name=r"$\dot{M}_{\rm ej, tidal}$ ($r=$radius)",
             unit=r"$M_\odot$ ms$^{-1}$",
             code_unit="",
             format_opt=dict(
@@ -830,6 +837,34 @@ pp_variables = {
                 (f"{radius:.0f} " + '$M_\\odot$' if code_units
                  else f"{radius*Units['Length']:.0f} km")
             ),
+        ),
+        reduction=sphere_surface_integral,
+        scale_factor=RUnits['Time'],
+        PPkeys=dict(radius=1000),
+    ),
+    'M-ej-tidal-esc': dict(
+        dependencies=("M-ej-tidal-esc-dot",),
+        func=_time_int,
+        plot_name_kwargs=dict(
+            name=r"$M_{\rm ej, esc, tidal}$ ($r=$radius)",
+            unit=r"$M_\odot$",
+            format_opt=dict(
+                radius=lambda radius, code_units:
+                (f"{radius:.0f} " + '$M_\\odot$' if code_units
+                 else f"{radius*Units['Length']:.0f} km")
+            ),
+        ),
+        save=False,
+        PPkeys=dict(radius=1000),
+    ),
+    'M-ejb-esc-dot': dict(
+        dependencies=("V^r", "dens", "h-u_t"),
+        func=_ej_flow,
+        plot_name_kwargs=dict(
+            name=r"$\dot{M}_{\rm ej}$ ($r=$radius)",
+            unit=r"$M_\odot$ ms$^{-1}$",
+            code_unit="",
+            format_opt=dict(radius=_radius_format_func),
         ),
         reduction=sphere_surface_integral,
         scale_factor=RUnits['Time'],
@@ -853,12 +888,12 @@ pp_variables = {
     'M-ejdiff-esc-dot': dict(
         dependencies=("M-ejb-esc-dot", "M-ejg-esc-dot"),
         func=lambda bb, gg, *_, **__: bb - gg,
-            name=r"$M_{\rm ej, esc}$ ($r=$radius)",
-            unit=r"$M_\odot$",
-            format_opt=dict(
-                radius=lambda radius, code_units:
-                (f"{radius:.0f} " + '$M_\\odot$' if code_units
-                 else f"{radius*Units['Length']:.0f} km")
+        name=r"$M_{\rm ej, esc}$ ($r=$radius)",
+        unit=r"$M_\odot$",
+        format_opt=dict(
+            radius=lambda radius, code_units:
+            (f"{radius:.0f} " + '$M_\\odot$' if code_units
+             else f"{radius*Units['Length']:.0f} km")
         ),
         save=False,
         PPkeys=dict(radius=1000),
@@ -1269,12 +1304,13 @@ pp_variables = {
         dependencies=('h+', 'hx'),
         func=lambda hp, hx, *_, **__: np.abs(hp-1j*hx),
         save=False,
-        plot_name_kwargs=dict(name="$|h^{ll mm}|$",
-                              format_opt=dict(
-                                  ll=lambda ll, **_: str(ll),
-                                  mm=lambda mm, **_: str(mm)
-                              )
-                              ),
+        plot_name_kwargs=dict(
+            name="$|h^{ll mm}|$",
+            format_opt=dict(
+                ll=lambda ll, **_: str(ll),
+                mm=lambda mm, **_: str(mm)
+            )
+        ),
         PPkeys=dict(ll=2, mm=2, power=1, n_points=3000, u_junk=200.)
     ),
     'm-decomp-r': dict(
