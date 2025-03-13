@@ -3,19 +3,14 @@
 import os
 from typing import Type, List
 from . import Utils
-from .DataHandlers import PackET2Handler, DataHandler
+from .DataHandlers import PackET2Handler, DataHandler, PackETHandler
 
 
-home = os.environ["HOME"]
 notable_dir = os.path.dirname(Utils.__file__)
-if (xdg_config_home := os.environ["XDG_CONFIG_HOME"]) == "":
-    if home != "":
-        xdg_config_home = f"{home}/.config"
-
 
 class Config():
     """Holds default parameters"""
-    default_data_handler: Type[DataHandler] = PackET2Handler
+    default_data_handler: Type[DataHandler] = PackETHandler
     GridFuncVariable_json: str = f"{notable_dir}/GridFuncVariables.json"
     TimeSeriesVariables_json: str = f"{notable_dir}/TimeSeriesVariables.json"
     PPGridFuncVariable_files: List[str] = [f"{notable_dir}/PPHydroVariables.py",

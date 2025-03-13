@@ -10,7 +10,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 from pickle import loads
 from gzip import decompress
-from h5py import File  # type: ignore
+import os
+import h5py as h5
 import numpy as np
 
 from .Utils import VariableError
@@ -53,12 +54,12 @@ class DataHandler(ABC):
         ...
 
 
-class PackETHandler(DataHandler):
+class OldPackETHandler(DataHandler):
     """Data getter for packETed data"""
 
     def __init__(self, sim: "Simulation"):
         super().__init__(sim)
-        self.data = File(f'{self.sim.sim_path}/{self.sim.sim_name}.hdf5', 'r')
+        self.data = h5.File(f'{self.sim.sim_path}/{self.sim.sim_name}.hdf5', 'r')
         self.structure = loads(decompress(
             self.data["structure"][()]), fix_imports=False)
 
@@ -112,6 +113,93 @@ class PackETHandler(DataHandler):
             raise VariableError(f"{key} not found in simulation {self.sim}")
 
 
+class PackETHandler(DataHandler):
+    """Data getter for packETed data"""
+
+    def __init__(self, sim: "Simulation"):
+        super().__init__(sim)
+        self.data_dir = f'{self.sim.sim_path}/packET_data'
+
+    def get_structure(self, ):
+        if os.path.isfile(f"{self.data_dir}/structure.h5"):
+            with h5.File(f"{self.data_dir}/structure.h5", 'r') as hf:
+                itr = tuple(np.array(hf[key][:]) for key in ('its', 'times', 'restarts'))
+                sdict = _hdf5_to_dict(hf['structure'])
+                itdict = _hdf5_to_dict(hf['available_its'])
+            return itr, sdict, itdict
+
+        sdict = {}
+        itdict = {}
+        iterations, times = [], []
+
+        for reg in "x y z xy xz yz xyz".split():
+            for h5filename in os.listdir(f"{self.data_dir}/{reg}"):
+                key = h5filename.split(".")[0]
+                with h5.File(f"{self.data_dir}/{reg}/{h5filename}", 'r') as hf:
+                    its = np.array([int(it_str) for it_str in hf])
+                    for it_str in hf.keys():
+                        it = int(it_str)
+                        iterations.append(it)
+                        times.append(hf[it_str].attrs['time'])
+                        if it not in sdict:
+                            sdict[it] = {}
+                        for rl_str in hf[it_str].keys():
+                            rl = int(rl_str)
+                            if rl not in sdict[it]:
+                                sdict[it][rl] = {}
+                            if reg in sdict[it][rl]:
+                                continue
+                            orig = np.array(hf[f"{it_str}/{rl_str}"].attrs['origin'][:])
+                            dx = np.array(hf[f"{it_str}/{rl_str}"].attrs['delta'][:])
+                            nn = np.array(hf[f"{it_str}/{rl_str}"].shape)
+                            sdict[it][rl][reg] = (orig, dx, nn)
+                if key not in itdict:
+                    itdict[key] = {}
+                itdict[key][reg] = its
+
+        iterations = np.array(iterations)
+        times = np.array(times)
+        iterations, ii = np.unique(iterations, return_index=True)
+        times = times[ii]
+        restarts = np.zeros_like(iterations)
+        with h5.File(f"{self.data_dir}/structure.h5", 'w') as hf:
+            hf['its'] = iterations
+            hf['times'] = times
+            hf['restarts'] = restarts
+
+            _dict_to_hdf5(hf.create_group('structure'), sdict)
+            _dict_to_hdf5(hf.create_group('available_its'), itdict)
+
+        return (iterations, times, restarts), sdict, itdict
+
+
+    def get_grid_func(self, key: str, rl: int, it: int, region: str) -> 'NDArray[np.float_]':
+        dset_path = f'{it:010d}/{rl:02d}'
+        try:
+            with h5.File(f'{self.data_dir}/{region}/{key}.hdf5', 'r') as hf:
+                dat = hf[dset_path][:]
+            return dat
+        except h5.FileNotFoundError as excp:
+            raise VariableError(
+                f"{key} not found in simulation {self.sim}") from excp
+        except OSError as excp:
+            raise VariableError(
+                f"{key} data is corrupted in simulation {self.sim}") from excp
+        except KeyError as excp:
+            raise VariableError(
+                f"Data (it: {it}, rl: {rl}, region:{region}) "
+                f"not found in data {key}.h5 of simulation {self.sim}"
+            ) from excp
+
+    def get_time_series(self, key):
+        try:
+            with h5.File(f'{self.data_dir}/time_series/{key}.hdf5', 'r') as hf:
+                it, time, dat = hf[key][:]
+            return it, time, dat, np.zeros_like(it)
+        except KeyError as excp:
+            raise VariableError(
+                f"{key} not found in simulation {self.sim}") from excp
+
 class PackET2Handler(DataHandler):
     """Data getter for packETed data"""
 
@@ -124,7 +212,7 @@ class PackET2Handler(DataHandler):
         sdict = {}
         itdict = {}
 
-        with File(self.structure_file, 'r') as hf:
+        with h5.File(self.structure_file, 'r') as hf:
             # set iterations, times and restarts arrays
             itr = (hf['iterations'][:], hf['times'][:], hf['restarts'][:])
 
@@ -145,10 +233,10 @@ class PackET2Handler(DataHandler):
     def get_grid_func(self, key: str, rl: int, it: int, region: str) -> 'NDArray[np.float_]':
         dset_path = f'{region}/{it:08d}/{rl:02d}'
         try:
-            with File(f'{self.data_dir}/{key}.h5', 'r') as hf:
+            with h5.File(f'{self.data_dir}/{key}.h5', 'r') as hf:
                 dat = hf[dset_path][:]
             return dat
-        except FileNotFoundError as excp:
+        except h5.FileNotFoundError as excp:
             raise VariableError(
                 f"{key} not found in simulation {self.sim}") from excp
         except OSError as excp:
@@ -162,9 +250,31 @@ class PackET2Handler(DataHandler):
 
     def get_time_series(self, key):
         try:
-            with File(f'{self.data_dir}/time_series.h5', 'r') as hf:
+            with h5.File(f'{self.data_dir}/time_series.h5', 'r') as hf:
                 dat = hf[key][:]
             return dat
         except KeyError as excp:
             raise VariableError(
                 f"{key} not found in simulation {self.sim}") from excp
+
+def _hdf5_to_dict(h5_obj):
+    result = {}
+    for key, item in h5_obj.items():
+        try:
+            key = int(key)
+        except ValueError:
+            pass
+        if isinstance(item, h5.Dataset):
+            result[key] = item[()]  # efficiently extract dataset content
+        elif isinstance(item, h5.Group):
+            result[key] = _hdf5_to_dict(item)  # recursively handle groups
+    return result
+
+def _dict_to_hdf5(h5_obj, data_dict):
+    for key, item in data_dict.items():
+        key = str(key)
+        if isinstance(item, dict):
+            group = h5_obj.create_group(key)
+            _dict_to_hdf5(group, item)  # Recursive call for nested dictionaries
+        else:
+            h5_obj.create_dataset(key, data=item)
