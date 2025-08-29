@@ -179,7 +179,7 @@ class PackETHandler(DataHandler):
             with h5.File(f'{self.data_dir}/{region}/{key}.hdf5', 'r') as hf:
                 dat = hf[dset_path][:]
             return dat
-        except h5.FileNotFoundError as excp:
+        except FileNotFoundError as excp:
             raise VariableError(
                 f"{key} not found in simulation {self.sim}") from excp
         except OSError as excp:
@@ -236,7 +236,7 @@ class PackET2Handler(DataHandler):
             with h5.File(f'{self.data_dir}/{key}.h5', 'r') as hf:
                 dat = hf[dset_path][:]
             return dat
-        except h5.FileNotFoundError as excp:
+        except FileNotFoundError as excp:
             raise VariableError(
                 f"{key} not found in simulation {self.sim}") from excp
         except OSError as excp:

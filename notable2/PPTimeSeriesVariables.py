@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import cumtrapz  # type: ignore
+from scipy.integrate import cumulative_trapezoid as cumtrapz  # type: ignore
 from notable2.Reductions import *
 from notable2.Utils import Units, RUnits
 

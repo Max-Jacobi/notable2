@@ -371,7 +371,7 @@ def plotGD(sim: "Simulation",
             else:
                 im[rl] = ax.imshow(
                     dat.T, origin='lower', extent=extent, norm=norm, zorder=.9+.001*rl, **kwargs)
-        plot_2d = Plot2D(im, norm, **kwargs)
+        plot_2d = Plot2D(im, norm, mirror=mirror, **kwargs)
 
         # ----------------Plot Finish--------------------------------------
 

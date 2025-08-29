@@ -58,12 +58,19 @@ class PlotName():
         return f"PlotName: {self.name}"
 
 
+L_conv =
+conv_code2erg =
+e_conv = conv_code2erg*conv_erg2mev
+
+
 Units = {"Rho": 6.175828477586656e+17,  # g/cm^3
          "Eps":  8.9875517873681764e+20,  # erg/g
          "Press":  5.550725674743868e+38,  # erg/cm^3
          "Mass": 1.988409870967742e+33,  # g
          "Energy": 1.7870936689836656e+3,  # 50 erg
          "Time": 0.004925490948309319,  # ms
+         "NuLum": 3.628132869648639e+59, # erg/s
+         "NuEn": 1.11545707207968e+60, # MeV
          "Length":  1.4766250382504018}  # km
 RUnits = {"Rho":  1.6192159539877191e-18,
           "Press":  1.8015662430410847e-39,
@@ -71,6 +78,8 @@ RUnits = {"Rho":  1.6192159539877191e-18,
           "Mass":  5.028992139685286e-34,
           "Energy":  5.595508386114039e-55,
           "Time":  203.02544670054692,
+          "NuLum": 2.756238638241613e-60,
+          "NuEn": 8.96493486867747e-61,
           "Length":  0.6772199943086858}
 
 
@@ -123,6 +132,7 @@ class Plot2D(Mapping):
     def __init__(self,
                  dictionary: Dict[int, (AxesImage | QuadContourSet)],
                  norm: Normalize,
+                 mirror: Optional[str] = None,
                  cax: Optional[Axes] = None,
                  **kwargs):
         self._dict = dictionary
@@ -134,6 +144,7 @@ class Plot2D(Mapping):
         self.axes = self.first.axes
         self.kwargs = kwargs
         self.cax = cax
+        self.mirror = mirror
 
     def __getitem__(self, rl):
         return self._dict[rl]
@@ -159,5 +170,10 @@ class Plot2D(Mapping):
             dx = xx[1] - xx[0]
             dy = yy[1] - yy[0]
             extent = [xx[0]-dx/2, xx[-1]+dx/2, yy[0]-dy/2, yy[-1]+dy/2]
+            dat = data[rl]
+            if self.mirror is not None:
+                if 'y' in self.mirror:
+                    extent[2:] = [-yy[-1]-dy/2, -yy[0]+dy/2]
+                    dat[:] = dat[:, ::-1]
             self[rl].set_extent(extent)
-            self[rl].set_data(data[rl].T)
+            self[rl].set_data(dat.T)

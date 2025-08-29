@@ -35,7 +35,7 @@ class AniFunc(ABC):
         ...
 
     @abstractmethod
-    def __call__(self, time: np.float_):
+    def __call__(self, time: np.float64):
         ...
 
 
@@ -69,7 +69,7 @@ class Animation:
     """
 
     init_func: Optional[Callable]
-    times: 'NDArray[np.float_]'
+    times: 'NDArray[np.float64]'
     min_time: Optional[float]
     max_time: Optional[float]
     every: int
@@ -117,7 +117,7 @@ class Animation:
         if self.init_func is not None:
             self.init_func()
 
-    def _animate(self, time: np.float_):
+    def _animate(self, time: np.float64):
         for func in self.funcs:
             func(time)
 
@@ -159,7 +159,7 @@ class GDAniFunc(AniFunc):
     key: str
     var: Variable
     its: 'NDArray[np.int_]'
-    times: 'NDArray[np.float_]'
+    times: 'NDArray[np.float64]'
     image: (Plot2D | plt.Line2D)
     min_time: Optional[float]
     max_time: Optional[float]
@@ -247,7 +247,7 @@ class GDAniFunc(AniFunc):
                  # -----------Variable kwargs----------------------------
                  func: Optional[(Callable | str | bool)] = None,
                  # ------------------------------------------------------
-                 ** kwargs):
+                 **kwargs):
         self.sim = sim
         self.key = key
         self.var = sim.get_variable(key)
@@ -348,7 +348,7 @@ class GDAniFunc(AniFunc):
 
         self.kwargs, _ = _handle_PPkwargs(self.kwargs, self.var)
 
-    def __call__(self, time: np.float_):
+    def __call__(self, time: np.float64):
         if time > max(self.times):
             if len(self.region) == 1:
                 self.image.set_data([], [])
@@ -442,7 +442,7 @@ class TSLineAniFunc(AniFunc):
     def _init(self):
         self.im = self.ax.axvline(0, **self.kwargs)
 
-    def __call__(self, time: np.float_):
+    def __call__(self, time: np.float64):
         if not self.code_units:
             time *= Units['Time']
         self.im.set_xdata(time)
@@ -478,7 +478,7 @@ class ContourAniFunc(GDAniFunc):
                                                 self.image.norm.vmax,
                                                 self.kwargs['levels'])
 
-    def __call__(self, time: np.float_):
+    def __call__(self, time: np.float64):
         # this is the same as GDAniFunc.__call__ except for the setting of the
         # new data
         if time not in self.times:
@@ -567,5 +567,5 @@ class AnyAniFunc(AniFunc):
         if self.init_func is not None:
             self.init_func()
 
-    def __call__(self, time: np.float_):
+    def __call__(self, time: np.float64):
         self.ani_func(time)
